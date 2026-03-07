@@ -206,6 +206,36 @@ select.finput{cursor:pointer;}
 .gsr-sub{font-size:11px;color:var(--muted);margin-left:auto;}
 .gsr-type{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface3);color:var(--muted);}
 
+/* ── CHARTS ── */
+.chart-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px;}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.chart-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:100px;}
+.bar{background:var(--accent);border-radius:3px 3px 0 0;min-width:8px;flex:1;position:relative;transition:height 0.3s;cursor:pointer;}
+.bar:hover{background:var(--accent2);}
+.bar-tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--surface3);color:var(--text);font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;margin-bottom:4px;border:1px solid var(--border);}
+.bar:hover .bar-tip{display:block;}
+.bar-labels{display:flex;gap:3px;margin-top:4px;}
+.bar-labels span{flex:1;font-size:9px;color:var(--muted);text-align:center;overflow:hidden;text-overflow:ellipsis;}
+.fourn-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.fourn-bar-bg{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.fourn-bar{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
+.fourn-name{font-size:11px;font-weight:600;width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fourn-count{font-size:11px;color:var(--muted);width:40px;text-align:right;}
+.top-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.top-row:last-child{border-bottom:none;}
+.top-rank{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--accent);width:24px;text-align:center;}
+.top-name{flex:1;font-weight:600;}
+.top-count{color:var(--muted);font-size:11px;}
+
+/* ── INLINE EDIT ── */
+.iedit{display:flex;align-items:center;gap:4px;}
+.iedit-val{cursor:pointer;padding:2px 6px;border-radius:4px;transition:background 0.1s;flex:1;text-align:right;font-weight:500;font-size:12px;}
+.iedit-val:hover{background:var(--surface3);}
+.iedit-input{background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:3px 6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;width:100%;text-align:right;}
+.iedit-icon{font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;}
+.iedit-icon:hover{color:var(--accent);}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1100px){:root{--drawer-w:340px;}}
 @media(max-width:900px){.qfilters{display:none;}}
@@ -288,8 +318,12 @@ select.finput{cursor:pointer;}
           <div class="work-body" id="accueil-body">
             <!-- Stats -->
             <div class="stats stats-4" id="acc-stats"></div>
+            <!-- Charts -->
+            <div class="chart-row" id="acc-charts"></div>
+            <!-- Top intermediaires -->
+            <div id="acc-top-interm"></div>
             <!-- Todo cards -->
-            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">À traiter</div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;margin-top:16px;">À traiter</div>
             <div id="acc-todos"></div>
             <!-- Recent -->
             <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px;">Activité récente</div>
@@ -605,6 +639,69 @@ function renderAccueil(){
     <div class="scard"><div class="scard-label">Nouveaux ce mois</div><div class="scard-val v-green">${newMois}</div><div class="scard-sub">contrats</div></div>
   `;
 
+  // ── Charts ──
+  // 1) Bar chart: contrats par mois (12 derniers mois)
+  const monthData={};
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    monthData[k]=0;
+  }
+  allContrats.forEach(c=>{const d=(c.created_at||'').substring(0,7);if(monthData[d]!==undefined)monthData[d]++;});
+  const monthKeys=Object.keys(monthData);
+  const monthVals=Object.values(monthData);
+  const maxMonth=Math.max(...monthVals,1);
+  const barHtml=monthKeys.map((k,i)=>{
+    const h=Math.max(2,Math.round(monthVals[i]/maxMonth*100));
+    const label=k.substring(5);
+    return `<div class="bar" style="height:${h}px"><div class="bar-tip">${label}: ${monthVals[i]}</div></div>`;
+  }).join('');
+  const labelHtml=monthKeys.map(k=>`<span>${k.substring(5)}</span>`).join('');
+
+  // 2) Fournisseur distribution (top 8)
+  const fournCount={};
+  allContrats.forEach(c=>{const f=normFourn(c.fournisseur);if(f){fournCount[f]=(fournCount[f]||0)+1;}});
+  const fournSorted=Object.entries(fournCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxFourn=fournSorted.length?fournSorted[0][1]:1;
+  const fournHtml=fournSorted.map(([name,count])=>`
+    <div class="fourn-row">
+      <div class="fourn-name">${esc(name)}</div>
+      <div class="fourn-bar-bg"><div class="fourn-bar" style="width:${Math.round(count/maxFourn*100)}%"></div></div>
+      <div class="fourn-count">${count}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('acc-charts').innerHTML=`
+    <div class="chart-box">
+      <div class="chart-title">Nouveaux contrats / mois</div>
+      <div class="bar-chart">${barHtml}</div>
+      <div class="bar-labels">${labelHtml}</div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Par fournisseur</div>
+      ${fournHtml||'<div style="color:var(--muted);font-size:12px;">Aucune donnée</div>'}
+    </div>
+  `;
+
+  // 3) Top 5 intermédiaires
+  const intermCount={};
+  allContrats.forEach(c=>{
+    if(!c.source)return;
+    const email=c.source.toLowerCase();
+    intermCount[email]=(intermCount[email]||0)+1;
+  });
+  const topInterm=Object.entries(intermCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(topInterm.length){
+    const topHtml=topInterm.map(([email,count],i)=>{
+      const p=allPersonnes.find(pp=>pp.email&&pp.email.toLowerCase()===email);
+      const name=p?[p.prenom,p.nom].filter(Boolean).join(' '):email;
+      return `<div class="top-row"><div class="top-rank">${i+1}</div><div class="top-name">${esc(name)}</div><div class="top-count">${count} contrats</div></div>`;
+    }).join('');
+    document.getElementById('acc-top-interm').innerHTML=`<div class="chart-box" style="margin-bottom:16px;"><div class="chart-title">Top intermédiaires</div>${topHtml}</div>`;
+  }else{
+    document.getElementById('acc-top-interm').innerHTML='';
+  }
+
   // Todos
   const todos=[];
   if(attente)todos.push({icon:'⏳',title:`${attente} contrats en attente`,sub:'À traiter en priorité',count:attente,action:()=>quickFilter('en_attente')});
@@ -919,6 +1016,7 @@ function renderContratDrawer(id){
   document.getElementById('drawer-title').innerHTML=`📄 ${c.id_service||'Contrat'}`;
   document.getElementById('drawer-tabs').innerHTML=`
     <div class="drawer-tab active" onclick="switchDrawerTab(this,'dt-apercu')">Aperçu</div>
+    <div class="drawer-tab" onclick="switchDrawerTab(this,'dt-cedit')">✏️ Modifier</div>
     <div class="drawer-tab" onclick="switchDrawerTab(this,'dt-client')">Client</div>
     <div class="drawer-tab" onclick="switchDrawerTab(this,'dt-adresse')">Adresse</div>
   `;
@@ -937,6 +1035,22 @@ function renderContratDrawer(id){
       ${drow('Source',c.source||'—')}
       ${drow('Inscrit par',c.inscrit_par||'—')}
       ${comm?`<div class="dsection">Commission</div>${drow('Montant HT',comm.montant+'€')}${drow('TTC',(parseFloat(comm.montant)*1.2).toFixed(2)+'€')}${drow('Statut',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}`:''}
+    </div>
+    <div id="dt-cedit" style="display:none">
+      <div class="dsection">Modifier contrat</div>
+      ${editField('ce-status','Statut',c.contrat_status,'select','en_attente|en_traitement|actif|annule|refuse')}
+      ${editField('ce-fournisseur','Fournisseur',c.fournisseur)}
+      ${editField('ce-id_fournisseur','ID Fournisseur',c.id_fournisseur)}
+      ${editField('ce-energie','Énergie',c.energie_type,'select','elec|gaz|elec+gaz')}
+      ${editField('ce-formule','Formule',c.formule)}
+      ${editField('ce-option','Option tarifaire',c.option_tarifaire,'select','BASE|HP/HC|TEMPO|EJP')}
+      ${editField('ce-date','Date début',c.date_debut,'date')}
+      ${editField('ce-source','Source',c.source)}
+      ${editField('ce-inscrit','Inscrit par',c.inscrit_par)}
+      <div style="margin-top:14px;display:flex;gap:6px;">
+        <button class="abtn g" onclick="saveContratEdit('${id}')">💾 Sauver</button>
+      </div>
+    </div>
     </div>
     <div id="dt-client" style="display:none">
       <div class="dsection">Client</div>
@@ -976,6 +1090,7 @@ function renderPersonneDrawer(id){
   document.getElementById('drawer-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}`;
   document.getElementById('drawer-tabs').innerHTML=`
     <div class="drawer-tab active" onclick="switchDrawerTab(this,'dt-profil')">Profil</div>
+    <div class="drawer-tab" onclick="switchDrawerTab(this,'dt-edit')">✏️ Modifier</div>
     <div class="drawer-tab" onclick="switchDrawerTab(this,'dt-contrats')">Contrats (${contrats.length})</div>
   `;
   document.getElementById('drawer-body').innerHTML=`
@@ -993,6 +1108,22 @@ function renderPersonneDrawer(id){
       ${drow('Note',p.note||'—')}
       ${drow('Naissance',fmtDate(p.date_naissance))}
     </div>
+    <div id="dt-edit" style="display:none">
+      <div class="dsection">Modifier</div>
+      ${editField('pe-civilite','Civilité',p.civilite,'select','M.|Mme|M. & Mme')}
+      ${editField('pe-prenom','Prénom',p.prenom)}
+      ${editField('pe-nom','Nom',p.nom)}
+      ${editField('pe-email','Email',p.email,'email')}
+      ${editField('pe-tel','Téléphone',p.telephone,'tel')}
+      ${editField('pe-wechat','WeChat',p.wechat)}
+      ${editField('pe-login','Login',p.login)}
+      ${editField('pe-note','Note',p.note)}
+      ${editField('pe-cat','Catégorie',p.categorie,'select','|A|B|C|D|VIP')}
+      <div style="margin-top:14px;display:flex;gap:6px;">
+        <button class="abtn g" onclick="savePersonneEdit('${id}')">💾 Sauver</button>
+        <button class="abtn" onclick="switchDrawerTab(document.querySelector('.drawer-tab'),\'dt-profil\')">Annuler</button>
+      </div>
+    </div>
     <div id="dt-contrats" style="display:none">
       ${contrats.length?contrats.map(c=>`<div class="todo" onclick="openEntity('contrat','${c.id}')">
         <div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':'📋'}</div>
@@ -1000,7 +1131,10 @@ function renderPersonneDrawer(id){
       </div>`).join(''):'<div style="color:var(--muted);font-size:12px;">Aucun contrat</div>'}
     </div>
   `;
-  document.getElementById('drawer-actions').innerHTML=`<button class="abtn" onclick="editPersonne('${id}')">✏️ Modifier</button>`;
+  document.getElementById('drawer-actions').innerHTML=`
+    <button class="abtn" onclick="switchDrawerTab(document.querySelectorAll('.drawer-tab')[1],'dt-edit')">✏️ Modifier</button>
+    <button class="abtn" onclick="copyText('${p.email||p.id}')">📋 Copier</button>
+  `;
 }
 
 function renderCommDrawer(id){
@@ -1159,7 +1293,62 @@ function updateBadges(){
 }
 function showToast(msg,isErr){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(isErr?' error':'');setTimeout(()=>t.className='toast',3000);}
 function copyText(t){navigator.clipboard.writeText(t);showToast('Copié: '+t);}
-function editPersonne(id){showToast('Édition en développement');}
+function editPersonne(id){openEntity('personne',id);setTimeout(()=>{const tabs=document.querySelectorAll('.drawer-tab');if(tabs[1])switchDrawerTab(tabs[1],'dt-edit');},100);}
+
+// Edit field generator
+function editField(id,label,val,type,options){
+  type=type||'text';
+  if(type==='select'){
+    const opts=(options||'').split('|').map(o=>`<option value="${o}" ${o===val?'selected':''}>${o||'—'}</option>`).join('');
+    return `<div style="margin-bottom:10px;"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:3px;">${label}</label><select class="finput" id="${id}" style="width:100%;padding:6px 8px;font-size:12px;">${opts}</select></div>`;
+  }
+  return `<div style="margin-bottom:10px;"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:3px;">${label}</label><input class="finput" type="${type}" id="${id}" value="${esc(val||'')}" style="width:100%;padding:6px 8px;font-size:12px;"></div>`;
+}
+
+async function savePersonneEdit(id){
+  const body={
+    civilite:document.getElementById('pe-civilite')?.value||null,
+    prenom:document.getElementById('pe-prenom')?.value.trim()||null,
+    nom:document.getElementById('pe-nom')?.value.trim()||null,
+    email:document.getElementById('pe-email')?.value.trim()||null,
+    telephone:document.getElementById('pe-tel')?.value.trim()||null,
+    wechat:document.getElementById('pe-wechat')?.value.trim()||null,
+    login:document.getElementById('pe-login')?.value.trim()||null,
+    note:document.getElementById('pe-note')?.value.trim()||null,
+    categorie:document.getElementById('pe-cat')?.value||null,
+  };
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await r.text());
+    Object.assign(personneMap[id],body);
+    renderPersonneDrawer(id);
+    if(currentPage==='crm')renderCRMTable();
+    showToast('Personne mise à jour ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function saveContratEdit(id){
+  const body={
+    contrat_status:document.getElementById('ce-status')?.value||null,
+    fournisseur:document.getElementById('ce-fournisseur')?.value.trim()||null,
+    id_fournisseur:document.getElementById('ce-id_fournisseur')?.value.trim()||null,
+    energie_type:document.getElementById('ce-energie')?.value||null,
+    formule:document.getElementById('ce-formule')?.value.trim()||null,
+    option_tarifaire:document.getElementById('ce-option')?.value||null,
+    date_debut:document.getElementById('ce-date')?.value||null,
+    source:document.getElementById('ce-source')?.value.trim()||null,
+    inscrit_par:document.getElementById('ce-inscrit')?.value.trim()||null,
+  };
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await r.text());
+    Object.assign(contratMap[id],body);
+    renderContratDrawer(id);
+    if(currentPage==='contrats')renderContratsTable();
+    if(currentPage==='accueil')renderAccueil();
+    showToast('Contrat mis à jour ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
 
 // ── Init ──
 autoLogin();
