@@ -90,6 +90,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .tcard-addr{font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tcard-pdl{font-family:monospace;font-size:11px;color:var(--text2);}
 
+/* ── STEP WIZARD ── */
+.steps-bar{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 20px;background:var(--surface);flex-shrink:0;}
+.step-tab{flex:1;padding:12px 8px;font-size:11px;font-weight:600;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;position:relative;transition:all 0.12s;}
+.step-tab:hover{color:var(--text);}
+.step-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.step-tab.done{color:var(--success);}
+.step-tab .step-num{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--surface2);align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-right:4px;}
+.step-tab.active .step-num{background:var(--accent);color:#fff;}
+.step-tab.done .step-num{background:var(--success);color:#fff;}
+.step-page{display:none;padding:20px;}
+.step-page.active{display:block;}
+.step-nav{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.step-nav .spacer{flex:1;}
+
 /* ── FULLSCREEN MODAL ── */
 .fmodal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.4);padding:16px;}
 .fmodal.open{display:flex;align-items:stretch;justify-content:center;}
@@ -219,8 +233,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="fmodal-sub" id="dw-sub">—</div>
       <button class="fmodal-close" onclick="closeFM()">✕</button>
     </div>
-    <div class="fmodal-body" id="dw-body"></div>
-    <div class="fmodal-actions" id="dw-actions"></div>
+    <div class="steps-bar" id="steps-bar"></div>
+    <div class="fmodal-body" id="dw-body" style="padding:0;"></div>
+    <div class="step-nav" id="dw-actions"></div>
   </div>
     </div>
   </div>
@@ -284,7 +299,7 @@ function doLogout(){location.reload();}
 async function loadTasks(){
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
-    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car&order=created_at.desc&limit=500`,{headers:fuwuH()});
     if(!r.ok)throw new Error(await r.text());
     allTasks=await r.json();
 
@@ -437,132 +452,169 @@ function openTask(id){
   const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
   const packMap=detectPacks();
   const pack=packMap[id];
+  const hasGaz=t.energie_type==='gaz'||t.energie_type==='elec+gaz';
 
   document.getElementById('dw-icon').textContent=tt.icon;
   document.getElementById('dw-title').textContent=tt.label;
   document.getElementById('dw-sub').textContent=`${name} · ${ts.label}`;
 
-  let html='';
-  // Instruction
-  html+=`<div class="dinstr">${tt.instruction}</div>`;
+  // Step tabs
+  document.getElementById('steps-bar').innerHTML=`
+    <div class="step-tab active" onclick="goStep(0)"><span class="step-num">1</span>Client</div>
+    <div class="step-tab" onclick="goStep(1)"><span class="step-num">2</span>Adresse</div>
+    <div class="step-tab" onclick="goStep(2)"><span class="step-num">3</span>Technique</div>
+    <div class="step-tab" onclick="goStep(3)"><span class="step-num">4</span>Dossier</div>
+  `;
 
-  // Pack info
+  // Pack bar
+  let packHtml='';
   if(pack){
     const done=pack.tasks.filter(x=>x.contrat_status==='actif').length;
-    html+=`<div class="dpack"><div class="dpack-title">📦 Pack Déménagement · ${done}/${pack.total}</div>`;
-    pack.tasks.forEach(pt=>{
-      const ptType=TASK_TYPES[pt.formule]||{icon:'📋',label:pt.formule};
-      const isCurrent=pt.id===id;
-      const isDone=pt.contrat_status==='actif';
-      html+=`<div class="dpack-task ${isCurrent?'current':''}" onclick="${isCurrent?'':`openTask('${pt.id}')`}">
-        <div class="dpack-step ${isDone?'done':isCurrent?'active':''}">${isDone?'✓':isCurrent?'→':' '}</div>
-        <span>${ptType.icon} ${ptType.label}</span>
-        ${isDone?'<span style="font-size:10px;color:var(--success);margin-left:auto;">Terminé</span>':''}
-      </div>`;
-    });
-    html+='</div>';
+    packHtml=`<div class="dpack" style="margin:12px 20px 0;"><div class="dpack-title">📦 Déménagement · ${done}/${pack.total}</div>`;
+    pack.tasks.forEach(pt=>{const ptT=TASK_TYPES[pt.formule]||{icon:'📋',label:pt.formule};const cur=pt.id===id;const dn=pt.contrat_status==='actif';packHtml+=`<div class="dpack-task ${cur?'current':''}" onclick="${cur?'':`openTask('${pt.id}')`}"><div class="dpack-step ${dn?'done':cur?'active':''}">${dn?'✓':cur?'→':' '}</div><span>${ptT.icon} ${ptT.label}</span>${dn?'<span style="font-size:10px;color:var(--success);margin-left:auto;">✓</span>':''}</div>`;});
+    packHtml+='</div>';
   }
 
-  html+='<div class="fmodal-grid"><div class="fmodal-col">';
+  // Step 1: Client
+  const s1=`<div class="step-page active" id="step-0">
+    <div class="dinstr">${tt.instruction}</div>${packHtml}
+    <div class="fmodal-grid"><div class="fmodal-col">
+      ${ef('t-civ','Civilité',p.civilite)}
+      ${ef('t-prenom','Prénom',p.prenom)}
+      ${ef('t-nom','Nom',p.nom)}
+      ${ef('t-email','Email',p.email,'email')}
+      ${ef('t-tel','Téléphone',p.telephone,'tel')}
+      ${ef('t-wechat','WeChat / Tél 2',p.wechat)}
+    </div><div class="fmodal-col">
+      ${ef('t-coloc-prenom','Colocataire prénom',p.colocataire_prenom)}
+      ${ef('t-coloc-nom','Colocataire nom',p.colocataire_nom)}
+      ${ef('t-iban','IBAN',t.iban||'')}
+      ${ef('t-date-souscription','Date souscription',t.date_debut,'date')}
+      ${ef('t-naissance','Date de naissance',p.date_naissance,'date')}
+    </div></div></div>`;
 
-  // ── Client (editable) ──
-  html+=`<div class="dsec">Client</div>`;
-  html+=ef('t-prenom','Prénom',p.prenom);
-  html+=ef('t-nom','Nom',p.nom);
-  html+=ef('t-email','Email',p.email,'email');
-  html+=ef('t-tel','Téléphone',p.telephone,'tel');
-  html+=ef('t-tel2','Téléphone 2',p.telephone2||'','tel');
-  html+=ef('t-wechat','WeChat',p.wechat);
-  html+=ef('t-coloc-prenom','Colocataire prénom',p.colocataire_prenom);
-  html+=ef('t-coloc-nom','Colocataire nom',p.colocataire_nom);
+  // Step 2: Adresse
+  const s2=`<div class="step-page" id="step-1"><div class="fmodal-grid"><div class="fmodal-col">
+      ${ef('t-rue','Rue',a.rue)}
+      ${ef('t-complement','Complément',a.complement)}
+      ${ef('t-cp','Code postal',a.code_postal)}
+      ${ef('t-ville','Ville',a.ville)}
+    </div><div class="fmodal-col">
+      ${ef('t-pdl','PDL (14 chiffres)',a.pdl)}
+      ${ef('t-pce','PCE (14 chiffres)',a.pce)}
+      ${efSel('t-logement','Type logement',a.type_logement||'','|appartement|maison|commerce|autre')}
+    </div></div></div>`;
 
-  // ── Adresse (editable) ──
-  html+=`<div class="dsec">Adresse</div>`;
-  html+=ef('t-rue','Rue',a.rue);
-  html+=ef('t-complement','Complément',a.complement);
-  html+=ef('t-cp','Code postal',a.code_postal);
-  html+=ef('t-ville','Ville',a.ville);
-  html+=ef('t-pdl','PDL',a.pdl);
-  html+=ef('t-pce','PCE',a.pce);
-  html+=ef('t-puissance','Puissance',a.puissance);
+  // Step 3: Technique
+  const s3=`<div class="step-page" id="step-2"><div class="fmodal-grid"><div class="fmodal-col">
+      <div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Puissance</label>
+        <div style="display:flex;gap:4px;margin-bottom:4px;">
+          <button class="abtn" onclick="document.getElementById('t-puissance').value='3'" style="font-size:10px;">3</button>
+          <button class="abtn" onclick="document.getElementById('t-puissance').value='6'" style="font-size:10px;background:var(--accent-bg);border-color:var(--accent);color:var(--accent);">6</button>
+          <button class="abtn" onclick="document.getElementById('t-puissance').value='9'" style="font-size:10px;">9</button>
+          <button class="abtn" onclick="document.getElementById('t-puissance').value='12'" style="font-size:10px;">12</button>
+          <span style="font-size:10px;color:var(--muted);align-self:center;margin-left:4px;">kVA</span>
+        </div>
+        <input type="text" id="t-puissance" value="${esc(a.puissance||'6')}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;">
+      </div>
+      ${efSel('t-option-tarif','Option tarifaire',t.option_tarifaire||'HPHC','BASE|HPHC|Autre')}
+      ${ef('t-elec-car','Élec CAR (kWh/an)',t.elec_car||'5000')}
+      ${hasGaz?ef('t-gaz-car','Gaz CAR (kWh/an)',''):''}
+      ${ef('t-offre','Offre',t.formule_offre||'ECO')}
+    </div><div class="fmodal-col">
+      ${efSel('t-paiement','Choix paiement','Prelevement','Prelevement|Carte|Autre')}
+      ${efSel('t-facturation','Mode de facturation','Mensualisation','Mensualisation|Mensuel|Bimestriel')}
+      ${efSel('t-envoi-facture','Envoi facture','email','email|Courrier')}
+      ${ef('t-fournisseur','Fournisseur',t.fournisseur)}
+      ${efSel('t-energie','Énergie',t.energie_type,'elec|gaz|elec+gaz')}
+    </div></div></div>`;
 
-  html+='</div><div class="fmodal-col">';
+  // Step 4: Dossier
+  const s4=`<div class="step-page" id="step-3"><div class="fmodal-grid"><div class="fmodal-col">
+      ${ef('t-id-service','ID Service (Fuwu)',t.id_service)}
+      ${ef('t-id-fournisseur','ID Fournisseur',t.id_fournisseur)}
+      ${ef('t-bs-fournisseur','BS Fournisseur',t.bs_fournisseur)}
+      ${efSel('t-status','Statut Dossier',t.contrat_status,'en_attente|en_traitement|actif|annule|refuse')}
+    </div><div class="fmodal-col">
+      ${ef('t-source','Source / Intermédiaire',t.source)}
+      ${ef('t-inscrit','Inscrit par',t.inscrit_par)}
+      <div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px;">Note agent</label><textarea class="note-input" id="task-note" placeholder="Note…"></textarea></div>
+    </div></div></div>`;
 
-  // ── Contrat (editable) ──
-  html+=`<div class="dsec">Contrat</div>`;
-  html+=ef('t-id-service','ID Service (Fuwu)',t.id_service);
-  html+=ef('t-id-fournisseur','ID Fournisseur',t.id_fournisseur);
-  html+=ef('t-bs-fournisseur','BS Fournisseur',t.bs_fournisseur);
-  html+=efSel('t-status','Statut',t.contrat_status,'en_attente|en_traitement|actif|annule|refuse');
-  html+=ef('t-fournisseur','Fournisseur',t.fournisseur);
-  html+=efSel('t-energie','Énergie',t.energie_type,'elec|gaz|elec+gaz');
-  html+=efSel('t-formule','Type tâche',t.formule,'|resiliation|mise_en_service|changement_fournisseur|box_internet|ouverture_banque');
-  html+=ef('t-date','Date début',t.date_debut,'date');
-  html+=ef('t-option','Description / Info',t.option_tarifaire);
-  html+=ef('t-source','Source',t.source);
-
-  // ── Note ──
-  html+=`<div class="dsec">Note agent</div>`;
-  html+=`<textarea class="note-input" id="task-note" placeholder="Ajouter une note…"></textarea>`;
-
-  html+='</div></div>'; // close grid
-
-  document.getElementById('dw-body').innerHTML=html;
-
-  // Actions
-  let actHtml='';
-  actHtml+=`<button class="abtn g" onclick="saveTaskFull('${id}','${t.personne_id}','${t.adresse_id||''}')">💾 Sauvegarder tout</button>`;
-  const isAttente=t.contrat_status==='en_attente';
-  const isEnCours=t.contrat_status==='en_traitement';
-  if(isAttente) actHtml+=`<button class="abtn primary" onclick="changeStatus('${id}','en_traitement')">▶ Commencer</button>`;
-  if(isEnCours){
-    actHtml+=`<button class="abtn g" onclick="changeStatus('${id}','actif')">✅ Terminé</button>`;
-    actHtml+=`<button class="abtn w" onclick="changeStatus('${id}','en_attente')">⏳ Attente</button>`;
-    actHtml+=`<button class="abtn r" onclick="changeStatus('${id}','annule')">🚫 Annuler</button>`;
-  }
-  if(p.telephone) actHtml+=`<a class="abtn" href="tel:${p.telephone}">📞 Appeler</a>`;
-  actHtml+=`<button class="abtn" onclick="copyText('${a.pdl||a.pce||t.id}')">📋 Copier PDL</button>`;
-  document.getElementById('dw-actions').innerHTML=actHtml;
+  document.getElementById('dw-body').innerHTML=s1+s2+s3+s4;
+  window._step=0;
+  updateNav(id,t);
 }
 
-// Edit field helpers
+let _step=0;
+function goStep(n){
+  _step=n;
+  document.querySelectorAll('.step-page').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.step-tab').forEach((t,i)=>{t.classList.toggle('active',i===n);if(i<n)t.classList.add('done');else t.classList.remove('done');});
+  const t=allTasks.find(x=>x.id===currentTaskId);if(t)updateNav(currentTaskId,t);
+}
+
+function updateNav(id,t){
+  const pid=t.personne_id||'',aid=t.adresse_id||'';
+  const p=personnesMap[pid]||{};
+  let h='';
+  if(_step>0)h+=`<button class="abtn" onclick="goStep(${_step-1})">← Précédent</button>`;
+  h+='<div style="flex:1;"></div>';
+  if(t.contrat_status==='en_attente'&&_step===0)h+=`<button class="abtn primary" onclick="quickStart('${id}');goStep(1);">▶ Commencer</button>`;
+  if(_step<3)h+=`<button class="abtn primary" onclick="goStep(${_step+1})">Suivant →</button>`;
+  if(_step===3){
+    h+=`<button class="abtn g" onclick="saveAll('${id}','${pid}','${aid}')">💾 Sauvegarder</button>`;
+    if(t.contrat_status==='en_traitement')h+=`<button class="abtn g" onclick="saveAndDone('${id}','${pid}','${aid}')">✅ Sauver & Terminer</button>`;
+  }
+  if(p.telephone)h+=`<a class="abtn" href="tel:${p.telephone}">📞</a>`;
+  document.getElementById('dw-actions').innerHTML=h;
+}
+
+async function quickStart(id){
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'en_traitement'})});
+  const t=allTasks.find(x=>x.id===id);if(t)t.contrat_status='en_traitement';
+  renderStats();renderTasks();showToast('▶ Commencé');
+}
+
+async function saveAndDone(id,pid,aid){
+  await saveAll(id,pid,aid);
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'actif'})});
+  const t=allTasks.find(x=>x.id===id);if(t)t.contrat_status='actif';
+  renderStats();renderTasks();closeFM();showToast('✅ Terminé & sauvé');
+}
+
+// Field helpers
 function ef(id,label,val,type){
   type=type||'text';
-  return `<div style="margin-bottom:6px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><input type="${type}" id="${id}" value="${esc(val||'')}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);outline:none;font-family:inherit;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>`;
+  return `<div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><input type="${type}" id="${id}" value="${esc(val||'')}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>`;
 }
 function efSel(id,label,val,opts){
   const options=(opts||'').split('|').map(o=>`<option value="${o}" ${o===(val||'')?'selected':''}>${o||'—'}</option>`).join('');
-  return `<div style="margin-bottom:6px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><select id="${id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);outline:none;font-family:inherit;cursor:pointer;">${options}</select></div>`;
+  return `<div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><select id="${id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;cursor:pointer;">${options}</select></div>`;
 }
 function gv(id){const el=document.getElementById(id);return el?el.value.trim()||null:null;}
 
-// Save everything in one click
-async function saveTaskFull(contratId,personneId,adresseId){
+// Save all 3 tables
+async function saveAll(cid,pid,aid){
   try{
-    // Save contrat fields
-    const cb={contrat_status:gv('t-status'),fournisseur:gv('t-fournisseur'),id_fournisseur:gv('t-id-fournisseur'),bs_fournisseur:gv('t-bs-fournisseur'),id_service:gv('t-id-service'),energie_type:gv('t-energie'),formule:gv('t-formule'),option_tarifaire:gv('t-option'),date_debut:gv('t-date'),source:gv('t-source')};
-    // Append note if filled
+    const cb={contrat_status:gv('t-status'),fournisseur:gv('t-fournisseur'),id_fournisseur:gv('t-id-fournisseur'),bs_fournisseur:gv('t-bs-fournisseur'),id_service:gv('t-id-service'),energie_type:gv('t-energie'),option_tarifaire:gv('t-option-tarif'),date_debut:gv('t-date-souscription'),source:gv('t-source'),inscrit_par:gv('t-inscrit'),iban:gv('t-iban'),elec_car:gv('t-elec-car')};
     const note=document.getElementById('task-note')?.value?.trim();
-    if(note) cb.option_tarifaire=(cb.option_tarifaire||'')+' [Note: '+note+']';
-    await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(cb)});
-    const ct=allTasks.find(x=>x.id===contratId);if(ct)Object.assign(ct,cb);
+    if(note)cb.option_tarifaire=(cb.option_tarifaire||'')+' [Note:'+note+']';
+    Object.keys(cb).forEach(k=>{if(cb[k]===undefined)delete cb[k];});
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(cb)});
+    const ct=allTasks.find(x=>x.id===cid);if(ct)Object.assign(ct,cb);
 
-    // Save client fields
-    if(personneId){
-      const pb={prenom:gv('t-prenom'),nom:gv('t-nom'),email:gv('t-email'),telephone:gv('t-tel'),wechat:gv('t-wechat'),colocataire_prenom:gv('t-coloc-prenom'),colocataire_nom:gv('t-coloc-nom')};
-      await fetch(`${SB}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(pb)});
-      if(personnesMap[personneId])Object.assign(personnesMap[personneId],pb);
+    if(pid){
+      const pb={civilite:gv('t-civ'),prenom:gv('t-prenom'),nom:gv('t-nom'),email:gv('t-email'),telephone:gv('t-tel'),wechat:gv('t-wechat'),colocataire_prenom:gv('t-coloc-prenom'),colocataire_nom:gv('t-coloc-nom'),date_naissance:gv('t-naissance')};
+      await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(pb)});
+      if(personnesMap[pid])Object.assign(personnesMap[pid],pb);
     }
-
-    // Save adresse fields
-    if(adresseId){
-      const ab={rue:gv('t-rue'),complement:gv('t-complement'),code_postal:gv('t-cp'),ville:gv('t-ville'),pdl:gv('t-pdl'),pce:gv('t-pce'),puissance:gv('t-puissance')};
-      await fetch(`${SB}/rest/v1/adresses?id=eq.${adresseId}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(ab)});
-      if(adressesMap[adresseId])Object.assign(adressesMap[adresseId],ab);
+    if(aid){
+      const ab={rue:gv('t-rue'),complement:gv('t-complement'),code_postal:gv('t-cp'),ville:gv('t-ville'),pdl:gv('t-pdl'),pce:gv('t-pce'),puissance:gv('t-puissance'),type_logement:gv('t-logement')};
+      await fetch(`${SB}/rest/v1/adresses?id=eq.${aid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(ab)});
+      if(adressesMap[aid])Object.assign(adressesMap[aid],ab);
     }
-
-    renderStats();renderTasks();
-    showToast('Tout sauvegardé ✅');
+    renderStats();renderTasks();showToast('💾 Sauvegardé ✅');
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
