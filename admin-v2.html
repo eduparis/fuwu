@@ -163,6 +163,32 @@ select.finput{cursor:pointer;}
 .isel:hover{background:var(--surface3);}
 .isel:focus{border:1px solid var(--accent);background:var(--surface2);}
 
+/* ── FULLSCREEN MODAL ── */
+.fmodal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);align-items:stretch;justify-content:center;padding:24px;}
+.fmodal.open{display:flex;}
+.fmodal-box{background:var(--bg);border:1px solid var(--border);border-radius:14px;width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,0.5);}
+.fmodal-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface);flex-shrink:0;}
+.fmodal-title{font-size:16px;font-weight:700;flex:1;display:flex;align-items:center;gap:8px;}
+.fmodal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:6px;}
+.fmodal-close:hover{background:var(--surface2);color:var(--text);}
+.fmodal-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 24px;background:var(--surface);flex-shrink:0;}
+.fmodal-tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+.fmodal-tab:hover{color:var(--text);}
+.fmodal-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.fmodal-body{flex:1;overflow-y:auto;padding:24px;}
+.fmodal-actions{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;background:var(--surface);}
+/* Two-column layout inside modal */
+.fmodal-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.fmodal-col{display:flex;flex-direction:column;gap:4px;}
+.fmodal-section{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);}
+.fmodal-section:first-child{border-top:none;margin-top:0;padding-top:0;}
+.fmodal-field{margin-bottom:10px;}
+.fmodal-field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.fmodal-field input,.fmodal-field select,.fmodal-field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+.fmodal-field input:focus,.fmodal-field select:focus,.fmodal-field textarea:focus{border-color:var(--accent);}
+.fmodal-field textarea{resize:vertical;min-height:60px;}
+.fmodal-readonly{padding:6px 0;font-size:13px;font-weight:500;}
+
 /* ── DETAIL ROWS ── */
 .drow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .drow:last-child{border-bottom:none;}
@@ -529,6 +555,18 @@ svg.lc circle{r:3;}
   </div>
 </div>
 
+<div class="fmodal" id="fmodal" onclick="if(event.target===this)closeFModal()">
+  <div class="fmodal-box">
+    <div class="fmodal-header">
+      <div class="fmodal-title" id="fm-title">—</div>
+      <button class="fmodal-close" onclick="closeFModal()">✕</button>
+    </div>
+    <div class="fmodal-tabs" id="fm-tabs"></div>
+    <div class="fmodal-body" id="fm-body"></div>
+    <div class="fmodal-actions" id="fm-actions"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════ JAVASCRIPT ═══════════ -->
@@ -783,6 +821,35 @@ function renderAccueil(){
       <div class="todo-count v-orange">${t.count}</div>
     </div>
   `).join(''):'<div style="color:var(--muted);font-size:13px;padding:10px;">✅ Rien à traiter !</div>';
+
+  // Detailed À faire list with full client info
+  const afaire=allContrats.filter(c=>c.contrat_status==='en_attente').slice(0,20);
+  if(afaire.length){
+    let afHtml='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px;">Tâches en attente — détail</div>';
+    afHtml+=afaire.map(c=>{
+      const p=personneMap[c.personne_id]||{};
+      const a=adresseMap[c.adresse_id]||{};
+      const tt={resiliation:'❌ Résiliation',mise_en_service:'⚡ Mise en service',changement_fournisseur:'🔄 Changement',box_internet:'📡 Box',ouverture_banque:'🏦 Banque'}[c.formule]||'📄 Contrat';
+      const name=[p.civilite,p.prenom,p.nom].filter(Boolean).join(' ')||p.email||c.source||'—';
+      const addr=[a.rue,a.code_postal,a.ville].filter(Boolean).join(', ');
+      return `<div class="todo" onclick="openEntity('contrat','${c.id}')" style="align-items:flex-start;">
+        <div class="todo-icon" style="font-size:16px;margin-top:4px;">${tt.charAt(0)==='❌'||tt.charAt(0)==='⚡'||tt.charAt(0)==='🔄'||tt.charAt(0)==='📡'||tt.charAt(0)==='🏦'?tt.split(' ')[0]:'📄'}</div>
+        <div class="todo-info" style="flex:1;">
+          <div class="todo-title" style="font-size:13px;">${esc(name)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${esc(p.email||'')} ${p.telephone?'· '+esc(p.telephone):''}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${tt} · ${esc(normFourn(c.fournisseur)||'—')} · ${esc(c.energie_type||'')}</div>
+          ${addr?`<div style="font-size:11px;color:var(--muted);margin-top:1px;">📍 ${esc(addr)}</div>`:''}
+          ${a.pdl?`<div style="font-size:11px;font-family:monospace;color:var(--text2);margin-top:1px;">PDL: ${esc(a.pdl)}</div>`:''}
+          ${c.option_tarifaire?`<div style="font-size:11px;color:var(--accent);margin-top:2px;">📝 ${esc(c.option_tarifaire)}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          ${statusBadge(c.contrat_status)}
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;">${fmtDate(c.date_debut||c.created_at)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('acc-todos').innerHTML+=afHtml;
+  }
 
   // Recent 10 contrats
   const recent=allContrats.slice(0,10);
@@ -1063,16 +1130,257 @@ async function bulkPayAll(){
 // ══════════════════════════════════════
 // RIGHT DRAWER
 // ══════════════════════════════════════
-function openDrawer(){document.getElementById('drawer').classList.add('open');}
-function closeDrawer(){document.getElementById('drawer').classList.remove('open');currentDrawerEntity=null;}
+function openFModal(){document.getElementById('fmodal').classList.add('open');}
+function closeFModal(){document.getElementById('fmodal').classList.remove('open');currentDrawerEntity=null;}
 
 function openEntity(type,id){
   currentDrawerEntity={type,id};
-  openDrawer();
-  if(type==='contrat')renderContratDrawer(id);
-  else if(type==='personne')renderPersonneDrawer(id);
-  else if(type==='commission')renderCommDrawer(id);
+  if(type==='contrat')renderContratModal(id);
+  else if(type==='personne')renderPersonneModal(id);
+  else if(type==='commission')renderCommModal(id);
+  openFModal();
 }
+
+function fmField(id,label,val,type,opts){
+  type=type||'text';
+  if(type==='select'){
+    const options=(opts||'').split('|').map(o=>`<option value="${o}" ${o===(val||'')?'selected':''}>${o||'—'}</option>`).join('');
+    return `<div class="fmodal-field"><label>${label}</label><select id="${id}">${options}</select></div>`;
+  }
+  if(type==='textarea') return `<div class="fmodal-field"><label>${label}</label><textarea id="${id}" rows="3">${esc(val||'')}</textarea></div>`;
+  return `<div class="fmodal-field"><label>${label}</label><input type="${type}" id="${id}" value="${esc(val||'')}"></div>`;
+}
+
+function renderContratModal(id){
+  const c=contratMap[id];if(!c){closeFModal();return;}
+  const p=personneMap[c.personne_id]||{};
+  const a=adresseMap[c.adresse_id]||{};
+  const comm=allComm.find(cm=>cm.contrat_id===id);
+  const tt=c.formule?{resiliation:'❌ Résiliation',mise_en_service:'⚡ Mise en service',changement_fournisseur:'🔄 Changement',box_internet:'📡 Box',ouverture_banque:'🏦 Banque'}[c.formule]||'📄 Contrat':'📄 Contrat';
+
+  document.getElementById('fm-title').innerHTML=`${tt} — ${c.id_service||c.id_fournisseur||'Contrat'}`;
+  document.getElementById('fm-tabs').innerHTML=`
+    <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Détails</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-adresse')">Adresse</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-task')">⚡ Tâche</div>
+  `;
+  document.getElementById('fm-body').innerHTML=`
+    <div id="fmt-main">
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          <div class="fmodal-section">Contrat</div>
+          ${fmField('fc-status','Statut',c.contrat_status,'select','en_attente|en_traitement|actif|annule|refuse')}
+          ${fmField('fc-fournisseur','Fournisseur',c.fournisseur)}
+          ${fmField('fc-id_fournisseur','ID Fournisseur',c.id_fournisseur)}
+          ${fmField('fc-energie','Énergie',c.energie_type,'select','elec|gaz|elec+gaz')}
+          ${fmField('fc-formule','Formule / Type',c.formule,'select','|resiliation|mise_en_service|changement_fournisseur|box_internet|ouverture_banque')}
+        </div>
+        <div class="fmodal-col">
+          <div class="fmodal-section">Informations</div>
+          ${fmField('fc-option','Option / Description',c.option_tarifaire,'textarea')}
+          ${fmField('fc-date','Date début',c.date_debut,'date')}
+          ${fmField('fc-source','Source',c.source)}
+          ${fmField('fc-inscrit','Inscrit par',c.inscrit_par)}
+        </div>
+      </div>
+      ${comm?`<div class="fmodal-section">Commission</div><div class="fmodal-grid"><div class="fmodal-col">${drow('HT',comm.montant+'€')} ${drow('TTC',(parseFloat(comm.montant)*1.2).toFixed(2)+'€')}</div><div class="fmodal-col">${drow('Statut',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}</div></div>`:''}
+    </div>
+    <div id="fmt-client" style="display:none">
+      <div class="fmodal-section">Client</div>
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          ${fmField('fc-civ','Civilité',p.civilite,'select','M.|Mme|M. & Mme')}
+          ${fmField('fc-prenom','Prénom',p.prenom)}
+          ${fmField('fc-nom','Nom',p.nom)}
+          ${fmField('fc-email','Email',p.email,'email')}
+        </div>
+        <div class="fmodal-col">
+          ${fmField('fc-tel','Téléphone',p.telephone,'tel')}
+          ${fmField('fc-wechat','WeChat',p.wechat)}
+          ${fmField('fc-note','Note client',p.note,'textarea')}
+        </div>
+      </div>
+    </div>
+    <div id="fmt-adresse" style="display:none">
+      <div class="fmodal-section">Adresse</div>
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          ${fmField('fc-rue','Rue',a.rue)}
+          ${fmField('fc-complement','Complément',a.complement)}
+          ${fmField('fc-cp','Code postal',a.code_postal)}
+          ${fmField('fc-ville','Ville',a.ville)}
+        </div>
+        <div class="fmodal-col">
+          ${fmField('fc-pdl','PDL',a.pdl)}
+          ${fmField('fc-pce','PCE',a.pce)}
+          ${fmField('fc-puissance','Puissance',a.puissance)}
+          ${fmField('fc-logement','Type logement',a.type_logement,'select','|appartement|maison|commerce|autre')}
+        </div>
+      </div>
+    </div>
+    <div id="fmt-task" style="display:none">
+      <div class="fmodal-section">Créer tâche rapide pour ce client</div>
+      <div class="qtasks">
+        <div class="qtask" onclick="showTaskPanel('${c.personne_id}','resiliation')">❌ Résiliation</div>
+        <div class="qtask" onclick="showTaskPanel('${c.personne_id}','mise_en_service')">⚡ Mise en service</div>
+        <div class="qtask" onclick="showTaskPanel('${c.personne_id}','demenagement')">📦 Déménagement</div>
+        <div class="qtask" onclick="showTaskPanel('${c.personne_id}','changement')">🔄 Changement</div>
+        <div class="qtask" onclick="showTaskPanel('${c.personne_id}','box')">📡 Box</div>
+        <div class="qtask" onclick="showTaskPanel('${c.personne_id}','banque')">🏦 Banque</div>
+      </div>
+      <div id="task-panel-${c.personne_id}"></div>
+    </div>
+  `;
+  document.getElementById('fm-actions').innerHTML=`
+    <button class="abtn g" onclick="saveContratFull('${id}','${c.personne_id}','${c.adresse_id||''}')">💾 Sauvegarder tout</button>
+    <select class="finput" style="padding:5px 8px;font-size:11px;" onchange="if(this.value){quickStatusChange('${id}',this.value);this.value='';}"><option value="">Statut rapide…</option><option value="en_attente">En attente</option><option value="en_traitement">En traitement</option><option value="actif">Actif</option><option value="annule">Annulé</option></select>
+    <button class="abtn" onclick="copyText('${c.id_fournisseur||c.id_service||c.id}')">📋 Copier ID</button>
+    <button class="abtn" onclick="openEntity('personne','${c.personne_id}')">👤 Dossier client</button>
+  `;
+}
+
+function renderPersonneModal(id){
+  const p=personneMap[id];if(!p){closeFModal();return;}
+  const contrats=(window._contratsByPerson||{})[id]||[];
+  const activeC=contrats.filter(c=>c.contrat_status==='actif'||c.contrat_status==='en_traitement'||c.contrat_status==='en_attente');
+  const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');
+
+  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}`;
+  document.getElementById('fm-tabs').innerHTML=`
+    <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-tasks')">⚡ Tâches</div>
+  `;
+  document.getElementById('fm-body').innerHTML=`
+    <div id="fmt-profil">
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          <div class="fmodal-section">Identité</div>
+          ${fmField('fp-civ','Civilité',p.civilite,'select','M.|Mme|M. & Mme')}
+          ${fmField('fp-prenom','Prénom',p.prenom)}
+          ${fmField('fp-nom','Nom',p.nom)}
+          ${fmField('fp-email','Email',p.email,'email')}
+          ${fmField('fp-tel','Téléphone',p.telephone,'tel')}
+        </div>
+        <div class="fmodal-col">
+          <div class="fmodal-section">Détails</div>
+          ${fmField('fp-wechat','WeChat',p.wechat)}
+          ${fmField('fp-login','Login',p.login)}
+          ${fmField('fp-cat','Catégorie',p.categorie,'select','|A|B|C|D|VIP')}
+          ${fmField('fp-note','Note',p.note,'textarea')}
+          <div class="fmodal-field"><label>Rôle</label><div class="fmodal-readonly">${roles.join(', ')||'—'}</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="fmt-contrats" style="display:none">
+      <div class="fmodal-section">Contrats</div>
+      ${contrats.length?contrats.map(c=>{const a=adresseMap[c.adresse_id]||{};return `
+        <div class="todo" onclick="openEntity('contrat','${c.id}')">
+          <div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':'📋'}</div>
+          <div class="todo-info">
+            <div class="todo-title" style="font-size:12px;">${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div>
+            <div class="todo-sub">${[a.rue,a.ville].filter(Boolean).join(', ')||'—'} · ${fmtDate(c.date_debut)}</div>
+          </div>
+          <div>${statusBadge(c.contrat_status)}</div>
+        </div>`;}).join(''):'<div style="color:var(--muted);font-size:12px;">Aucun contrat</div>'}
+    </div>
+    <div id="fmt-tasks" style="display:none">
+      <div class="fmodal-section">Créer tâche rapide</div>
+      <div class="qtasks">
+        <div class="qtask" onclick="showTaskPanel('${id}','resiliation')">❌ Résiliation</div>
+        <div class="qtask" onclick="showTaskPanel('${id}','mise_en_service')">⚡ Mise en service</div>
+        <div class="qtask" onclick="showTaskPanel('${id}','demenagement')">📦 Déménagement</div>
+        <div class="qtask" onclick="showTaskPanel('${id}','changement')">🔄 Changement</div>
+        <div class="qtask" onclick="showTaskPanel('${id}','box')">📡 Box</div>
+        <div class="qtask" onclick="showTaskPanel('${id}','banque')">🏦 Banque</div>
+      </div>
+      <div id="task-panel-${id}"></div>
+      ${activeC.length?`<div class="fmodal-section" style="margin-top:16px;">Résiliation rapide</div>${activeC.map(c=>{const a=adresseMap[c.adresse_id]||{};return `<div class="todo" style="padding:10px 12px;"><div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':'🔥'}</div><div class="todo-info"><div class="todo-title" style="font-size:11px;">${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div><div class="todo-sub">${[a.rue,a.ville].filter(Boolean).join(', ')}</div></div><button class="abtn r" style="font-size:10px;" onclick="event.stopPropagation();quickResiliation('${id}','${c.id}')">❌ Résilier</button></div>`;}).join('')}`:''}
+    </div>
+  `;
+  document.getElementById('fm-actions').innerHTML=`
+    <button class="abtn g" onclick="savePersonneFull('${id}')">💾 Sauvegarder</button>
+    <button class="abtn" onclick="copyText('${p.email||p.id}')">📋 Copier</button>
+  `;
+}
+
+function renderCommModal(id){
+  const c=allComm.find(x=>x.id===id);if(!c){closeFModal();return;}
+  const interm=personneMap[c.intermediaire_id]||{};
+  const ct=contratMap[c.contrat_id]||{};
+  const client=personneMap[ct.personne_id]||{};
+  const ht=parseFloat(c.montant||0);
+  document.getElementById('fm-title').innerHTML='💶 Commission';
+  document.getElementById('fm-tabs').innerHTML='';
+  document.getElementById('fm-body').innerHTML=`
+    <div class="fmodal-grid">
+      <div class="fmodal-col">
+        <div class="fmodal-section">Détails</div>
+        ${drow('Intermédiaire',esc([interm.prenom,interm.nom].filter(Boolean).join(' ')||'—'))}
+        ${drow('Client',esc([client.prenom,client.nom].filter(Boolean).join(' ')||'—'))}
+        ${drow('Contrat',ct.id_service||'—')}
+      </div>
+      <div class="fmodal-col">
+        <div class="fmodal-section">Montants</div>
+        ${drow('HT',ht.toFixed(2)+' €')}
+        ${drow('TTC',(ht*1.2).toFixed(2)+' €')}
+        ${drow('CNY',(ht*1.2*8).toFixed(0)+' ¥')}
+        ${drow('Statut',c.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}
+        ${drow('Date paiement',c.date_paiement?fmtDate(c.date_paiement):'—')}
+      </div>
+    </div>
+  `;
+  document.getElementById('fm-actions').innerHTML=c.statut!=='paye'?`<button class="abtn g" onclick="markPaid('${c.id}')">✅ Marquer payé</button>`:`<button class="abtn w" onclick="markUnpaid('${c.id}')">↩ Annuler paiement</button>`;
+}
+
+function fmTab(el,panelId){
+  el.parentElement.querySelectorAll('.fmodal-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const body=document.getElementById('fm-body');
+  body.querySelectorAll(':scope > div').forEach(d=>d.style.display='none');
+  document.getElementById(panelId).style.display='block';
+}
+
+// Full save: contrat + client + adresse in one click
+async function saveContratFull(contratId,personneId,adresseId){
+  try{
+    // Save contrat
+    const cb={contrat_status:gv('fc-status'),fournisseur:gv('fc-fournisseur'),id_fournisseur:gv('fc-id_fournisseur'),energie_type:gv('fc-energie'),formule:gv('fc-formule'),option_tarifaire:gv('fc-option'),date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit')};
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify(cb)});
+    Object.assign(contratMap[contratId],cb);
+
+    // Save client if fields exist
+    if(document.getElementById('fc-prenom')){
+      const pb={civilite:gv('fc-civ'),prenom:gv('fc-prenom'),nom:gv('fc-nom'),email:gv('fc-email'),telephone:gv('fc-tel'),wechat:gv('fc-wechat'),note:gv('fc-note')};
+      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify(pb)});
+      Object.assign(personneMap[personneId],pb);
+    }
+
+    // Save adresse if fields exist and adresseId exists
+    if(adresseId&&document.getElementById('fc-rue')){
+      const ab={rue:gv('fc-rue'),complement:gv('fc-complement'),code_postal:gv('fc-cp'),ville:gv('fc-ville'),pdl:gv('fc-pdl'),pce:gv('fc-pce'),puissance:gv('fc-puissance'),type_logement:gv('fc-logement')};
+      await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=eq.${adresseId}`,{method:'PATCH',headers:H(),body:JSON.stringify(ab)});
+      adresseMap[adresseId]={...adresseMap[adresseId],...ab};
+    }
+
+    if(currentPage==='contrats')renderContratsTable();
+    if(currentPage==='accueil')renderAccueil();
+    showToast('Tout sauvegardé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function savePersonneFull(id){
+  try{
+    const pb={civilite:gv('fp-civ'),prenom:gv('fp-prenom'),nom:gv('fp-nom'),email:gv('fp-email'),telephone:gv('fp-tel'),wechat:gv('fp-wechat'),login:gv('fp-login'),categorie:gv('fp-cat'),note:gv('fp-note')};
+    await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(pb)});
+    Object.assign(personneMap[id],pb);
+    if(currentPage==='crm')renderCRMTable();
+    showToast('Client sauvegardé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+function gv(id){const el=document.getElementById(id);return el?el.value.trim()||null:null;}
 
 function renderContratDrawer(id){
   const c=contratMap[id];if(!c){closeDrawer();return;}
