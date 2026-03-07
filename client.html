@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuwu.fr — Mon Espace</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#faf9f6;--surface:#ffffff;--surface2:#f3f1ec;--surface3:#ebe8e0;
+  --border:#e2ddd3;--accent:#b8922a;--accent2:#d4ad3c;--accent-bg:rgba(184,146,42,0.08);
+  --text:#1a1610;--muted:#7a7064;--danger:#dc3545;--success:#198754;--warning:#e6a817;--info:#0d6efd;
+  --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* ── LOGIN ── */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#faf9f6 0%,#f0ede6 100%);position:relative;}
+#login-screen::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(184,146,42,0.06),transparent 70%);top:-100px;right:-100px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.06);position:relative;z-index:1;}
+.login-logo{font-family:'Playfair Display',serif;font-size:28px;color:var(--accent);margin-bottom:4px;}
+.login-sub{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:36px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);}
+.fg input::placeholder{color:var(--muted);}
+.btn-primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn-outline{background:transparent;border:1.5px solid var(--accent);color:var(--accent);border-radius:10px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.btn-outline:hover{background:var(--accent-bg);}
+.btn-sm{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-sm:hover{border-color:var(--accent);background:var(--accent-bg);}
+.login-error{background:rgba(220,53,69,0.08);border:1px solid rgba(220,53,69,0.2);border-radius:8px;padding:10px;color:var(--danger);font-size:13px;margin-top:12px;display:none;text-align:center;}
+
+/* ── APP LAYOUT ── */
+#app{display:none;min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.topbar-avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;flex-shrink:0;}
+.topbar-name{font-weight:600;font-size:15px;}
+.topbar-email{font-size:12px;color:var(--muted);}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+
+/* ── NAV TABS ── */
+.nav-tabs{display:flex;gap:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;}
+.nav-tab{padding:14px 20px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── CONTENT ── */
+.content{max-width:960px;margin:0 auto;padding:24px;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.03);}
+.card-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.card-title .icon{font-size:20px;}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;text-align:center;}
+.stat-value{font-size:24px;font-weight:700;font-family:'Playfair Display',serif;}
+.stat-label{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;}
+.green{color:var(--success);}
+.orange{color:var(--warning);}
+.blue{color:var(--info);}
+.gold{color:var(--accent);}
+
+/* ── INFO GRID ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;}
+.info-item{padding:10px 0;border-bottom:1px solid var(--border);}
+.info-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
+.info-value{font-size:14px;font-weight:500;}
+
+/* ── CONTRAT LIST ── */
+.contrat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all 0.15s;}
+.contrat-card:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(184,146,42,0.1);}
+.contrat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.contrat-icon.energie{background:rgba(13,110,253,0.08);}
+.contrat-icon.demenagement{background:rgba(184,146,42,0.08);}
+.contrat-icon.resiliation{background:rgba(220,53,69,0.08);}
+.contrat-icon.box{background:rgba(25,135,84,0.08);}
+.contrat-icon.banque{background:rgba(184,146,42,0.08);}
+.contrat-icon.autre{background:var(--surface2);}
+.contrat-info{flex:1;min-width:0;}
+.contrat-title{font-weight:600;font-size:14px;}
+.contrat-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.contrat-right{text-align:right;flex-shrink:0;}
+.contrat-date{font-size:12px;color:var(--muted);}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-attente{background:rgba(230,168,23,0.1);color:var(--warning);}
+.badge-traitement{background:rgba(13,110,253,0.1);color:var(--info);}
+.badge-actif{background:rgba(25,135,84,0.1);color:var(--success);}
+.badge-annule,.badge-refuse{background:rgba(220,53,69,0.1);color:var(--danger);}
+
+/* ── SERVICES GRID ── */
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+.service-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.service-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.06);}
+.service-card.disabled{opacity:0.5;cursor:not-allowed;}
+.service-card.disabled:hover{transform:none;box-shadow:none;border-color:var(--border);}
+.service-icon{font-size:32px;margin-bottom:10px;}
+.service-name{font-weight:600;font-size:14px;margin-bottom:4px;}
+.service-desc{font-size:11px;color:var(--muted);line-height:1.4;}
+.service-soon{font-size:10px;color:var(--accent);font-weight:600;margin-top:6px;}
+
+/* ── PARRAINAGE ── */
+.parrain-banner{background:linear-gradient(135deg,#b8922a,#d4ad3c);border-radius:var(--radius);padding:24px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden;}
+.parrain-banner::after{content:'🎁';position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:48px;opacity:0.2;}
+.parrain-title{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;}
+.parrain-desc{font-size:13px;opacity:0.9;margin-bottom:16px;max-width:70%;}
+.parrain-code{background:rgba(255,255,255,0.2);border-radius:8px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:1px;}
+.parrain-copy{background:rgba(255,255,255,0.3);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+.parrain-copy:hover{background:rgba(255,255,255,0.5);}
+.parrain-history{margin-top:16px;}
+.parrain-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.parrain-row:last-child{border-bottom:none;}
+.parrain-amount{font-weight:700;color:var(--success);}
+
+/* ── PROVIDER FORM ── */
+.provider-cats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.provider-cat{padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;transition:all 0.15s;font-weight:500;}
+.provider-cat:hover{border-color:var(--accent);}
+.provider-cat.selected{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 16px 48px rgba(0,0,0,0.12);}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:20px;right:20px;background:var(--surface);border:1px solid var(--success);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--success);z-index:999;transform:translateX(120%);transition:transform 0.3s;box-shadow:0 4px 16px rgba(0,0,0,0.1);}
+.toast.show{transform:translateX(0);}
+.toast.error{border-color:var(--danger);color:var(--danger);}
+
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top:2px solid var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Responsive */
+@media(max-width:640px){
+  .stats-row{grid-template-columns:1fr;}
+  .info-grid{grid-template-columns:1fr;}
+  .services-grid{grid-template-columns:repeat(2,1fr);}
+  .content{padding:16px;}
+  .parrain-desc{max-width:100%;}
+  .nav-tabs{padding:0 12px;}
+  .nav-tab{padding:12px 14px;font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Fuwu.fr</div>
+    <div class="login-sub">Mon Espace Client</div>
+    <div class="fg">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="votre@email.com">
+    </div>
+    <div class="fg">
+      <label>Mot de passe</label>
+      <div style="position:relative;">
+        <input type="password" id="login-password" placeholder="••••••••">
+        <span id="pwd-eye" onclick="fuwuTogglePwd()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;">👁</span>
+      </div>
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="login()">Se connecter</button>
+    <div class="login-error" id="login-error"></div>
+    <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted);">
+      Pas encore de compte ? <a href="inscription.html">S'inscrire →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-avatar" id="user-avatar">?</div>
+      <div>
+        <div class="topbar-name" id="user-name">—</div>
+        <div class="topbar-email" id="user-email">—</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-sm" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <!-- Nav tabs -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('dashboard',this)">🏠 Accueil</div>
+    <div class="nav-tab" onclick="showTab('contrats',this)">📄 Mes contrats</div>
+    <div class="nav-tab" onclick="showTab('services',this)">🛒 Services</div>
+    <div class="nav-tab" onclick="showTab('parrainage',this)">🎁 Parrainage</div>
+    <div class="nav-tab" onclick="showTab('profil',this)">👤 Mon profil</div>
+    <div class="nav-tab" onclick="showTab('provider',this)">🔧 Devenir prestataire</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value blue" id="dash-contrats">0</div>
+          <div class="stat-label">Contrats actifs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value orange" id="dash-encours">0</div>
+          <div class="stat-label">En cours</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value gold" id="dash-parrain">0 €</div>
+          <div class="stat-label">Crédit parrainage</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">⚡</span> Activité récente</div>
+        <div id="dash-recent" style="color:var(--muted);font-size:13px;">Chargement…</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🛒</span> Services rapides</div>
+        <div class="services-grid" id="dash-services"></div>
+      </div>
+    </div>
+
+    <!-- ═══ CONTRATS ═══ -->
+    <div class="page" id="page-contrats">
+      <div class="card">
+        <div class="card-title"><span class="icon">📄</span> Mes contrats</div>
+        <div id="contrats-list" style="color:var(--muted);font-size:13px;">Chargement…</div>
+      </div>
+    </div>
+
+    <!-- ═══ SERVICES ═══ -->
+    <div class="page" id="page-services">
+      <div class="card">
+        <div class="card-title"><span class="icon">🛒</span> Commander un service</div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Sélectionnez le service souhaité pour démarrer votre demande.</p>
+        <div class="services-grid" id="services-grid"></div>
+      </div>
+
+      <!-- Service request form (hidden by default) -->
+      <div class="card" id="service-form-card" style="display:none;">
+        <div class="card-title"><span class="icon" id="sf-icon">📦</span> <span id="sf-title">—</span></div>
+        <div class="fg">
+          <label>Description de votre besoin</label>
+          <textarea id="sf-desc" rows="3" placeholder="Décrivez votre demande…" style="resize:vertical;"></textarea>
+        </div>
+        <div class="fg">
+          <label>Date souhaitée</label>
+          <input type="date" id="sf-date">
+        </div>
+        <div class="fg">
+          <label>Adresse concernée</label>
+          <input type="text" id="sf-adresse" placeholder="Adresse complète">
+        </div>
+        <div class="fg">
+          <label>Commentaire (optionnel)</label>
+          <input type="text" id="sf-comment" placeholder="Détails supplémentaires…">
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-primary" style="width:auto;padding:10px 24px;" onclick="submitServiceRequest()">Envoyer la demande</button>
+          <button class="btn-sm" onclick="cancelServiceForm()">Annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PARRAINAGE ═══ -->
+    <div class="page" id="page-parrainage">
+      <div class="parrain-banner">
+        <div class="parrain-title">Parrainez vos amis</div>
+        <div class="parrain-desc">Partagez votre code. Pour chaque ami inscrit et contrat activé, recevez 20 € de crédit sur votre facture d'énergie.</div>
+        <div class="parrain-code">
+          <span id="parrain-code-text">—</span>
+          <button class="parrain-copy" onclick="copyParrainCode()">Copier</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">💰</span> Mon crédit parrainage</div>
+        <div style="display:flex;gap:24px;margin-bottom:16px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Total gagné</div>
+            <div style="font-size:24px;font-weight:700;color:var(--success);" id="parrain-total">0 €</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Utilisé</div>
+            <div style="font-size:24px;font-weight:700;color:var(--muted);" id="parrain-used">0 €</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Disponible</div>
+            <div style="font-size:24px;font-weight:700;color:var(--accent);" id="parrain-available">0 €</div>
+          </div>
+        </div>
+        <div class="parrain-history" id="parrain-history">
+          <div style="color:var(--muted);font-size:13px;">Aucun parrainage pour le moment.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PROFIL ═══ -->
+    <div class="page" id="page-profil">
+      <div class="card">
+        <div class="card-title"><span class="icon">👤</span> Mes informations</div>
+        <div class="info-grid" id="profil-info"></div>
+        <div style="margin-top:20px;">
+          <button class="btn-outline" onclick="showEditProfil()">✏️ Modifier</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PROVIDER ═══ -->
+    <div class="page" id="page-provider">
+      <div class="card">
+        <div class="card-title"><span class="icon">🔧</span> Devenir prestataire Fuwu</div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Vous avez un talent ou un service à offrir ? Inscrivez-vous comme prestataire et proposez vos services à notre communauté.</p>
+        <div class="fg">
+          <label>Catégorie de service</label>
+          <div class="provider-cats" id="provider-cats">
+            <div class="provider-cat" onclick="toggleProviderCat(this,'menage')">🧹 Ménage</div>
+            <div class="provider-cat" onclick="toggleProviderCat(this,'plomberie')">🔧 Plomberie</div>
+            <div class="provider-cat" onclick="toggleProviderCat(this,'electricite')">⚡ Électricité</div>
+            <div class="provider-cat" onclick="toggleProviderCat(this,'demenagement')">📦 Déménagement</div>
+            <div class="provider-cat" onclick="toggleProviderCat(this,'location')">🏠 Location</div>
+            <div class="provider-cat" onclick="toggleProviderCat(this,'cours')">📚 Cours / Traduction</div>
+            <div class="provider-cat" onclick="toggleProviderCat(this,'autre')">📋 Autre</div>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Description de votre offre</label>
+          <textarea id="provider-desc" rows="3" placeholder="Décrivez vos compétences et services…" style="resize:vertical;"></textarea>
+        </div>
+        <div class="fg">
+          <label>Tarif indicatif</label>
+          <input type="text" id="provider-tarif" placeholder="ex: 25€/h, 50€ forfait…">
+        </div>
+        <div class="fg">
+          <label>Zone géographique</label>
+          <input type="text" id="provider-zone" placeholder="ex: Paris, Île-de-France…">
+        </div>
+        <button class="btn-primary" style="width:auto;padding:10px 24px;" onclick="submitProvider()">Soumettre ma candidature</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── EDIT PROFIL MODAL ── -->
+<div class="modal-overlay" id="modal-edit" onclick="if(event.target===this)closeModal('modal-edit')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-edit')">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:20px;">Modifier mes informations</div>
+    <div id="edit-form"></div>
+  </div>
+</div>
+
+<!-- ── SERVICE DETAIL MODAL ── -->
+<div class="modal-overlay" id="modal-contrat" onclick="if(event.target===this)closeModal('modal-contrat')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-contrat')">✕</button>
+    <div id="contrat-detail"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="common.js"></script>
+<script>
+// Use anon key for REST, publishable key for auth
+_fuwuApiKey = SUPABASE_PUB_KEY;
+
+let currentUser = null;
+let accessToken = null;
+let allContrats = [];
+let allAdresses = {};
+const SESSION_KEY = 'fuwu_client_session';
+
+// ── Services config ──
+const SERVICES = [
+  { id:'energie', icon:'⚡', name:'Énergie', desc:'Souscrire ou changer de fournisseur', link:'inscription.html' },
+  { id:'demenagement', icon:'📦', name:'Déménagement', desc:'Transfert ou mise en service' },
+  { id:'resiliation', icon:'❌', name:'Résiliation', desc:'Fermer un contrat énergie' },
+  { id:'box_internet', icon:'📡', name:'Box Internet', desc:'Installation ou changement' },
+  { id:'banque', icon:'🏦', name:'Banque', desc:'Ouverture de compte bancaire' },
+  { id:'assurance', icon:'🛡️', name:'Assurance', desc:'Habitation, santé…', soon:true },
+  { id:'logement', icon:'🏠', name:'Trouver un logement', desc:'Recherche de logement', soon:true },
+  { id:'emploi', icon:'💼', name:'Trouver un emploi', desc:'Offres d\'emploi', soon:true },
+  { id:'reparation', icon:'🔧', name:'Réparation', desc:'Plombier, électricien…', soon:true },
+];
+
+// ── Auth ──
+async function login() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !pass) { showLoginErr('Veuillez remplir tous les champs.'); return; }
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+
+  try {
+    const res = await fuwuAuthLogin(email, pass);
+    if (!res.ok) { showLoginErr(res.error); btn.textContent = 'Se connecter'; btn.disabled = false; return; }
+
+    accessToken = res.data.access_token;
+    fuwuSaveSession(SESSION_KEY, {
+      access_token: res.data.access_token,
+      refresh_token: res.data.refresh_token,
+      expires_at: Date.now() + res.data.expires_in * 1000,
+      email: email
+    });
+
+    // Find personne
+    const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?email=ilike.${encodeURIComponent(email)}&est_client=eq.true&select=*`, { headers: fuwuH() });
+    const pd = await rp.json();
+    if (!pd || !pd.length) { showLoginErr('Compte client introuvable.'); btn.textContent = 'Se connecter'; btn.disabled = false; return; }
+    currentUser = pd[0];
+    enterApp();
+  } catch(e) { showLoginErr('Erreur de connexion.'); btn.textContent = 'Se connecter'; btn.disabled = false; }
+}
+
+async function autoLogin() {
+  const saved = fuwuLoadSession(SESSION_KEY);
+  if (!saved || !saved.access_token) return;
+  if (Date.now() >= (saved.expires_at || 0)) {
+    const res = await fuwuAuthRefresh(saved.refresh_token);
+    if (!res.ok) { fuwuClearSession(SESSION_KEY); return; }
+    saved.access_token = res.data.access_token;
+    saved.refresh_token = res.data.refresh_token;
+    saved.expires_at = Date.now() + res.data.expires_in * 1000;
+    fuwuSaveSession(SESSION_KEY, saved);
+  }
+  accessToken = saved.access_token;
+  fuwuSetToken(accessToken);
+  try {
+    const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?email=ilike.${encodeURIComponent(saved.email)}&est_client=eq.true&select=*`, { headers: fuwuH() });
+    const pd = await rp.json();
+    if (pd && pd.length) { currentUser = pd[0]; enterApp(); }
+  } catch(e) {}
+}
+
+function showLoginErr(msg) { const el = document.getElementById('login-error'); el.textContent = msg; el.style.display = 'block'; }
+
+async function logout() {
+  await fuwuAuthLogout();
+  fuwuClearSession(SESSION_KEY);
+  currentUser = null; accessToken = null; allContrats = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const name = [currentUser.prenom, currentUser.nom].filter(Boolean).join(' ') || currentUser.email;
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-email').textContent = currentUser.email;
+  document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+
+  // Generate parrain code if missing
+  if (!currentUser.code_parrainage) {
+    currentUser.code_parrainage = 'FUWU' + (currentUser.prenom || 'X').substring(0,3).toUpperCase() + Math.floor(Math.random()*900+100);
+  }
+
+  renderServices();
+  await loadContrats();
+  updateDashboard();
+  renderProfil();
+  renderParrainage();
+}
+
+// ── Tabs ──
+function showTab(name, el) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+// ── Load contrats ──
+async function loadContrats() {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/contrats?personne_id=eq.${currentUser.id}&select=id,id_service,fournisseur,energie_type,contrat_status,date_debut,created_at,adresse_id,formule,option_tarifaire&order=created_at.desc`,
+      { headers: fuwuH() }
+    );
+    allContrats = await r.json();
+    if (!Array.isArray(allContrats)) allContrats = [];
+
+    // Load adresses
+    const aIds = [...new Set(allContrats.map(c => c.adresse_id).filter(Boolean))];
+    for (let i = 0; i < aIds.length; i += 100) {
+      const batch = aIds.slice(i, i + 100);
+      try {
+        const ra = await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=in.(${batch.join(',')})&select=id,rue,ville,code_postal,pdl,pce`, { headers: fuwuH() });
+        const ad = await ra.json();
+        if (Array.isArray(ad)) ad.forEach(a => allAdresses[a.id] = a);
+      } catch(e){}
+    }
+
+    renderContrats();
+  } catch(e) {}
+}
+
+function renderContrats() {
+  const el = document.getElementById('contrats-list');
+  if (!allContrats.length) { el.innerHTML = '<p style="color:var(--muted)">Aucun contrat pour le moment.</p>'; return; }
+  el.innerHTML = allContrats.map(c => {
+    const a = allAdresses[c.adresse_id] || {};
+    const svc = c.fournisseur ? `${c.fournisseur}` : (c.id_service || '—');
+    const iconCls = c.energie_type ? 'energie' : 'autre';
+    return `<div class="contrat-card" onclick="showContratDetail('${c.id}')">
+      <div class="contrat-icon ${iconCls}">${c.energie_type ? '⚡' : '📋'}</div>
+      <div class="contrat-info">
+        <div class="contrat-title">${esc(svc)}</div>
+        <div class="contrat-sub">${esc([a.rue, a.code_postal, a.ville].filter(Boolean).join(', ') || 'Adresse non renseignée')}</div>
+      </div>
+      <div class="contrat-right">
+        ${statusBadge(c.contrat_status)}
+        <div class="contrat-date">${fmtDate(c.date_debut || c.created_at)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showContratDetail(id) {
+  const c = allContrats.find(x => x.id === id); if (!c) return;
+  const a = allAdresses[c.adresse_id] || {};
+  document.getElementById('contrat-detail').innerHTML = `
+    <div style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:16px;">Détail du contrat</div>
+    ${dRow('Fournisseur', c.fournisseur || '—')}
+    ${dRow('Énergie', c.energie_type || '—')}
+    ${dRow('Formule', c.formule || '—')}
+    ${dRow('Option', c.option_tarifaire || '—')}
+    ${dRow('Statut', statusBadge(c.contrat_status))}
+    ${dRow('Date', fmtDate(c.date_debut))}
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      ${dRow('Adresse', esc([a.rue, a.code_postal, a.ville].filter(Boolean).join(', ') || '—'))}
+      ${dRow('PDL', a.pdl || '—')}
+      ${dRow('PCE', a.pce || '—')}
+    </div>
+  `;
+  document.getElementById('modal-contrat').style.display = 'flex';
+}
+
+// ── Dashboard ──
+function updateDashboard() {
+  const actif = allContrats.filter(c => c.contrat_status === 'actif').length;
+  const encours = allContrats.filter(c => ['en_attente','en_traitement'].includes(c.contrat_status)).length;
+  document.getElementById('dash-contrats').textContent = actif;
+  document.getElementById('dash-encours').textContent = encours;
+  document.getElementById('dash-parrain').textContent = '0 €'; // TODO: real parrainage
+
+  // Recent
+  const recent = allContrats.slice(0, 5);
+  const el = document.getElementById('dash-recent');
+  if (!recent.length) { el.innerHTML = 'Aucune activité récente.'; return; }
+  el.innerHTML = recent.map(c => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span>${esc(c.fournisseur || c.id_service || '—')}</span>
+      <span>${statusBadge(c.contrat_status)}</span>
+    </div>
+  `).join('');
+}
+
+// ── Services ──
+function renderServices() {
+  const html = SERVICES.map(s => `
+    <div class="service-card ${s.soon ? 'disabled' : ''}" onclick="${s.soon ? '' : (s.link ? `window.open('${s.link}','_blank')` : `openServiceForm('${s.id}')`)}">
+      <div class="service-icon">${s.icon}</div>
+      <div class="service-name">${s.name}</div>
+      <div class="service-desc">${s.desc}</div>
+      ${s.soon ? '<div class="service-soon">Bientôt disponible</div>' : ''}
+    </div>
+  `).join('');
+  document.getElementById('services-grid').innerHTML = html;
+  document.getElementById('dash-services').innerHTML = html;
+}
+
+let currentServiceId = null;
+function openServiceForm(id) {
+  const s = SERVICES.find(x => x.id === id); if (!s) return;
+  currentServiceId = id;
+  document.getElementById('sf-icon').textContent = s.icon;
+  document.getElementById('sf-title').textContent = s.name;
+  document.getElementById('service-form-card').style.display = 'block';
+  document.getElementById('service-form-card').scrollIntoView({ behavior: 'smooth' });
+}
+function cancelServiceForm() {
+  document.getElementById('service-form-card').style.display = 'none';
+  currentServiceId = null;
+}
+async function submitServiceRequest() {
+  const desc = document.getElementById('sf-desc').value.trim();
+  if (!desc) { showToast('Veuillez décrire votre besoin.', true); return; }
+  try {
+    const body = {
+      personne_id: currentUser.id,
+      contrat_status: 'en_attente',
+      fournisseur: 'Fuwu Service',
+      energie_type: null,
+      formule: currentServiceId,
+      option_tarifaire: desc.substring(0, 200),
+      date_debut: document.getElementById('sf-date').value || new Date().toISOString().slice(0,10),
+      source: currentUser.email
+    };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/contrats`, { method:'POST', headers: fuwuHR(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error('Erreur serveur');
+    showToast('Demande envoyée ✓');
+    cancelServiceForm();
+    await loadContrats();
+    updateDashboard();
+  } catch(e) { showToast('Erreur: ' + e.message, true); }
+}
+
+// ── Profil ──
+function renderProfil() {
+  const u = currentUser;
+  const fields = [
+    ['Civilité', u.civilite], ['Prénom', u.prenom], ['Nom', u.nom], ['Email', u.email],
+    ['Téléphone', u.telephone], ['WeChat', u.wechat], ['Date de naissance', fmtDate(u.date_naissance)],
+    ['Code parrainage', u.code_parrainage]
+  ];
+  document.getElementById('profil-info').innerHTML = fields.map(([l,v]) => `
+    <div class="info-item"><div class="info-label">${l}</div><div class="info-value">${esc(v || '—')}</div></div>
+  `).join('');
+}
+
+function showEditProfil() {
+  const u = currentUser;
+  const fields = [
+    { key:'prenom', label:'Prénom', val:u.prenom },
+    { key:'nom', label:'Nom', val:u.nom },
+    { key:'telephone', label:'Téléphone', val:u.telephone },
+    { key:'wechat', label:'WeChat', val:u.wechat },
+  ];
+  document.getElementById('edit-form').innerHTML = fields.map(f => `
+    <div class="fg"><label>${f.label}</label><input type="text" id="edit-${f.key}" value="${esc(f.val || '')}"></div>
+  `).join('') + `<button class="btn-primary" style="width:auto;padding:10px 24px;" onclick="saveProfil()">Sauvegarder</button>`;
+  document.getElementById('modal-edit').style.display = 'flex';
+}
+
+async function saveProfil() {
+  const body = {
+    prenom: document.getElementById('edit-prenom').value.trim(),
+    nom: document.getElementById('edit-nom').value.trim(),
+    telephone: document.getElementById('edit-telephone').value.trim() || null,
+    wechat: document.getElementById('edit-wechat').value.trim() || null,
+  };
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${currentUser.id}`, { method:'PATCH', headers: fuwuH(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error('Erreur');
+    Object.assign(currentUser, body);
+    renderProfil();
+    closeModal('modal-edit');
+    showToast('Profil mis à jour ✓');
+    document.getElementById('user-name').textContent = [body.prenom, body.nom].filter(Boolean).join(' ');
+  } catch(e) { showToast('Erreur: ' + e.message, true); }
+}
+
+// ── Parrainage ──
+function renderParrainage() {
+  document.getElementById('parrain-code-text').textContent = currentUser.code_parrainage || 'NON DÉFINI';
+  // TODO: load real parrainage data from a table
+  document.getElementById('parrain-total').textContent = '0 €';
+  document.getElementById('parrain-used').textContent = '0 €';
+  document.getElementById('parrain-available').textContent = '0 €';
+}
+function copyParrainCode() {
+  const code = currentUser.code_parrainage;
+  navigator.clipboard.writeText(code).then(() => showToast('Code copié: ' + code));
+}
+
+// ── Provider ──
+let selectedProviderCats = new Set();
+function toggleProviderCat(el, cat) {
+  el.classList.toggle('selected');
+  if (selectedProviderCats.has(cat)) selectedProviderCats.delete(cat);
+  else selectedProviderCats.add(cat);
+}
+async function submitProvider() {
+  const desc = document.getElementById('provider-desc').value.trim();
+  if (!selectedProviderCats.size || !desc) { showToast('Sélectionnez une catégorie et décrivez votre offre.', true); return; }
+  // Store as a note or in a future table
+  showToast('Candidature soumise ✓ Nous vous contacterons bientôt.');
+}
+
+// ── Helpers ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR'); }
+function dRow(l, v) { return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;">${l}</span><span style="font-weight:500;">${v}</span></div>`; }
+function statusBadge(s) {
+  const m = { en_attente:['En attente','badge-attente'], en_traitement:['En traitement','badge-traitement'], actif:['Actif','badge-actif'], annule:['Annulé','badge-annule'], refuse:['Refusé','badge-refuse'] };
+  const [label, cls] = m[s] || [s || '—', ''];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── Init ──
+autoLogin();
+</script>
+</body>
+</html>
