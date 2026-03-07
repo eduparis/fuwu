@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscription — Fuwu.fr</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:#b8922a;--gold-light:#c9a84c;--gold-dim:rgba(184,146,42,0.12);
+    --bg:#ffffff;--surface:#ffffff;--surface2:#f7f5f0;
+    --border:rgba(184,146,42,0.25);--text:#1a1610;--muted:#6b6355;
+    --red:#d63b3b;--green:#2d7d4f;--radius:12px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#ffffff;color:var(--text);min-height:100vh;}
+  .wrap{max-width:640px;margin:0 auto;padding:40px 24px 60px;}
+  .header{text-align:center;margin-bottom:40px;}
+  .header-logo{font-family:'Noto Serif SC',serif;font-size:28px;color:var(--gold);letter-spacing:3px;margin-bottom:6px;}
+  .header-sub{font-size:13px;color:var(--muted);letter-spacing:1px;}
+  .steps{display:flex;align-items:center;justify-content:center;margin-bottom:36px;}
+  .step{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .step-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);background:var(--surface);transition:all 0.3s;}
+  .step.active .step-dot{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);box-shadow:0 0 0 4px rgba(201,168,76,0.1);}
+  .step.done .step-dot{border-color:var(--green);color:var(--green);background:rgba(76,175,130,0.1);}
+  .step-label{font-size:10px;color:var(--muted);white-space:nowrap;}
+  .step.active .step-label{color:var(--gold);}
+  .step.done .step-label{color:var(--green);}
+  .step-line{width:36px;height:1px;background:var(--border);margin-bottom:18px;transition:background 0.3s;}
+  .step-line.done{background:var(--green);}
+  .card{background:#ffffff;border:1px solid rgba(184,146,42,0.3);box-shadow:0 2px 12px rgba(0,0,0,0.06);border-radius:18px;padding:32px;margin-bottom:16px;}
+  .card-title{font-family:'Noto Serif SC',serif;font-size:16px;color:var(--gold);letter-spacing:1px;margin-bottom:24px;display:flex;align-items:center;gap:8px;}
+  .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .service-btn{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 12px;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--muted);}
+  .service-btn:hover:not(.disabled){border-color:var(--gold);color:var(--text);}
+  .service-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .service-btn.disabled{opacity:0.4;cursor:not-allowed;}
+  .service-icon{font-size:22px;margin-bottom:6px;}
+  .service-name{font-size:13px;font-weight:600;}
+  .service-soon{font-size:10px;color:var(--muted);margin-top:2px;}
+  .form-row{display:flex;gap:12px;margin-bottom:16px;}
+  .form-row .fg{flex:1;margin-bottom:0;}
+  .fg{margin-bottom:16px;}
+  label{display:block;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  label .req{color:var(--gold);margin-left:2px;}
+  input,select,textarea{width:100%;background:#f7f5f0;border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;appearance:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+  input::placeholder,textarea::placeholder{color:#b0a898;}
+  select option{background:#f7f5f0;color:#1a1610;}
+  .toggle-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .toggle-btn{flex:1;min-width:60px;background:#f0ede6;border:1.5px solid var(--border);border-radius:8px;padding:9px 8px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all 0.2s;user-select:none;}
+  .toggle-btn:hover{border-color:var(--gold);color:var(--text);}
+  .toggle-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  /* Type souscription cards */
+  .souscription-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sous-card{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s;color:var(--muted);}
+  .sous-card:hover{border-color:var(--gold);color:var(--text);}
+  .sous-card.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .sous-card-icon{font-size:24px;margin-bottom:8px;}
+  .sous-card-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+  .sous-card-desc{font-size:11px;color:var(--muted);line-height:1.4;}
+  .sous-card.selected .sous-card-desc{color:rgba(201,168,76,0.7);}
+  /* Intermediaire input */
+  .interm-wrap{position:relative;display:flex;align-items:center;}
+  .interm-wrap input{border-radius:9px 0 0 9px;border-right:none;}
+  .interm-suffix{background:var(--surface2);border:1.5px solid var(--border);border-left:none;border-radius:0 9px 9px 0;padding:11px 14px;font-size:13px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+  .interm-wrap input:focus + .interm-suffix{border-color:var(--gold);}
+  .divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+  .section-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .section-tag::after{content:'';flex:1;height:1px;background:var(--border);}
+  .nav-btns{display:flex;gap:12px;margin-top:24px;}
+  .btn{flex:1;padding:14px;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .btn-primary{background:var(--gold);color:#0a0c10;}
+  .btn-primary:hover{background:var(--gold-light);transform:translateY(-1px);}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+  .btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border);flex:0 0 auto;padding:14px 20px;}
+  .btn-secondary:hover{color:var(--text);border-color:var(--gold);}
+  .alert{padding:12px 16px;border-radius:9px;font-size:13px;margin-bottom:16px;display:none;}
+  .alert.show{display:block;}
+  .alert-error{background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;}
+  .dup-warning{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:none;}
+  .dup-warning.show{display:block;}
+  .dup-title{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;}
+  .dup-client{font-size:13px;color:var(--text);margin-bottom:10px;}
+  .dup-btns{display:flex;gap:8px;}
+  .dup-btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .dup-btn-use{background:var(--gold);color:#0a0c10;}
+  .dup-btn-new{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+  .success-screen{text-align:center;padding:40px 20px;display:none;}
+  .success-screen.show{display:block;}
+  .success-icon{font-size:56px;margin-bottom:16px;}
+  .success-title{font-family:'Noto Serif SC',serif;font-size:22px;color:var(--gold);margin-bottom:8px;}
+  .success-sub{font-size:14px;color:var(--muted);line-height:1.6;}
+  .success-id{font-family:monospace;font-size:13px;color:var(--gold);background:var(--gold-dim);padding:8px 16px;border-radius:8px;margin:16px auto 0;display:inline-block;}
+  .page{display:none;}
+  .page.active{display:block;}
+  .spinner{width:18px;height:18px;border:2px solid rgba(10,12,16,0.3);border-top-color:#0a0c10;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .recap-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:16px;}
+  .recap-row:last-child{border-bottom:none;}
+  .recap-key{font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);flex-shrink:0;padding-top:2px;}
+  .recap-val{font-size:13px;color:var(--text);text-align:right;word-break:break-word;}
+  @media(max-width:480px){
+    .wrap{padding:24px 16px 40px;}
+    .card{padding:20px 16px;}
+    .form-row{flex-direction:column;gap:0;}
+    .step-line{width:18px;}
+    .souscription-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-logo">服务 FUWU</div>
+    <div class="header-sub">Formulaire d'inscription</div>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="step-1"><div class="step-dot">1</div><div class="step-label">Service</div></div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step" id="step-2"><div class="step-dot">2</div><div class="step-label">Identité</div></div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step" id="step-3"><div class="step-dot">3</div><div class="step-label">Détails</div></div>
+    <div class="step-line" id="line-3"></div>
+    <div class="step" id="step-4"><div class="step-dot">4</div><div class="step-label">Finance</div></div>
+    <div class="step-line" id="line-4"></div>
+    <div class="step" id="step-5"><div class="step-dot">5</div><div class="step-label">Validation</div></div>
+  </div>
+
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Inscription enregistrée</div>
+    <div class="success-sub">Votre demande a bien été reçue.<br>Notre équipe vous contactera sous 24h.</div>
+    <div class="success-id" id="success-id"></div>
+  </div>
+
+  <!-- PAGE 1 : Service + Type client -->
+  <div class="page active" id="page-1">
+    <div class="card">
+      <div class="card-title"><span>⚡</span> Choisissez votre service</div>
+      <div class="service-grid">
+        <div class="service-btn selected" id="svc-energie" onclick="selectService('energie')">
+          <div class="service-icon">⚡</div>
+          <div class="service-name">Énergie</div>
+          <div class="service-soon">Électricité &amp; Gaz</div>
+        </div>
+        <div class="service-btn disabled">
+          <div class="service-icon">📡</div>
+          <div class="service-name">Télécom</div>
+          <div class="service-soon">Bientôt disponible</div>
+        </div>
+        <div class="service-btn disabled">
+          <div class="service-icon">🏦</div>
+          <div class="service-name">Banque</div>
+          <div class="service-soon">Bientôt disponible</div>
+        </div>
+        <div class="service-btn disabled">
+          <div class="service-icon">🛎️</div>
+          <div class="service-name">Services Fuwu</div>
+          <div class="service-soon">Bientôt disponible</div>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="fg" style="margin-bottom:0">
+        <label>Type de client</label>
+        <div class="toggle-group">
+          <div class="toggle-btn selected" id="tc-particulier" onclick="selectTypeClient('particulier')">👤 Particulier</div>
+          <div class="toggle-btn" id="tc-professionnel" onclick="selectTypeClient('professionnel')">🏢 Professionnel</div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-primary" onclick="goTo(2)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2 : Identité -->
+  <div class="page" id="page-2">
+    <div class="card">
+      <div class="card-title"><span>👤</span> Informations personnelles</div>
+
+      <div class="fg">
+        <label>Civilité <span class="req">*</span></label>
+        <div class="toggle-group">
+          <div class="toggle-btn" id="civ-m" onclick="selectCiv('M.')">M.</div>
+          <div class="toggle-btn" id="civ-mme" onclick="selectCiv('Mme')">Mme</div>
+          <div class="toggle-btn" id="civ-mrmme" onclick="selectCiv('M. & Mme')">M. &amp; Mme</div>
+          <div class="toggle-btn" id="civ-societe" onclick="selectCiv('Société')">Société</div>
+        </div>
+      </div>
+
+      <!-- Siret (visible si Société) -->
+      <div class="fg" id="fg-siret" style="display:none">
+        <label>Numéro SIRET</label>
+        <input type="text" id="f-siret" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+
+      <div class="form-row">
+        <div class="fg">
+          <label>Prénom <span class="req">*</span></label>
+          <input type="text" id="f-prenom" placeholder="JEAN" oninput="toUpper(this);checkDuplicate()">
+        </div>
+        <div class="fg">
+          <label>Nom <span class="req">*</span></label>
+          <input type="text" id="f-nom" placeholder="DUPONT" oninput="toUpper(this);checkDuplicate()">
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Date de naissance</label>
+        <input type="date" id="f-naissance" value="1998-08-08">
+      </div>
+
+      <!-- Colocataire -->
+      <div class="fg">
+        <label>Colocataire — Prénom &amp; Nom</label>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="fg" style="margin-bottom:0">
+            <input type="text" id="f-coloc-prenom" placeholder="PRÉNOM" oninput="toUpper(this)">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <input type="text" id="f-coloc-nom" placeholder="NOM" oninput="toUpper(this)">
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div class="section-tag">Contact</div>
+
+      <div class="form-row">
+        <div class="fg">
+          <label>Email 1 <span class="req">*</span></label>
+          <input type="email" id="f-email" placeholder="jean@email.com" oninput="checkDuplicate()">
+        </div>
+        <div class="fg">
+          <label>Email 2</label>
+          <input type="email" id="f-email2" placeholder="autre@email.com">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="fg">
+          <label>Téléphone 1</label>
+          <input type="tel" id="f-telephone" placeholder="0612345678" oninput="onlyDigits(this);checkDuplicate()">
+        </div>
+        <div class="fg">
+          <label>Téléphone 2</label>
+          <input type="tel" id="f-telephone2" placeholder="0612345678" oninput="onlyDigits(this)">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="fg">
+          <label>WeChat / WhatsApp / Instagram 1</label>
+          <input type="text" id="f-wechat" placeholder="ID ou @pseudo" maxlength="30" oninput="checkDuplicate()">
+        </div>
+        <div class="fg">
+          <label>WeChat / WhatsApp / Instagram 2</label>
+          <input type="text" id="f-wechat2" placeholder="ID ou @pseudo" maxlength="30">
+        </div>
+      </div>
+    </div>
+
+    <div class="dup-warning" id="dup-warning">
+      <div class="dup-title">🔍 Client existant détecté</div>
+      <div class="dup-client" id="dup-client-info"></div>
+      <div class="dup-btns">
+        <button class="dup-btn dup-btn-use" onclick="useExistingClient()">Utiliser ce client</button>
+        <button class="dup-btn dup-btn-new" onclick="dismissDuplicate()">C'est un nouveau client</button>
+      </div>
+    </div>
+
+    <div class="alert alert-error" id="err-identity"></div>
+    <div class="nav-btns">
+      <button class="btn btn-secondary" onclick="goTo(1)">←</button>
+      <button class="btn btn-primary" onclick="goTo(3)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3 : Détails énergie -->
+  <div class="page" id="page-3">
+    <div class="card">
+      <div class="card-title"><span>⚡</span> Détails énergie</div>
+
+      <div class="fg">
+        <label>Type de souscription <span class="req">*</span></label>
+        <div class="souscription-grid">
+          <div class="sous-card selected" id="sous-mise" onclick="selectSouscription('mise_en_service')">
+            <div class="sous-card-icon">🔌</div>
+            <div class="sous-card-title">Mise en service</div>
+            <div class="sous-card-desc">Nouveau compteur ou première activation</div>
+          </div>
+          <div class="sous-card" id="sous-change" onclick="selectSouscription('en_service')">
+            <div class="sous-card-icon">🔄</div>
+            <div class="sous-card-title">Changement fournisseur</div>
+            <div class="sous-card-desc">Compteur actif, changer de fournisseur</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Type d'énergie <span class="req">*</span></label>
+        <div class="toggle-group">
+          <div class="toggle-btn selected" id="egy-elec" onclick="selectEnergie('elec')">⚡ Électricité</div>
+          <div class="toggle-btn" id="egy-gaz" onclick="selectEnergie('gaz')">🔥 Gaz</div>
+          <div class="toggle-btn" id="egy-both" onclick="selectEnergie('elec+gaz')">⚡🔥 Les deux</div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Fournisseur actuel</label>
+        <select id="f-fournisseur">
+          <option value="TotalEnergies">TotalEnergies</option>
+          <option value="EDF">EDF</option>
+          <option value="Engie">Engie</option>
+          <option value="Eni">Eni</option>
+          <option value="Vattenfall">Vattenfall</option>
+          <option value="Mint Énergies">Mint Énergies</option>
+          <option value="Ohm Énergie">Ohm Énergie</option>
+          <option value="Ekwateur">Ekwateur</option>
+          <option value="Octopus Energy">Octopus Energy</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="fg" id="fg-pdl">
+          <label>PDL (élec)</label>
+          <input type="text" id="f-pdl" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'');checkPDL(this.value)">
+          <div id="pdl-suggest" style="display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer" onclick="fillFromPDL()">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse existante trouvée</div>
+            <div id="pdl-suggest-info" style="font-size:13px;font-weight:600"></div>
+          </div>
+        </div>
+        <div class="fg" id="fg-pce" style="display:none">
+          <label>PCE (gaz)</label>
+          <input type="text" id="f-pce" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'');checkPCE(this.value)">
+          <div id="pce-suggest" style="display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer" onclick="fillFromPCE()">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse existante trouvée</div>
+            <div id="pce-suggest-info" style="font-size:13px;font-weight:600"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="fg">
+          <label>Puissance (kVA)</label>
+          <select id="f-puissance">
+            <option value="6" selected>6 kVA</option>
+            <option value="3">3 kVA</option>
+            <option value="9">9 kVA</option>
+            <option value="12">12 kVA</option>
+            <option value="15">15 kVA</option>
+            <option value="18">18 kVA</option>
+            <option value="24">24 kVA</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Type de logement</label>
+          <select id="f-logement">
+            <option value="appartement" selected>Appartement</option>
+            <option value="maison">Maison</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Option tarifaire</label>
+        <div class="toggle-group">
+          <div class="toggle-btn selected" id="opt-base" onclick="selectOptionTarifaire('BASE')">📊 BASE</div>
+          <div class="toggle-btn" id="opt-hphc" onclick="selectOptionTarifaire('HPHC')">🌙 HPHC</div>
+        </div>
+      </div>
+
+      <div class="fg" style="margin-bottom:0">
+        <label>Notes</label>
+        <textarea id="f-note" rows="3" placeholder="Informations utiles pour le dossier..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>🏠</span> Adresse Consommation</div>
+      <div class="fg">
+        <label>Rue <span class="req">*</span></label>
+        <input type="text" id="f-rue" placeholder="12 RUE DE LA PAIX" oninput="toUpper(this)">
+      </div>
+      <div class="fg">
+        <label>Complément d'adresse</label>
+        <input type="text" id="f-complement" placeholder="APT 3B, BÂT C..." oninput="toUpper(this)">
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label>Code postal <span class="req">*</span></label>
+          <input type="text" id="f-cp" placeholder="75001" maxlength="5" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div class="fg">
+          <label>Ville <span class="req">*</span></label>
+          <input type="text" id="f-ville" placeholder="PARIS" oninput="toUpper(this)">
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-error" id="err-service-detail"></div>
+    <div class="nav-btns">
+      <button class="btn btn-secondary" onclick="goTo(2)">←</button>
+      <button class="btn btn-primary" onclick="goTo(4)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 4 : Finance + Intermédiaire -->
+  <div class="page" id="page-4">
+    <div class="card">
+      <div class="card-title"><span>💳</span> Informations bancaires</div>
+      <div class="fg">
+        <label>IBAN</label>
+        <input type="text" id="f-iban" placeholder="FR76 3000 6000 0112 3456 7890 189" oninput="formatIban(this)">
+      </div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:-8px;margin-bottom:0">
+        Nécessaire pour la mise en place du prélèvement automatique. Transmis de manière sécurisée.
+      </p>
+      <hr class="divider">
+      <div class="fg" style="margin-bottom:0">
+        <label>Intermédiaire <span class="req">*</span></label>
+        <div class="interm-wrap" style="position:relative;display:flex;align-items:center">
+          <input type="text" id="f-interm" placeholder="fc305" oninput="this.value=this.value.replace(/\s/g,'').toLowerCase();checkInterm(this.value)" autocomplete="off" style="padding-right:36px">
+          <span id="interm-status" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:16px;display:none"></span>
+          <span class="interm-suffix">@aaaww.top</span>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px">Entrez le code de l'intermédiaire (ex: fc305, ss503…)</p>
+      </div>
+    </div>
+    <div class="alert alert-error" id="err-finance"></div>
+    <div class="nav-btns">
+      <button class="btn btn-secondary" onclick="goTo(3)">←</button>
+      <button class="btn btn-primary" onclick="goTo(5)">Vérifier →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 5 : Récap -->
+  <div class="page" id="page-5">
+    <div class="card">
+      <div class="card-title"><span>📋</span> Récapitulatif</div>
+      <div id="recap-body"></div>
+    </div>
+    <div class="alert alert-error" id="err-submit"></div>
+    <div class="nav-btns">
+      <button class="btn btn-secondary" onclick="goTo(4)">←</button>
+      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()">Confirmer l'inscription</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+// Config from common.js
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
+const H = fuwuHA();
+
+let selectedService = 'energie';
+let selectedTypeClient = 'particulier';
+let selectedCiv = null;
+let selectedEnergie = 'elec';
+let selectedSouscription = 'mise_en_service';
+let selectedOptionTarifaire = 'BASE';
+let existingPersonne = null;
+let forceNewClient = false;
+let dupCheckTimer = null;
+let allPersonnes = [];
+
+// Date naissance : limiter entre aujourd'hui-100ans et aujourd'hui
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+  const maxDate = today.toISOString().split('T')[0];
+  const minDate = new Date(today.getFullYear()-100, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+  const el = document.getElementById('f-naissance');
+  el.max = maxDate;
+  el.min = minDate;
+  // PDL visible par défaut (elec sélectionné)
+  document.getElementById('fg-pdl').style.display = 'block';
+  document.getElementById('fg-pce').style.display = 'none';
+});
+
+// loadPersonnes supprimé (inutile)
+
+// ── Navigation ───────────────────────────────────────────────────
+function goTo(n) {
+  if (n > 1 && !validatePage(n-1)) return;
+  for (let i=1; i<=5; i++) {
+    document.getElementById(`page-${i}`).classList.toggle('active', i===n);
+    const s = document.getElementById(`step-${i}`);
+    s.classList.remove('active','done');
+    if (i<n) s.classList.add('done');
+    else if (i===n) s.classList.add('active');
+    if (i<5) document.getElementById(`line-${i}`).classList.toggle('done', i<n);
+  }
+  if (n===5) buildRecap();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Validation ───────────────────────────────────────────────────
+function validatePage(n) {
+  if (n===2) {
+    if (!selectedCiv) { show('err-identity','Veuillez sélectionner une civilité.'); return false; }
+    if (!v('f-prenom')||!v('f-nom')) { show('err-identity','Prénom et nom obligatoires.'); return false; }
+    if (!v('f-email')) { show('err-identity','L\'email est obligatoire.'); return false; }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(v('f-email'))) { show('err-identity','Email 1 invalide.'); return false; }
+    if (v('f-email2') && !emailRe.test(v('f-email2'))) { show('err-identity','Email 2 invalide.'); return false; }
+    hide('err-identity'); return true;
+  }
+  if (n===3) {
+    if (!v('f-rue')||!v('f-cp')||!v('f-ville')) { show('err-service-detail','Adresse incomplète.'); return false; }
+    if (v('f-cp').length!==5) { show('err-service-detail','Code postal doit contenir 5 chiffres.'); return false; }
+    hide('err-service-detail'); return true;
+  }
+  if (n===4) {
+    if (!v('f-interm')) { show('err-finance','Code intermédiaire obligatoire.'); return false; }
+    if (!window._intermValid) { show('err-finance','Code intermédiaire non reconnu.'); return false; }
+    hide('err-finance'); return true;
+  }
+  return true;
+}
+
+// ── Sélections ───────────────────────────────────────────────────
+function selectService(s) {
+  selectedService = s;
+  document.querySelectorAll('.service-btn:not(.disabled)').forEach(b=>b.classList.remove('selected'));
+  document.getElementById(`svc-${s}`).classList.add('selected');
+}
+
+function selectTypeClient(t) {
+  selectedTypeClient = t;
+  ['particulier','professionnel'].forEach(k=>document.getElementById(`tc-${k}`).classList.remove('selected'));
+  document.getElementById(`tc-${t}`).classList.add('selected');
+}
+
+function selectCiv(c) {
+  selectedCiv = c;
+  document.querySelectorAll('.toggle-btn[id^="civ-"]').forEach(b=>b.classList.remove('selected'));
+  const map={'M.':'m','Mme':'mme','M. & Mme':'mrmme','Société':'societe'};
+  const el=document.getElementById(`civ-${map[c]}`);
+  if(el) el.classList.add('selected');
+  const fg=document.getElementById('fg-siret');
+  if(fg) fg.style.display = c==='Société' ? 'block' : 'none';
+}
+
+function selectEnergie(e) {
+  selectedEnergie = e;
+  ['elec','gaz','both'].forEach(k=>document.getElementById(`egy-${k}`).classList.remove('selected'));
+  document.getElementById(`egy-${e==='elec+gaz'?'both':e}`).classList.add('selected');
+  document.getElementById('fg-pdl').style.display = e==='gaz' ? 'none' : 'block';
+  document.getElementById('fg-pce').style.display = e==='elec' ? 'none' : 'block';
+}
+
+function selectOptionTarifaire(v){
+  selectedOptionTarifaire=v;
+  const b=document.getElementById('opt-base'); if(b) b.classList.toggle('selected',v==='BASE');
+  const h=document.getElementById('opt-hphc'); if(h) h.classList.toggle('selected',v==='HPHC');
+}
+function selectSouscription(s) {
+  selectedSouscription = s;
+  document.getElementById('sous-mise').classList.toggle('selected', s==='mise_en_service');
+  document.getElementById('sous-change').classList.toggle('selected', s==='en_service');
+}
+
+// ── Helpers input ────────────────────────────────────────────────
+function toUpper(el) { const pos=el.selectionStart; el.value=el.value.toUpperCase(); el.setSelectionRange(pos,pos); }
+function onlyDigits(el){el.value=el.value.replace(/\D/g,'');}
+function noSpace(el) { el.value=el.value.replace(/\s/g,''); }
+function formatIban(el) {
+  let val=el.value.replace(/\s/g,'').toUpperCase();
+  el.value=val.match(/.{1,4}/g)?.join(' ')||val;
+}
+
+// PDL/PCE : préserver les zéros en tête (champ texte, pas number)
+// Les valeurs sont déjà string, pas besoin de traitement spécial
+
+// ── Détection doublon ────────────────────────────────────────────
+function normName(s){return(s||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+
+let pdlAdresse = null;
+
+function checkDuplicate() {
+  clearTimeout(dupCheckTimer);
+  dupCheckTimer = setTimeout(async ()=>{
+    if(forceNewClient) return;
+    const email = v('f-email').toLowerCase().trim();
+    const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+    if(!emailValid) { hideDup(); return; }
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_check_duplicate`,{method:'POST',headers:H,body:JSON.stringify({p_email:email})});
+      const data = await r.json();
+      const match = Array.isArray(data) && data.length > 0 ? data[0] : null;
+      if(match){
+        existingPersonne = match;
+        // Get masked IBAN via RPC
+        const rc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_get_masked_iban`,{method:'POST',headers:H,body:JSON.stringify({p_personne_id:match.id})});
+        const cd = await rc.json();
+        existingPersonne._iban = Array.isArray(cd) && cd[0]?.iban_masked ? cd[0].iban_masked : null;
+        const name = [match.prenom, match.nom].filter(Boolean).join(' ');
+        const details = [match.telephone, match.email].filter(Boolean).join(' · ');
+        document.getElementById('dup-client-info').innerHTML=`<strong>${name}</strong><br><span style="color:var(--muted);font-size:12px">${details}</span>`;
+        document.getElementById('dup-warning').classList.add('show');
+      } else hideDup();
+    } catch(e){ console.error('checkDuplicate error:',e); hideDup(); }
+  }, 300);
+}
+
+function useExistingClient(){
+  const p = existingPersonne; if(!p) return;
+  goTo(2);
+  setTimeout(()=>{
+    if(p.civilite) selectCiv(p.civilite);
+    const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
+    set('f-prenom',p.prenom); set('f-nom',p.nom);
+    set('f-email',p.email); set('f-email2',p.email_reel);
+    set('f-telephone',p.telephone);
+    set('f-wechat',p.wechat);
+    set('f-siret',p.siret);
+    if(p.date_naissance) set('f-naissance',p.date_naissance);
+    if(p._iban){const el=document.getElementById('f-iban');if(el){const raw=p._iban.replace(/\s/g,'').toUpperCase();el.value=raw.match(/.{1,4}/g)?.join(' ')||raw;}}
+    document.getElementById('dup-warning').classList.remove('show');
+    forceNewClient = false;
+  }, 50);
+}
+
+async function checkPDL(val){
+  if(!val || val.length < 10) { hidePDLSuggest(); return; }
+  const pdl14 = val.padStart(14,'0');
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_lookup_pdl`,{method:'POST',headers:H,body:JSON.stringify({p_pdl:pdl14})});
+    const data = await r.json();
+    const ad = Array.isArray(data) && data[0] ? data[0] : null;
+    if(ad){
+      pdlAdresse = ad;
+      const adStr = [ad.rue, ad.complement, ad.code_postal+' '+ad.ville].filter(Boolean).join(', ');
+      document.getElementById('pdl-suggest-info').textContent = adStr;
+      document.getElementById('pdl-suggest').style.display = 'block';
+    } else hidePDLSuggest();
+  } catch(e){ hidePDLSuggest(); }
+}
+
+let _intermTimer = null;
+window._intermValid = false;
+async function checkInterm(val){
+  clearTimeout(_intermTimer);
+  const status = document.getElementById('interm-status');
+  if(!val){ window._intermValid=false; if(status){status.style.display='none';} return; }
+  _intermTimer = setTimeout(async()=>{
+    try{
+      const email = val+'@aaaww.top';
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_email_exists`,{method:'POST',headers:H,body:JSON.stringify({p_email:email})});
+      const data = await r.json();
+      const found = Array.isArray(data) && data.length > 0;
+      window._intermValid = found;
+      if(status){
+        status.textContent = found ? '✓' : '✗';
+        status.style.display = 'block';
+        status.style.color = found ? 'var(--green)' : '#e55';
+      }
+    }catch(e){ window._intermValid=false; }
+  }, 400);
+}
+function resetDefaults(puissance, logement){
+  const ep = document.getElementById('f-puissance');
+  if(ep){
+    // Extraire juste le chiffre si valeur du type "6 kVA"
+    const pval = puissance ? String(puissance).replace(/[^0-9]/g,'') : '6';
+    // Vérifier que l'option existe
+    const hasOpt = [...ep.options].some(o=>o.value===pval);
+    ep.value = hasOpt ? pval : '6';
+  }
+  const el = document.getElementById('f-logement');
+  if(el){
+    const lval = logement ? String(logement).toLowerCase().trim() : 'appartement';
+    const hasOpt = [...el.options].some(o=>o.value===lval);
+    el.value = hasOpt ? lval : 'appartement';
+  }
+}
+function fillFromPDL(){
+  const ad = pdlAdresse; if(!ad) return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
+  set('f-rue',ad.rue); set('f-complement',ad.complement);
+  set('f-cp',ad.code_postal); set('f-ville',ad.ville);
+  set('f-pce',ad.pce);
+  resetDefaults(ad.puissance, ad.type_logement);
+  hidePDLSuggest();
+}
+
+function hidePDLSuggest(){ pdlAdresse=null; const el=document.getElementById('pdl-suggest'); if(el) el.style.display='none'; }
+
+let pceAdresse = null;
+async function checkPCE(val){
+  if(!val || val.length < 10) { hidePCESuggest(); return; }
+  const pce14 = val.padStart(14,'0');
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_lookup_pce`,{method:'POST',headers:H,body:JSON.stringify({p_pce:pce14})});
+    const data = await r.json();
+    const ad = Array.isArray(data) && data[0] ? data[0] : null;
+    if(ad){
+      pceAdresse = ad;
+      const adStr = [ad.rue, ad.complement, ad.code_postal+' '+ad.ville].filter(Boolean).join(', ');
+      document.getElementById('pce-suggest-info').textContent = adStr;
+      document.getElementById('pce-suggest').style.display = 'block';
+    } else hidePCESuggest();
+  } catch(e){ hidePCESuggest(); }
+}
+function fillFromPCE(){
+  const ad = pceAdresse; if(!ad) return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
+  set('f-rue',ad.rue); set('f-complement',ad.complement);
+  set('f-cp',ad.code_postal); set('f-ville',ad.ville);
+  set('f-pdl',ad.pdl);
+  resetDefaults(ad.puissance, ad.type_logement);
+  hidePCESuggest();
+}
+function hidePCESuggest(){ pceAdresse=null; const el=document.getElementById('pce-suggest'); if(el) el.style.display='none'; }
+function dismissDuplicate(){existingPersonne=null;forceNewClient=true;hideDup();}
+function hideDup(){existingPersonne=null;document.getElementById('dup-warning').classList.remove('show');}
+
+// ── Récap ─────────────────────────────────────────────────────────
+function buildRecap(){
+  const iban=v('f-iban').replace(/\s/g,'');
+  const interm=v('f-interm')+'@aaaww.top';
+  const rows=[
+    ['Service','⚡ Énergie'],
+    ['Type client',selectedTypeClient==='particulier'?'👤 Particulier':'🏢 Professionnel'],
+    ['Civilité',selectedCiv||'—'],
+    ['Prénom',v('f-prenom')||'—'],['Nom',v('f-nom')||'—'],
+    ['Date de naissance',v('f-naissance')||'—'],
+    ...(v('f-siret')?[['SIRET',v('f-siret')]]:[] ),
+    ...(v('f-coloc-prenom')||v('f-coloc-nom')?[['Colocataire',[v('f-coloc-prenom'),v('f-coloc-nom')].filter(Boolean).join(' ')]]:[] ),
+    null,
+    ['Email 1',v('f-email')||'—'],
+    ...(v('f-email2')?[['Email 2',v('f-email2')]]:[] ),
+    ['Téléphone 1',v('f-telephone')||'—'],
+    ...(v('f-telephone2')?[['Téléphone 2',v('f-telephone2')]]:[] ),
+    ['WeChat/WA/IG 1',v('f-wechat')||'—'],
+    ...(v('f-wechat2')?[['WeChat/WA/IG 2',v('f-wechat2')]]:[] ),
+    null,
+    ['Adresse',[v('f-rue'),v('f-complement'),v('f-cp')+' '+v('f-ville')].filter(Boolean).join(', ')],
+    ['Énergie',selectedEnergie||'—'],['Fournisseur',v('f-fournisseur')||'—'],
+    ...(selectedEnergie!=='gaz'?[['PDL',v('f-pdl')||'—']]:[] ),
+    ...(selectedEnergie!=='elec'?[['PCE',v('f-pce')||'—']]:[] ),
+    ['Puissance',v('f-puissance')?v('f-puissance')+' kVA':'—'],
+    ['Logement',v('f-logement')||'—'],
+    ['Type souscription',selectedSouscription==='mise_en_service'?'🔌 Mise en service':'🔄 Changement fournisseur'],
+    ['Option tarifaire', selectedOptionTarifaire||'BASE'],
+    ...(v('f-note')?[['Notes',v('f-note')]]:[] ),
+    null,
+    ['IBAN',iban?'•••• •••• •••• '+iban.slice(-4):'—'],
+    ['Intermédiaire',v('f-interm')?interm:'—'],
+  ];
+  document.getElementById('recap-body').innerHTML=rows.map(r=>
+    r===null?`<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">`:
+    `<div class="recap-row"><span class="recap-key">${r[0]}</span><span class="recap-val">${r[1]}</span></div>`
+  ).join('');
+}
+
+// ── Soumission ────────────────────────────────────────────────────
+async function submitForm(){
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Enregistrement...';
+  hide('err-submit');
+  try{
+    const pdlRaw=document.getElementById('f-pdl').value.trim();
+    const pceRaw=document.getElementById('f-pce').value.trim();
+    const intermEmail=v('f-interm')+'@aaaww.top';
+
+    const rpc=await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_submit`,{method:'POST',headers:H,body:JSON.stringify({
+      p_civilite:selectedCiv, p_type_client:selectedTypeClient,
+      p_prenom:v('f-prenom'), p_nom:v('f-nom'),
+      p_email:v('f-email')||'', p_telephone:v('f-telephone')||'',
+      p_wechat:v('f-wechat')||'', p_date_naissance:v('f-naissance')||'',
+      p_siret:v('f-siret')||'', p_colocataire_prenom:v('f-coloc-prenom')||'',
+      p_colocataire_nom:v('f-coloc-nom')||'',
+      p_existing_personne_id:(existingPersonne&&!forceNewClient)?existingPersonne.id:null,
+      p_rue:v('f-rue'), p_complement:v('f-complement')||'',
+      p_code_postal:v('f-cp'), p_ville:v('f-ville'),
+      p_pdl:pdlRaw||'', p_pce:pceRaw||'',
+      p_puissance:v('f-puissance')||'', p_type_logement:v('f-logement')||'',
+      p_energie_type:selectedEnergie||'', p_fournisseur:v('f-fournisseur')||'',
+      p_option_tarifaire:selectedOptionTarifaire||'',
+      p_source:intermEmail, p_iban:v('f-iban').replace(/\s/g,'')||''
+    })});
+    if(!rpc.ok){const e=await rpc.json();throw new Error(JSON.stringify(e));}
+    const result=await rpc.json();
+    const newC=Array.isArray(result)?result[0]:result;
+
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelector('.steps').style.display='none';
+    document.getElementById('success-screen').classList.add('show');
+    document.getElementById('success-id').textContent=newC.out_id_service ? `ID Fuwu : ${newC.out_id_service.replace(/^F/,'#')}` : `Référence : ${newC.out_contrat_id || 'OK'}`;
+  }catch(e){
+    show('err-submit',`Erreur : ${e.message}`);
+    btn.disabled=false; btn.innerHTML='Confirmer l\'inscription';
+  }
+}
+
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+function show(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.classList.add('show');}}
+function hide(id){document.getElementById(id)?.classList.remove('show');}
+</script>
+</body>
+</html>

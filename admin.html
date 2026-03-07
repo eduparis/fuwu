@@ -1,0 +1,3056 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuwu Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2333;--surface3:#242840;
+  --border:#2a2f45;--accent:#c8a96e;--accent2:#e8c98e;--text:#e8e6e1;
+  --muted:#6b7280;--danger:#ef4444;--success:#22c55e;--warning:#f59e0b;
+  --info:#3b82f6;--sidebar-w:220px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+#login-screen::before{content:'';position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(200,169,110,0.08),transparent 70%);top:-200px;right:-200px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:52px;width:100%;max-width:420px;position:relative;z-index:1;}
+.login-logo{font-family:'Playfair Display',serif;font-size:26px;color:var(--accent);margin-bottom:4px;}
+.login-subtitle{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:40px;}
+.login-box label{display:block;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.login-box input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;margin-bottom:18px;transition:border-color 0.2s;}
+.login-box input:focus{border-color:var(--accent);}
+.login-box input::placeholder{color:var(--muted);}
+.login-btn{width:100%;background:var(--accent);color:#0f1117;border:none;border-radius:10px;padding:14px;font-family:'Playfair Display',serif;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.login-btn:hover{background:var(--accent2);transform:translateY(-1px);}
+.login-error{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:11px;color:#fca5a5;font-size:13px;margin-top:14px;display:none;text-align:center;}
+/* LAYOUT */
+#app{display:none;min-height:100vh;}
+.layout{display:flex;min-height:100vh;}
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar-logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.sidebar-logo-text{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent);}
+.sidebar-logo-sub{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:2px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(200,169,110,0.12);color:var(--accent);}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--accent);color:#0f1117;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;}
+.sidebar-footer{padding:16px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.admin-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0f1117;flex-shrink:0;}
+.admin-info{flex:1;min-width:0;}
+.admin-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.admin-role{font-size:10px;color:var(--muted);}
+.logout-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;transition:color 0.2s;}
+.logout-btn:hover{color:var(--danger);}
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--text);}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.page-content{padding:28px 32px;flex:1;}
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-line,var(--border));}
+.stat-card.c-blue::before{--accent-line:#3b82f6;}
+.stat-card.c-green::before{--accent-line:#22c55e;}
+.stat-card.c-amber::before{--accent-line:#f59e0b;}
+.stat-card.c-gold::before{--accent-line:var(--accent);}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.stat-val{font-family:'Playfair Display',serif;font-size:32px;color:var(--text);line-height:1;}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:6px;}
+/* FILTERS */
+.filters-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filter-input{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;}
+.filter-input:focus{border-color:var(--accent);}
+.filter-input::placeholder{color:var(--muted);}
+.search-wrap{position:relative;display:inline-flex;align-items:center;}
+.search-wrap .filter-input{min-width:260px;padding-right:32px;}
+.search-clear{position:absolute;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;display:none;line-height:1;padding:0;}
+.search-clear:hover{color:var(--text);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:#0f1117;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-success{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.2);}
+.btn-success:hover{background:rgba(34,197,94,0.25);}
+.btn-danger{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.2);}
+.btn-danger:hover{background:rgba(239,68,68,0.22);}
+.btn-warning{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);}
+.btn-warning:hover{background:rgba(245,158,11,0.25);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead{background:var(--surface2);}
+th{padding:12px 16px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+th input[type="checkbox"],td input[type="checkbox"]{cursor:pointer;accent-color:var(--accent);}
+td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background 0.1s;}
+tbody tr:hover td{background:var(--surface2);}
+tbody tr.selected td{background:rgba(200,169,110,0.06);}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-actif{background:rgba(34,197,94,0.12);color:#22c55e;}
+.badge-historique{background:rgba(107,114,128,0.15);color:#9ca3af;}
+.badge-en_attente{background:rgba(245,158,11,0.12);color:#f59e0b;}
+.badge-en_traitement{background:rgba(59,130,246,0.12);color:#60a5fa;}
+.badge-resilie{background:rgba(239,68,68,0.12);color:#ef4444;}
+.badge-paye{background:rgba(34,197,94,0.12);color:#22c55e;}
+.badge-non_paye{background:rgba(245,158,11,0.12);color:#f59e0b;}
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);background:var(--surface2);}
+.page-info{font-size:12px;color:var(--muted);}
+.page-btns{display:flex;gap:4px;}
+.page-btn{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text);transition:all 0.15s;}
+.page-btn:hover{border-color:var(--accent);color:var(--accent);}
+.page-btn.active{background:var(--accent);border-color:var(--accent);color:#0f1117;font-weight:700;}
+.page-btn:disabled{opacity:0.3;cursor:not-allowed;}
+/* LOADING */
+.loading{text-align:center;padding:60px;color:var(--muted);}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:60px;color:var(--muted);font-size:14px;}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;width:100%;max-width:700px;position:relative;max-height:94vh;overflow-y:auto;}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:24px;color:var(--text);}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);transition:color 0.2s;}
+.modal-close:hover{color:var(--text);}
+.modal-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:16px;}
+.modal-row:last-child{border-bottom:none;}
+.modal-key{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);flex-shrink:0;padding-top:2px;}
+.modal-val{font-size:13px;color:var(--text);text-align:right;word-break:break-word;}
+.modal-section{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);padding:16px 0 6px;}
+select.field-edit{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;}
+select.field-edit:focus{border-color:var(--accent);}
+/* TOAST */
+#toast{position:fixed;bottom:28px;right:28px;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;gap:10px;align-items:center;min-width:260px;transform:translateY(20px);opacity:0;transition:all 0.3s;pointer-events:none;}
+#toast.show{transform:translateY(0);opacity:1;}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* INTERMEDIAIRE */
+.interm-grid{display:flex;flex-direction:column;gap:2px;}
+.interm-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:border-color 0.2s;}
+.interm-card:hover{border-color:var(--accent);}
+.interm-cat{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.interm-email{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.interm-name{font-size:12px;color:var(--muted);margin-bottom:12px;}
+.interm-stats{display:flex;gap:12px;}
+.interm-stat{font-size:12px;color:var(--muted);}
+.interm-stat strong{color:var(--text);font-size:14px;}
+/* AGENTS */
+.agent-result-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px;}
+.agent-result-name{font-weight:600;font-size:14px;margin-bottom:4px;}
+.agent-result-meta{font-size:12px;color:var(--muted);margin-bottom:14px;}
+.agent-row{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border2,rgba(255,255,255,0.05));}
+.agent-row:last-child{border-bottom:none;}
+.agent-row-name{font-weight:600;font-size:13px;flex:1;}
+.agent-row-email{font-size:12px;color:var(--muted);flex:1;}
+.agent-row-login{font-family:monospace;font-size:12px;color:var(--accent);flex:1;}
+.agent-pwd-input{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;width:140px;}
+
+/* CRM CONTRAT ROW */
+.contrat-row{background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:6px;font-size:12px;}
+.contrat-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.contrat-row-sub{color:var(--muted);font-size:11px;}
+/* INTERM FORM */
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+.form-input:focus{border-color:var(--accent);}
+</style>
+</head>
+<body>
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Fuwu.fr</div>
+    <div class="login-subtitle">Console Admin</div>
+    <label>Email admin</label>
+    <input type="email" id="login-email" value="ed@fuwu.fr" onkeydown="if(event.key==='Enter')login()">
+    <label>Mot de passe</label>
+    <div style="position:relative">
+      <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()" style="padding-right:40px">
+      <span onclick="togglePwd()" id="pwd-eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;user-select:none;opacity:0.6">👁</span>
+    </div>
+    <button class="login-btn" onclick="login()" id="login-btn">Accéder</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-text">Fuwu.fr</div>
+        <div class="sidebar-logo-sub">Admin Console</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" onclick="showPage('dashboard')" href="#">
+          <span class="nav-icon">⚡</span> Dashboard
+        </a>
+        <a class="nav-item active" onclick="showPage('contrats')" href="#">
+          <span class="nav-icon">📄</span> Contrats
+          <span class="nav-badge" id="badge-contrats">—</span>
+        </a>
+        <a class="nav-item" onclick="showPage('commissions')" href="#">
+          <span class="nav-icon">💶</span> Commissions
+          <span class="nav-badge" id="badge-commissions">—</span>
+        </a>
+        <a class="nav-item" onclick="showPage('intermediaires')" href="#">
+          <span class="nav-icon">🤝</span> Intermédiaires
+        </a>
+        <a class="nav-item" onclick="showPage('crm')" href="#">
+          <span class="nav-icon">👥</span> CRM Clients
+        </a>
+        <a class="nav-item" onclick="showPage('inscription')" href="#">
+          <span class="nav-icon">✚</span> Nouveau client
+        </a>
+        <a class="nav-item" onclick="showPage('agents')" href="#">
+          <span class="nav-icon">🛡</span> Agents
+        </a>
+        <a class="nav-item" onclick="showPage('fournisseurs')" href="#">
+          <span class="nav-icon">🏢</span> Fournisseurs
+        </a>
+        <a class="nav-item" onclick="showPage('schema')" href="#">
+          <span class="nav-icon">🗂</span> Schéma DB
+        </a>
+        <a class="nav-item" onclick="showPage('health')" href="#">
+          <span class="nav-icon">🩺</span> Système
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="admin-avatar" id="admin-avatar">A</div>
+        <div class="admin-info">
+          <div class="admin-name" id="admin-name">Admin</div>
+          <div class="admin-role">Super Admin</div>
+        </div>
+        <button class="logout-btn" onclick="logout()" title="Déconnexion">⏻</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- PAGE DASHBOARD -->
+      <div id="page-dashboard" style="display:none">
+        <div class="topbar">
+          <div><div class="topbar-title">Dashboard</div><div class="topbar-sub" id="dash-sub">Vue d'ensemble</div></div>
+          <div style="font-size:12px;color:var(--muted)" id="dash-updated">—</div>
+        </div>
+        <div class="page-content">
+
+          <!-- ROW 1: KPI principaux -->
+          <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+            <div class="stat-card c-blue">
+              <div class="stat-label">Contrats actifs</div>
+              <div class="stat-val" id="d-actifs">—</div>
+              <div class="stat-sub" id="d-actifs-sub">sur <span id="d-total">—</span> total</div>
+            </div>
+            <div class="stat-card c-green">
+              <div class="stat-label">Total contrats</div>
+              <div class="stat-val" id="d-clients">—</div>
+              <div class="stat-sub" id="d-clients-sub">—</div>
+            </div>
+            <div class="stat-card c-gold" style="--accent-line:var(--accent)">
+              <div class="stat-label">Commissions à payer</div>
+              <div class="stat-val" id="d-comm-due">—</div>
+              <div class="stat-sub">€ HT non payé</div>
+            </div>
+            <div class="stat-card c-amber">
+              <div class="stat-label">Nouveaux ce mois</div>
+              <div class="stat-val" id="d-new-mois">—</div>
+              <div class="stat-sub" id="d-new-mois-sub">contrats</div>
+            </div>
+          </div>
+
+          <!-- ROW 2: Graphiques -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px">
+
+            <!-- Contrats par mois (12 derniers mois) -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">Nouveaux contrats / mois</div>
+              <div style="display:flex;align-items:flex-end;gap:4px;height:120px" id="d-chart-mois"></div>
+              <div style="display:flex;gap:4px;margin-top:6px" id="d-chart-mois-labels" style="font-size:10px;color:var(--muted)"></div>
+            </div>
+
+            <!-- Répartition par fournisseur -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">Par fournisseur</div>
+              <div id="d-fourn-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+          </div>
+
+          <!-- ROW 3: Top intermédiaires + activité récente -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+            <!-- Top 5 intermédiaires -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">Top intermédiaires</div>
+              <div id="d-top-interm" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+
+            <!-- Derniers contrats -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px">
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">Activité récente</div>
+              <div id="d-recent" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PAGE CONTRATS -->
+      <div id="page-contrats">
+        <div class="topbar">
+          <div><div class="topbar-title">Contrats</div><div class="topbar-sub" id="contrats-sub">Chargement...</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-danger btn-sm" onclick="deduplicateContrats()">🧹 Dédupliquer</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportContrats()">⬇ Export CSV</button>
+          </div>
+        </div>
+        <div class="page-content">
+          <div class="stats-row">
+            <div class="stat-card c-blue"><div class="stat-label">Total</div><div class="stat-val" id="cs-total">—</div><div class="stat-sub">toutes périodes</div></div>
+            <div class="stat-card c-green"><div class="stat-label">Actifs</div><div class="stat-val" id="cs-actif">—</div><div class="stat-sub">actif</div></div>
+            <div class="stat-card c-amber"><div class="stat-label">En attente</div><div class="stat-val" id="cs-attente">—</div><div class="stat-sub">à traiter</div></div>
+            <div class="stat-card c-gold"><div class="stat-label">Ce mois</div><div class="stat-val" id="cs-mois">—</div><div class="stat-sub" id="cs-mois-label">—</div></div>
+          </div>
+          <div class="filters-bar">
+            <div class="search-wrap">
+              <input type="text" class="filter-input" id="c-search" placeholder="🔍 Nom, email, PDL, ID fournisseur..." oninput="onSearch('c-search','c-sclear',filterContrats)">
+              <button class="search-clear" id="c-sclear" onclick="clearSearch('c-search','c-sclear',filterContrats)">✕</button>
+            </div>
+            <select class="filter-input" id="c-status" onchange="filterContrats()">
+              <option value="">Tous statuts</option>
+              <option value="actif">Actif</option>
+              <option value="en_attente">En attente</option>
+              <option value="en_traitement">En traitement</option>
+              <option value="historique">Historique</option>
+              <option value="resilie">Résilié</option>
+            </select>
+            <select class="filter-input" id="c-fournisseur" onchange="filterContrats()"><option value="">Tous fournisseurs</option></select>
+            <select class="filter-input" id="c-energie" onchange="filterContrats()">
+              <option value="">Tous types</option><option value="elec">Électricité</option><option value="gaz">Gaz</option><option value="dual">Dual</option>
+            </select>
+            <select class="filter-input" id="c-annee" onchange="filterContrats()"><option value="">Toutes années</option></select>
+            <input type="month" class="filter-input" id="c-mois" onchange="onMoisChange()" title="Filtrer par mois" style="color-scheme:dark" value="">
+            <input type="date" class="filter-input" id="c-jour" onchange="onJourChange()" title="Filtrer par jour" style="color-scheme:dark">
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <span id="c-selected-count" style="font-size:12px;color:var(--muted);display:none"></span>
+              <button class="btn btn-secondary btn-sm" id="btn-bulk-status" onclick="showBulkStatus()" style="display:none">Changer statut</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <div class="loading" id="c-loading"><div class="spinner"></div><p>Chargement...</p></div>
+            <div id="c-table" style="display:none">
+              <table>
+                <thead><tr>
+                  <th><input type="checkbox" id="c-check-all" onchange="toggleAllContrats(this)"></th>
+                  <th>Client</th><th>ID Fourn.</th><th>Fournisseur</th><th>Énergie</th>
+                  <th>Statut</th><th>Agent</th><th>Source</th><th>Date</th><th></th>
+                </tr></thead>
+                <tbody id="c-tbody"></tbody>
+              </table>
+              <div class="pagination"><div class="page-info" id="c-page-info">—</div><div class="page-btns" id="c-page-btns"></div></div>
+            </div>
+            <div class="empty" id="c-empty" style="display:none">Aucun contrat trouvé.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE COMMISSIONS -->
+      <div id="page-commissions" style="display:none">
+        <div class="topbar">
+          <div><div class="topbar-title">Commissions</div><div class="topbar-sub" id="comm-sub">Chargement...</div></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-success btn-sm" id="btn-bulk-pay" onclick="bulkMarkPaid()" style="display:none">✓ Marquer payé (sél.)</button>
+            <button class="btn btn-warning btn-sm" onclick="bulkPayAllNonPaye()">💰 Tout payer (non payé)</button>
+            <button class="btn btn-info btn-sm" onclick="syncMissingCommissions()" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)">🔄 Sync commissions manquantes</button>
+            <button class="btn btn-sm" onclick="cleanOrphanCommissions()" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.2)">🗑 Suppr. orphelines</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCommissions()">⬇ Export CSV</button>
+          </div>
+        </div>
+        <div class="page-content">
+          <div class="stats-row">
+            <!-- KPI 1: Total + lignes + moyenne -->
+            <div class="stat-card c-gold" style="cursor:pointer" onclick="filterCommByStatut('')" title="Voir toutes les commissions">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+                <div>
+                  <div class="stat-label">Total Commission TTC</div>
+                  <div class="stat-val" id="comm-total">—</div>
+                  <div class="stat-sub" id="comm-total-sub">— lignes</div>
+                </div>
+                <div style="text-align:right;min-width:80px">
+                  <div class="stat-label">Moy. / ligne</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--accent)" id="comm-avg">—</div>
+                  <div class="stat-sub" id="comm-avg-sub">€ TTC</div>
+                </div>
+              </div>
+            </div>
+            <!-- KPI 2: Déjà payé + Non payé + % -->
+            <div class="stat-card c-green" style="cursor:pointer" onclick="filterCommByStatut('paye')" title="Voir commissions payées">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+                <div>
+                  <div class="stat-label">Déjà Payé TTC</div>
+                  <div class="stat-val" id="comm-paye">—</div>
+                  <div class="stat-sub" id="comm-paye-sub">—</div>
+                </div>
+                <div style="text-align:right;min-width:80px">
+                  <div class="stat-label">Non Payé TTC</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--warning)" id="comm-nonpaye">—</div>
+                  <div class="stat-sub" id="comm-nonpaye-pct">—% non payé</div>
+                </div>
+              </div>
+            </div>
+            <!-- KPI 3: Lignes non payé (cliquable → filtre liste) -->
+            <div class="stat-card c-amber" style="cursor:pointer" onclick="filterCommByStatut('non_paye')" title="Cliquer pour voir les lignes non payées">
+              <div class="stat-label">Lignes non payé <span style="font-size:10px;opacity:0.6">(cliquer pour liste)</span></div>
+              <div class="stat-val" id="comm-count-nonpaye">—</div>
+              <div class="stat-sub" id="comm-nonpaye-sub">€ HT en attente</div>
+            </div>
+            <!-- KPI 4: Top 5 intermédiaires -->
+            <div class="stat-card c-blue">
+              <div class="stat-label">Top 5 intermédiaires</div>
+              <div id="comm-top5" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;font-size:12px">—</div>
+            </div>
+          </div>
+          <div class="filters-bar">
+            <select class="filter-input" id="comm-interm" onchange="filterCommissions()"><option value="">Tous les intermédiaires</option></select>
+            <select class="filter-input" id="comm-statut" onchange="filterCommissions()">
+              <option value="">Tous statuts</option><option value="non_paye">Non payé</option><option value="paye">Payé</option>
+            </select>
+            <select class="filter-input" id="comm-annee" onchange="filterCommissions()"><option value="">Toutes années</option></select>
+            <input type="month" class="filter-input" id="comm-mois" onchange="onCommMoisChange()" title="Filtrer par mois" style="color-scheme:dark" value="">
+            <input type="date" class="filter-input" id="comm-jour" onchange="onCommJourChange()" title="Filtrer par jour" style="color-scheme:dark" value="">
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <span id="comm-selected-count" style="font-size:12px;color:var(--muted);display:none"></span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <div class="loading" id="comm-loading"><div class="spinner"></div><p>Chargement...</p></div>
+            <div id="comm-table" style="display:none">
+              <table>
+                <thead><tr>
+                  <th><input type="checkbox" id="comm-check-all" onchange="toggleAllComm(this)"></th>
+                  <th>ID Fuwu</th><th>Client</th><th>Contrat</th><th>Commission</th>
+                  <th>Date contrat</th><th>Intermédiaire</th><th style="text-align:center">Statut</th>
+                </tr></thead>
+                <tbody id="comm-tbody"></tbody>
+              </table>
+              <div class="pagination"><div class="page-info" id="comm-page-info">—</div><div class="page-btns" id="comm-page-btns"></div></div>
+            </div>
+            <div class="empty" id="comm-empty" style="display:none">Aucune commission.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE INTERMEDIAIRES -->
+      <div id="page-intermediaires" style="display:none">
+        <div class="topbar">
+          <div><div class="topbar-title">Intermédiaires</div><div class="topbar-sub" id="interm-sub">—</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openAddInterm()">+ Ajouter</button>
+        </div>
+        <div class="page-content">
+          <div class="filters-bar">
+            <div class="search-wrap">
+              <input type="text" class="filter-input" id="interm-search" placeholder="🔍 Nom, email..." oninput="onSearch('interm-search','interm-sclear',filterIntermediaires)">
+              <button class="search-clear" id="interm-sclear" onclick="clearSearch('interm-search','interm-sclear',filterIntermediaires)">✕</button>
+            </div>
+            <select class="filter-input" id="interm-cat" onchange="filterIntermediaires()"><option value="">Toutes catégories</option></select>
+          </div>
+          <div class="loading" id="interm-loading"><div class="spinner"></div><p>Chargement...</p></div>
+          <div id="interm-grid" class="interm-grid"></div>
+        </div>
+      </div>
+
+      <!-- PAGE CRM -->
+      <div id="page-crm" style="display:none">
+        <div class="topbar">
+          <div><div class="topbar-title">CRM Clients</div><div class="topbar-sub" id="crm-sub">—</div></div>
+        </div>
+        <div class="page-content">
+          <div class="filters-bar">
+            <div class="search-wrap">
+              <button id="btn-fusionner" class="btn btn-secondary btn-sm" style="display:none;border-color:var(--accent);color:var(--accent)" onclick="openFusion()">⚡ Fusionner (<span id="fusion-count">0</span>)</button>
+              <input type="text" class="filter-input" id="crm-search" placeholder="🔍 Email, nom, prénom, téléphone..." oninput="onSearch('crm-search','crm-sclear',filterCRM)" style="min-width:320px">
+              <button class="search-clear" id="crm-sclear" onclick="clearSearch('crm-search','crm-sclear',filterCRM)">✕</button>
+            </div>
+            <select class="filter-input" id="crm-role" onchange="filterCRM()">
+              <option value="">Tous rôles</option><option value="client">Clients</option><option value="intermediaire">Intermédiaires</option>
+            </select>
+            <select class="filter-input" id="crm-status" onchange="filterCRM()">
+              <option value="">Tous statuts</option><option value="actif">Actif</option><option value="en_attente">En attente</option><option value="historique">Historique</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <div class="loading" id="crm-loading"><div class="spinner"></div><p>Chargement...</p></div>
+            <div id="crm-table" style="display:none">
+              <table>
+                <thead><tr>
+                  <th style="width:32px"></th><th>Nom</th><th>Email</th><th>Téléphone</th>
+                  <th>Contrats</th><th>Statut principal</th><th></th>
+                </tr></thead>
+                <tbody id="crm-tbody"></tbody>
+              </table>
+              <div class="pagination"><div class="page-info" id="crm-page-info">—</div><div class="page-btns" id="crm-page-btns"></div></div>
+            </div>
+            <div class="empty" id="crm-empty" style="display:none">Aucun résultat.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE INSCRIPTION -->
+      <div id="page-agents" style="display:none;">
+        <div class="topbar">
+          <div><div class="topbar-title">Agents</div><div class="topbar-sub">Gérer les accès agent</div></div>
+        </div>
+        <div class="page-content">
+          <!-- Search to add agent -->
+          <div class="table-wrap" style="padding:24px;margin-bottom:24px;">
+            <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:16px;letter-spacing:.5px;">➕ Ajouter un agent</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <input type="text" id="agent-search-email" class="filter-input" placeholder="Rechercher par email…" style="flex:1;min-width:220px;" onkeydown="if(event.key==='Enter')searchPersonneForAgent()">
+              <button class="btn btn-primary btn-sm" onclick="searchPersonneForAgent()">🔍 Rechercher</button>
+            </div>
+            <div id="agent-search-result" style="margin-top:16px;"></div>
+          </div>
+          <!-- Existing agents list -->
+          <div class="table-wrap">
+            <div style="font-size:13px;font-weight:600;color:var(--accent);padding:16px 20px;border-bottom:1px solid var(--border);">🛡 Agents actifs</div>
+            <div id="agents-list-wrap">
+              <div style="padding:20px;color:var(--muted);font-size:13px;">Chargement…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOURNISSEURS PAGE -->
+      <div id="page-fournisseurs" style="display:none;">
+        <div class="topbar">
+          <div><div class="topbar-title">Fournisseurs</div><div class="topbar-sub">Gestion des partenaires et commissions</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openFournisseurForm()">+ Ajouter</button>
+        </div>
+        <div class="page-content">
+          <div class="table-wrap" id="fournisseurs-list">
+            <div style="padding:20px;color:var(--muted);font-size:13px;">Chargement…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEALTH PAGE -->
+      <div id="page-health" style="display:none;">
+        <div class="topbar">
+          <div><div class="topbar-title">🩺 Système</div><div class="topbar-sub" id="health-sub">Diagnostic en cours…</div></div>
+          <button class="btn btn-sm" onclick="runHealthCheck()" style="background:rgba(200,169,110,0.15);color:var(--accent);border:1px solid rgba(200,169,110,0.2);">🔄 Relancer</button>
+        </div>
+        <div class="page-content">
+          <div id="health-summary" style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;"></div>
+          <div class="table-wrap">
+            <table class="data-table" style="width:100%">
+              <thead><tr><th style="width:30px"></th><th>Vérification</th><th>Détail</th><th style="width:80px">Valeur</th></tr></thead>
+              <tbody id="health-body"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:24px;padding:20px;background:var(--surface);border-radius:12px;border:1px solid var(--border);">
+            <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">📋 Informations système</div>
+            <div id="health-info" style="font-size:12px;color:var(--muted);line-height:1.8;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-schema" style="display:none;">
+        <div class="topbar">
+          <div><div class="topbar-title">🗂 Schéma DB</div><div class="topbar-sub">Gérer les champs des tables Supabase</div></div>
+          <button class="btn btn-sm btn-primary" onclick="initSchema()">🔄 Rafraîchir</button>
+        </div>
+        <div class="page-content">
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;" id="schema-table-tabs"></div>
+          <div id="schema-content"></div>
+        </div>
+      </div>
+
+      <div id="page-inscription" style="display:none;">
+        <div class="topbar">
+          <div>
+            <div class="topbar-title">Nouveau client</div>
+            <div class="topbar-sub">Formulaire de souscription</div>
+          </div>
+        </div>
+        <iframe src="inscription.html" style="width:100%;height:calc(100vh - 65px);border:none;display:block;" title="Formulaire souscription"></iframe>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL FOURNISSEUR -->
+<div class="modal-overlay" id="modal-fournisseur">
+  <div class="modal" style="max-width:780px">
+    <button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button>
+    <div id="mf-body"></div>
+  </div>
+</div>
+
+<!-- MODAL CONTRAT -->
+<div class="modal-overlay" id="modal-contrat">
+  <div class="modal" style="max-width:620px">
+    <button class="modal-close" onclick="closeModal('modal-contrat')">✕</button>
+    <div class="modal-title" id="mc-title">Contrat</div>
+    <div id="mc-body"></div>
+  </div>
+</div>
+
+<!-- MODAL CRM -->
+<div class="modal-overlay" id="modal-crm">
+  <div class="modal" style="max-width:780px">
+    <button class="modal-close" onclick="closeModal('modal-crm')">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="modal-title" id="mcrm-title" style="margin-bottom:0">Fiche client</div>
+      <button class="btn btn-secondary btn-sm" onclick="openHistorique()" style="font-size:11px">🕐 Historique</button>
+    </div>
+    <div id="mcrm-body"></div>
+    <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+      <div class="modal-section" style="margin-bottom:8px">📝 Note interne</div>
+      <textarea id="mcrm-note" style="width:100%;min-height:80px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;resize:vertical;box-sizing:border-box" placeholder="Ajouter une note..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIQUE -->
+<div class="modal-overlay" id="modal-historique">
+  <div class="modal" style="max-width:680px;max-height:80vh;overflow-y:auto">
+    <button class="modal-close" onclick="closeModal('modal-historique')">✕</button>
+    <div class="modal-title">🕐 Historique des modifications</div>
+    <div id="modal-historique-name" style="font-size:13px;color:var(--muted);margin-bottom:16px"></div>
+    <div id="modal-historique-body"><div style="color:var(--muted);text-align:center;padding:20px">Chargement...</div></div>
+  </div>
+</div>
+
+<!-- MODAL BULK STATUS -->
+<div class="modal-overlay" id="modal-bulk">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeModal('modal-bulk')">✕</button>
+    <div class="modal-title">Changer le statut</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px" id="bulk-desc">—</p>
+    <select class="filter-input" id="bulk-new-status" style="width:100%;margin-bottom:20px">
+      <option value="actif">Actif</option><option value="en_attente">En attente</option>
+      <option value="en_traitement">En traitement</option><option value="historique">Historique</option><option value="resilie">Résilié</option>
+    </select>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="applyBulkStatus()">Confirmer</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-bulk')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADD/EDIT INTERMEDIAIRE -->
+<div class="modal-overlay" id="modal-interm">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="closeModal('modal-interm')">✕</button>
+    <div class="modal-title" id="modal-interm-title">Ajouter un intermédiaire</div>
+    <div id="modal-interm-body">
+      <div class="form-group"><label>Email *</label><input type="email" class="form-input" id="interm-form-email" placeholder="fc999@aaaww.top"></div>
+      <div class="form-group"><label>Email réel</label><input type="email" class="form-input" id="interm-form-email-reel" placeholder="email personnel de l'intermédiaire"></div>
+      <div class="form-group"><label>Catégorie</label>
+        <select class="form-input" id="interm-form-categorie">
+          <option value="">— Auto (selon préfixe email) —</option>
+          <option value="房产中介">房产中介</option>
+          <option value="宿舍中介">宿舍中介</option>
+          <option value="学生中介">学生中介</option>
+          <option value="网红中介">网红中介</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group"><label>ID Fournisseur</label><input type="text" class="form-input" id="interm-form-id-fournisseur" placeholder="ex: 123456789"></div>
+      <div class="form-group"><label>Login (identifiant de connexion)</label><input type="text" class="form-input" id="interm-form-login" placeholder="ex: martin ou FC001" autocapitalize="none"></div>
+      <div class="form-group"><label>Prénom</label><input type="text" class="form-input" id="interm-form-prenom" placeholder="Prénom"></div>
+      <div class="form-group"><label>Nom</label><input type="text" class="form-input" id="interm-form-nom" placeholder="Nom"></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" class="form-input" id="interm-form-telephone" placeholder="+33 6 12 34 56 78"></div>
+      <div class="form-group"><label>WeChat</label><input type="text" class="form-input" id="interm-form-wechat" placeholder="ID WeChat"></div>
+      <div class="form-group">
+        <label>Commission par contrat</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px">
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px">HT (€)</div>
+            <input type="number" class="form-input" id="interm-form-ht" placeholder="16.67" step="0.01" oninput="calcFromHT()" style="margin-bottom:0">
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px">TTC (€)</div>
+            <input type="number" class="form-input" id="interm-form-ttc" placeholder="20" step="0.01" oninput="calcFromTTC()" style="margin-bottom:0">
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px">CNY (¥)</div>
+            <input type="number" class="form-input" id="interm-form-cny" placeholder="160" step="0.01" oninput="calcFromCNY()" style="margin-bottom:0">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:10px;color:var(--muted)">Taux: 1€ =</span>
+          <input type="number" class="form-input" id="interm-form-rate" value="8" step="0.1" style="width:70px;padding:5px 8px;font-size:12px;margin-bottom:0" oninput="calcFromHT()">
+          <span style="font-size:10px;color:var(--muted)">¥ · TVA 20%</span>
+        </div>
+        <button class="btn btn-warning btn-sm" id="btn-apply-comm-all" onclick="applyCommToAll()" style="display:none;width:100%">⚡ Appliquer ce montant à TOUTES ses commissions</button>
+      </div>
+      <div class="form-group"><label>Mot de passe <span style="color:var(--muted);font-weight:400">(laisser vide pour ne pas changer)</span></label><input type="password" class="form-input" id="interm-form-password" placeholder="Nouveau mot de passe…" autocomplete="new-password"></div>
+      <div class="form-group"><label>Note interne</label><textarea class="form-input" id="interm-form-note" rows="3" style="resize:vertical" placeholder="Notes sur cet intermédiaire..."></textarea></div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="btn btn-danger" id="btn-delete-interm" onclick="deleteInterm()" style="display:none">🗑 Supprimer</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-interm')">Annuler</button>
+        <button class="btn btn-primary" onclick="saveInterm()" style="margin-left:auto">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span class="toast-dot" id="toast-dot"></span><span id="toast-msg"></span></div>
+
+<script src="common.js"></script>
+<script>
+// Config from common.js: SUPABASE_URL, SUPABASE_ANON_KEY, fuwu*()
+const PAGE = 25;
+// Headers: use H/HR as getters backed by common.js
+const SUPABASE_KEY = SUPABASE_ANON_KEY; // backward compat alias
+let accessToken = null;
+Object.defineProperty(window, 'H',  { get: () => fuwuH()  });
+Object.defineProperty(window, 'HR', { get: () => fuwuHR() });
+function setHeaders(token) { fuwuSetToken(token); accessToken = token; }
+setHeaders(SUPABASE_ANON_KEY);
+
+// State
+let allContrats=[], filtContrats=[], cPage=1, cSelected=new Set();
+let allComm=[], filtComm=[], commPage=1, commSelected=new Set();
+let allPersonnes=[], filtPersonnes=[], crmPage=1;
+let allIntermediaires=[], filtInterm=[];
+let contratMap={}, personneMap={}, intermMap={};
+let editingIntermId=null;
+
+function togglePwd(){ fuwuTogglePwd(); }
+
+// ===== AUTH (Supabase Auth) =====
+async function login() {
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const pass=document.getElementById('login-password').value;
+  const btn=document.getElementById('login-btn');
+  document.getElementById('login-error').style.display='none';
+  if(!email||!pass){showErr('Champs manquants.');return;}
+  btn.textContent='Vérification...';btn.disabled=true;
+  try {
+    // Authenticate via Supabase Auth
+    const res=await fuwuAuthLogin(email,pass);
+    if(!res.ok){
+      showErr(res.error);
+      btn.textContent='Accéder';btn.disabled=false;return;
+    }
+    const data=res.data;
+    // Check role = admin
+    const meta=data.user?.app_metadata||{};
+    if(meta.fuwu_role!=='admin'){
+      showErr('Accès réservé aux administrateurs.');
+      btn.textContent='Accéder';btn.disabled=false;return;
+    }
+    // Store session
+    fuwuSaveSession('fuwu_admin_session',{
+      access_token:data.access_token,
+      refresh_token:data.refresh_token,
+      expires_at:Date.now()+data.expires_in*1000,
+      email:email
+    });
+    setHeaders(data.access_token);
+    enterApp({prenom:'Admin',nom:'',email},email);
+  } catch(e){showErr('Erreur réseau.');btn.textContent='Accéder';btn.disabled=false;}
+}
+async function enterApp(user,email){
+  // Reset date filters to prevent browser auto-fill
+  document.getElementById('c-mois').value='';
+  document.getElementById('c-jour').value='';
+  document.getElementById('comm-mois').value='';
+  document.getElementById('comm-jour').value='';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  const name=[user.prenom,user.nom].filter(Boolean).join(' ')||email;
+  document.getElementById('admin-name').textContent=name;
+  document.getElementById('admin-avatar').textContent=name.charAt(0).toUpperCase();
+  await initData();
+  showPage('dashboard');
+}
+async function autoLogin(){
+  try{
+    const saved=fuwuLoadSession('fuwu_admin_session');
+    if(!saved||!saved.access_token)return;
+    // Check if expired
+    if(Date.now()>=saved.expires_at){
+      await refreshSession(saved);
+    }
+    setHeaders(saved.access_token);
+    enterApp({prenom:'Admin',nom:'',email:saved.email},saved.email);
+    // Auto-refresh every 45 min
+    startTokenRefresh();
+  }catch(e){console.warn('Auto-login failed',e);}
+}
+
+async function refreshSession(saved){
+  if(!saved) saved=fuwuLoadSession('fuwu_admin_session');
+  if(!saved||!saved.refresh_token) return false;
+  try{
+    const res=await fuwuAuthRefresh(saved.refresh_token);
+    if(!res.ok){fuwuClearSession('fuwu_admin_session');return false;}
+    saved.access_token=res.data.access_token;
+    saved.refresh_token=res.data.refresh_token;
+    saved.expires_at=Date.now()+res.data.expires_in*1000;
+    fuwuSaveSession('fuwu_admin_session',saved);
+    setHeaders(saved.access_token);
+    return true;
+  }catch(e){console.warn('Token refresh failed',e);return false;}
+}
+
+function startTokenRefresh(){
+  setInterval(()=>refreshSession(), 45*60*1000); // 每45分钟刷新一次
+}
+function showErr(msg){const el=document.getElementById('login-error');el.textContent=msg;el.style.display='block';}
+async function logout(){
+  await fuwuAuthLogout();
+  fuwuClearSession('fuwu_admin_session');
+  location.reload();
+}
+
+// Auto-login on page load
+autoLogin();
+
+// ===== DATA =====
+async function initData(){
+  await Promise.all([loadContrats(),loadCommissions(),loadPersonnes()]);
+  buildIntermediaires();updateBadges();
+}
+async function fetchAll(url){
+  return fuwuFetchAll(url);
+  /* legacy pagination replaced by fuwuFetchAll */
+  let all=[],offset=0;
+  while(false){
+    const sep=url.includes('?')?'&':'?';
+    const r=await fetch(`${url}${sep}limit=1000&offset=${offset}`,{
+      headers:{...fuwuH(),'Prefer':'count=none'}
+    });
+    const batch=await r.json();
+    if(!Array.isArray(batch)||batch.length===0)break;
+    all=all.concat(batch);
+    if(batch.length<1000)break;
+    offset+=1000;
+  }
+  return all;
+}
+async function loadContrats(){
+  const raw=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,elec_car,inscrit_par&order=created_at.desc`);
+  // Dédoublonnage par UUID (évite les doublons de pagination)
+  const seen=new Set();
+  allContrats=raw.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
+  allContrats.forEach(c=>{contratMap[c.id]=c;});
+  // Also load adresses for CRM
+  const adresseIds=[...new Set(allContrats.map(c=>c.adresse_id).filter(Boolean))];
+  for(let i=0;i<adresseIds.length;i+=200){
+    const ids=adresseIds.slice(i,i+200).join(',');
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=in.(${ids})&select=id,rue,complement,ville,code_postal,pdl,pce,puissance,type_logement`,{headers:H});
+    const data=await r.json();
+    if(Array.isArray(data))data.forEach(a=>{adresseMap[a.id]=a;});
+  }
+  updateContratsStats();
+  // Build index personne -> contrats pour CRM
+  window._contratsByPerson={};
+  allContrats.forEach(c=>{
+    if(!c.personne_id)return;
+    if(!window._contratsByPerson[c.personne_id])window._contratsByPerson[c.personne_id]=[];
+    window._contratsByPerson[c.personne_id].push(c);
+  });
+}
+let adresseMap={};
+async function loadCommissions(){
+  const raw=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);
+  const seen=new Set();
+  allComm=raw.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
+}
+async function loadPersonnes(){
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,id_fournisseur,note,date_naissance,siret,colocataire_prenom,colocataire_nom,role,auth_user_id&order=created_at.desc`);
+  allPersonnes.forEach(p=>{personneMap[p.id]=p;});
+}
+function buildIntermediaires(){
+  const map={};
+  allPersonnes.filter(p=>p.est_intermediaire).forEach(p=>{
+    const key=p.email.toLowerCase();
+    if(!map[key])map[key]={...p,contrats:[],totalComm:0,payeComm:0};
+  });
+  allContrats.forEach(c=>{
+    if(!c.source)return;
+    const key=c.source.toLowerCase();
+    if(map[key])map[key].contrats.push(c);
+  });
+  allComm.forEach(cm=>{
+    const p=personneMap[cm.intermediaire_id];
+    if(!p)return;
+    const key=p.email.toLowerCase();
+    if(map[key]){map[key].totalComm+=parseFloat(cm.montant||0);if(cm.statut==='paye')map[key].payeComm+=parseFloat(cm.montant||0);}
+  });
+  allIntermediaires=Object.values(map).sort((a,b)=>b.contrats.length-a.contrats.length);
+  filtInterm=[...allIntermediaires];
+  intermMap=map;
+  document.getElementById('interm-sub').textContent=`${allIntermediaires.length} intermédiaires`;
+  populateIntermFilter();
+}
+let intermSortKey='contrats', intermSortAsc=false;
+function sortInterm(key){
+  if(intermSortKey===key) intermSortAsc=!intermSortAsc;
+  else { intermSortKey=key; intermSortAsc=key==='cat'||key==='email'||key==='nom'||key==='login'||key==='wechat'||key==='tel'||key==='emailReel'; }
+  const dir=intermSortAsc?1:-1;
+  filtInterm.sort((a,b)=>{
+    let va,vb;
+    switch(key){
+      case 'cat': va=guessCat(a);vb=guessCat(b);break;
+      case 'email': va=a.email||'';vb=b.email||'';break;
+      case 'nom': va=[a.prenom,a.nom].filter(Boolean).join(' ');vb=[b.prenom,b.nom].filter(Boolean).join(' ');break;
+      case 'login': va=a.login||'';vb=b.login||'';break;
+      case 'wechat': va=a.wechat||'';vb=b.wechat||'';break;
+      case 'tel': va=a.telephone||'';vb=b.telephone||'';break;
+      case 'emailReel': va=a.email_reel||'';vb=b.email_reel||'';break;
+      case 'contrats': va=a.contrats.length;vb=b.contrats.length;break;
+      case 'total': va=a.totalComm||0;vb=b.totalComm||0;break;
+      case 'pending': va=(a.totalComm-a.payeComm)||0;vb=(b.totalComm-b.payeComm)||0;break;
+      default: va=0;vb=0;
+    }
+    if(typeof va==='string') return va.localeCompare(vb)*dir;
+    return (va-vb)*dir;
+  });
+  renderIntermediaires();
+}
+function populateIntermFilter(){
+  const sel=document.getElementById('comm-interm');
+  sel.innerHTML='<option value="">Tous les intermédiaires</option>';
+  allIntermediaires.forEach(p=>{
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email;
+    sel.innerHTML+=`<option value="${p.id}">${name} (${p.email})</option>`;
+  });
+  const cats=[...new Set(allIntermediaires.map(p=>guessCat(p.email)))].sort();
+  const catSel=document.getElementById('interm-cat');
+  catSel.innerHTML='<option value="">Toutes catégories</option>';
+  cats.forEach(c=>{catSel.innerHTML+=`<option value="${c}">${c}</option>`;});
+}
+function guessCat(emailOrPersonne){
+  // If personne object with categorie field, use it
+  if(typeof emailOrPersonne==='object'&&emailOrPersonne.categorie) return emailOrPersonne.categorie;
+  const e=(typeof emailOrPersonne==='string'?emailOrPersonne:emailOrPersonne.email||'').toLowerCase();
+  if(e.startsWith('wh'))return '网红中介';
+  if(e.startsWith('xs'))return '学生中介';
+  if(e.startsWith('fc'))return '房产中介';
+  if(e.startsWith('zx'))return '装修电工';
+  if(e.startsWith('ss'))return '宿舍中介';
+  if(e.startsWith('jl'))return '居留中介';
+  if(e.startsWith('bnb'))return 'AIRBNB';
+  if(e.startsWith('xhs'))return '小红书';
+  if(e.includes('xinling')||e.includes('lolo'))return '内部员工';
+  return '其他';
+}
+
+// ===== SEARCH UTILS =====
+function onSearch(inputId, clearId, fn){
+  const val=document.getElementById(inputId).value;
+  document.getElementById(clearId).style.display=val?'block':'none';
+  fn();
+}
+function clearSearch(inputId, clearId, fn){
+  document.getElementById(inputId).value='';
+  document.getElementById(clearId).style.display='none';
+  fn();
+}
+
+// ===== CONTRATS =====
+// Normalise les noms de fournisseurs (majuscule initiale, fusions)
+function normFournisseur(f){
+  if(!f)return f;
+  const map={
+    'fuwu service':'Fuwu Service',
+    'fuwu services':'Fuwu Service',
+    'mint energie':'Mint Énergies',
+    'mint energies':'Mint Énergies',
+    'mint énergie':'Mint Énergies',
+    'mint énergies':'Mint Énergies',
+    'mint energy':'Mint Énergies',
+  };
+  return map[f.toLowerCase().trim()]||f;
+}
+function statusPriority(s){
+  if(s==='en_attente')return 0;
+  if(s==='en_traitement')return 1;
+  return 2;
+}
+function onMoisChange(){
+  document.getElementById('c-jour').value='';
+  filterContrats();
+}
+function onJourChange(){
+  const jour=document.getElementById('c-jour').value;
+  if(jour){
+    document.getElementById('c-mois').value=jour.slice(0,7);
+    document.getElementById('c-annee').value='';
+  }
+  filterContrats();
+}
+function updateContratsStats(){
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  let actif=0,attente=0,mois=0;
+  const years=new Set(),fournisseurs=new Set();
+  allContrats.forEach(c=>{
+    if(c.contrat_status==='actif')actif++;
+    if(c.contrat_status==='en_attente')attente++;
+    const d=new Date(c.date_debut||c.created_at);
+    if(!isNaN(d)){
+      years.add(d.getFullYear());
+      if(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===thisMonth)mois++;
+    }
+    if(c.fournisseur)fournisseurs.add(normFournisseur(c.fournisseur));
+  });
+  document.getElementById('cs-total').textContent=allContrats.length.toLocaleString();
+  document.getElementById('cs-actif').textContent=actif.toLocaleString();
+  document.getElementById('cs-attente').textContent=attente.toLocaleString();
+  document.getElementById('cs-mois').textContent=mois;
+  document.getElementById('cs-mois-label').textContent=`${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  document.getElementById('contrats-sub').textContent=`${allContrats.length.toLocaleString()} contrats`;
+  document.getElementById('badge-contrats').textContent=attente||'0';
+  const fSel=document.getElementById('c-fournisseur');
+  fSel.innerHTML='<option value="">Tous fournisseurs</option>';
+  [...fournisseurs].sort().forEach(f=>{fSel.innerHTML+=`<option value="${f}">${f}</option>`;});
+  const ySel=document.getElementById('c-annee');
+  ySel.innerHTML='<option value="">Toutes années</option>';
+  const commYSel=document.getElementById('comm-annee');
+  commYSel.innerHTML='<option value="">Toutes années</option>';
+  [...years].sort().reverse().forEach(y=>{
+    ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+    commYSel.innerHTML+=`<option value="${y}">${y}</option>`;
+  });
+}
+function filterContrats(){
+  const q=document.getElementById('c-search').value.toLowerCase();
+  const status=document.getElementById('c-status').value;
+  const fourn=document.getElementById('c-fournisseur').value; // déjà normalisé
+  const energie=document.getElementById('c-energie').value;
+  const annee=document.getElementById('c-annee').value;
+  const mois=document.getElementById('c-mois').value;   // YYYY-MM
+  const jour=document.getElementById('c-jour').value;   // YYYY-MM-DD
+  filtContrats=allContrats.filter(c=>{
+    if(status&&c.contrat_status!==status)return false;
+    if(fourn&&normFournisseur(c.fournisseur)!==fourn)return false;
+    if(energie&&c.energie_type!==energie)return false;
+    const d=new Date(c.date_debut||c.created_at);
+    if(annee){if(isNaN(d)||String(d.getFullYear())!==annee)return false;}
+    if(mois&&!jour){
+      if(isNaN(d))return false;
+      const m=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if(m!==mois)return false;
+    }
+    if(jour){
+      if(isNaN(d))return false;
+      const dateStr=d.toISOString().slice(0,10);
+      if(dateStr!==jour)return false;
+    }
+    if(q){
+      const p=personneMap[c.personne_id]||{};
+      const s=[p.nom,p.prenom,p.email,c.id_fournisseur,normFournisseur(c.fournisseur),c.id_service,c.source].join(' ').toLowerCase();
+      if(!s.includes(q))return false;
+    }
+    return true;
+  });
+  // Tri : en_attente → en_traitement → autres, puis date décroissante
+  filtContrats.sort((a,b)=>{
+    const pa=statusPriority(a.contrat_status),pb=statusPriority(b.contrat_status);
+    if(pa!==pb)return pa-pb;
+    const da=new Date(a.date_debut||a.created_at),db=new Date(b.date_debut||b.created_at);
+    return db-da;
+  });
+  cPage=1;renderContrats();
+}
+function renderContrats(){
+  document.getElementById('c-loading').style.display='none';
+  if(filtContrats.length===0){document.getElementById('c-table').style.display='none';document.getElementById('c-empty').style.display='block';return;}
+  document.getElementById('c-empty').style.display='none';
+  document.getElementById('c-table').style.display='block';
+  const start=(cPage-1)*PAGE,end=start+PAGE;
+  document.getElementById('c-tbody').innerHTML=filtContrats.slice(start,end).map(c=>{
+    const p=personneMap[c.personne_id]||{};
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+    const date=c.date_debut?new Date(c.date_debut).toLocaleDateString('fr-FR'):'—';
+    const idx=allContrats.findIndex(x=>x.id===c.id);
+    return `<tr class="${cSelected.has(c.id)?'selected':''}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" ${cSelected.has(c.id)?'checked':''} onchange="toggleContratSelect('${c.id}',this)"></td>
+      <td style="cursor:pointer" onclick="openContrat(${idx})">
+        <div style="font-weight:600">${name}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.email||c.source||'—'}</div>
+      </td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${c.id_fournisseur||'—'}</td>
+      <td>${normFournisseur(c.fournisseur)||'—'}</td>
+      <td style="font-size:12px">${c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':'⚡🔥'} ${c.energie_type||'—'}</td>
+      <td><span class="badge badge-${c.contrat_status||'en_attente'}">${c.contrat_status||'—'}</span></td>
+      <td onclick="event.stopPropagation()" style="font-size:11px;max-width:130px;">
+        ${c.inscrit_par
+          ?`<span style="color:var(--accent)">${esc(c.inscrit_par)}</span> <button class="btn btn-sm" onclick="assignAgent('${c.id}')" style="padding:2px 6px;font-size:10px;">✏️</button>`
+          :`<button class="btn btn-secondary btn-sm" onclick="assignAgent('${c.id}')" style="padding:3px 8px;font-size:10px;">+ Agent</button>`}
+      </td>
+      <td style="font-size:11px;color:var(--muted);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.source||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${date}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openContrat(${idx})">Voir</button></td>
+    </tr>`;
+  }).join('');
+  renderPagination('c',filtContrats.length,cPage,n=>{cPage=n;renderContrats();});
+}
+function toggleContratSelect(id,cb){
+  if(cb.checked)cSelected.add(id);else cSelected.delete(id);
+  updateSelectionUI();
+}
+function toggleAllContrats(cb){
+  filtContrats.slice((cPage-1)*PAGE,cPage*PAGE).forEach(c=>{if(cb.checked)cSelected.add(c.id);else cSelected.delete(c.id);});
+  renderContrats();updateSelectionUI();
+}
+function updateSelectionUI(){
+  const n=cSelected.size;
+  document.getElementById('c-selected-count').style.display=n?'inline':'none';
+  document.getElementById('c-selected-count').textContent=`${n} sél.`;
+  document.getElementById('btn-bulk-status').style.display=n?'inline-flex':'none';
+}
+function openContrat(idx){
+  const c=allContrats[idx];if(!c)return;
+  const p=personneMap[c.personne_id]||{};
+  const ad=adresseMap[c.adresse_id]||{};
+  const iban=c.iban?'•••• •••• •••• '+c.iban.slice(-4):'—';
+  const adStr=[ad.rue,ad.complement].filter(Boolean).join(', ')||'—';
+  const villeStr=[ad.code_postal,ad.ville].filter(Boolean).join(' ')||'—';
+  document.getElementById('mc-title').textContent=[p.prenom,p.nom].filter(Boolean).join(' ')||'—';
+  let html='';
+  html+=`<div style="display:flex;align-items:center;gap:12px;padding:12px 0 16px;border-bottom:1px solid var(--border);margin-bottom:12px">`;
+  html+=`<span class="badge badge-${c.contrat_status||'en_attente'}" id="badge-cs-${c.id}" style="font-size:13px;padding:6px 14px">${c.contrat_status||'—'}</span>`;
+  html+=`<select class="field-edit" onchange="updateContratStatus('${c.id}',this.value,this)" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none">`;
+  html+=`<option value="actif" ${c.contrat_status==='actif'?'selected':''}>actif</option>`;
+  html+=`<option value="en_attente" ${c.contrat_status==='en_attente'?'selected':''}>en_attente</option>`;
+  html+=`<option value="en_traitement" ${c.contrat_status==='en_traitement'?'selected':''}>en_traitement</option>`;
+  html+=`<option value="historique" ${c.contrat_status==='historique'?'selected':''}>historique</option>`;
+  html+=`<option value="resilie" ${c.contrat_status==='resilie'?'selected':''}>resilie</option>`;
+  html+=`</select></div>`;
+  html+=`<div class="modal-section">👤 Client</div>`;
+  html+=mr('Nom',[p.civilite,p.prenom,p.nom].filter(Boolean).join(' ')||'—');
+  html+=mr('Email',p.email||'—')+mr('Téléphone',p.telephone||'—')+mr('WeChat',p.wechat||'—');
+  html+=`<div class="modal-section">📄 Contrat</div>`;
+  html+=mr('ID Fuwu',fmtId(c.id_service))+mr('ID Fournisseur',c.id_fournisseur||'—');
+  html+=mr('Fournisseur',c.fournisseur||'—')+mr('Formule',c.formule||'—');
+  html+=mr('Option tarifaire',c.option_tarifaire||'—')+mr('Type énergie',c.energie_type||'—');
+  html+=mr('CAR (kWh)',c.elec_car||'—')+mr('Source',c.source||'—');
+  html+=mr('Agent (inscrit par)',`<span id="modal-inscrit-par-val">${esc(c.inscrit_par||'—')}</span> <button class="btn btn-secondary btn-sm" onclick="assignAgent('${c.id}')" style="padding:2px 8px;font-size:11px;">✏️ Changer</button>`);
+  html+=mr('Date',c.date_debut?new Date(c.date_debut).toLocaleDateString('fr-FR'):'—');
+  html+=`<div class="modal-section">🏠 Adresse</div>`;
+  html+=mr('Adresse',adStr)+mr('Ville',villeStr);
+  html+=mr('PDL',ad.pdl||'—')+mr('PCE',ad.pce||'—');
+  html+=mr('Puissance',ad.puissance?ad.puissance+' kVA':'—')+mr('Logement',ad.type_logement||'—');
+  html+=`<div class="modal-section">💳 Finance</div>`;
+  html+=mr('IBAN (masqué)','<span style="font-family:monospace">'+iban+'</span>');
+  document.getElementById('mc-body').innerHTML=html;
+  openModal('modal-contrat');
+}
+
+async function assignAgent(contratId){
+  // Fetch list of agents
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?select=id,email,prenom,nom,agent_code&est_agent=eq.true&order=nom.asc`,{headers:H});
+    if(!r.ok) throw new Error(await r.text());
+    const agents=await r.json();
+    if(!agents.length){ showToast('Aucun agent trouvé. Créez un agent dans la section Agents.','error'); return; }
+
+    // Find current inscrit_par
+    const c=contratMap[contratId];
+    const current=c?c.inscrit_par||'':'';
+
+    // Build options — value = agent_code (or email if no code)
+    let opts='<option value="">— Aucun agent —</option>';
+    agents.forEach(a=>{
+      const val=a.agent_code||a.email;
+      const label=`${a.agent_code?'['+a.agent_code+'] ':''}${a.prenom||''} ${a.nom||''} (${a.email})`.trim();
+      const sel=(val===current||a.email===current)?'selected':'';
+      opts+=`<option value="${esc(val)}" ${sel}>${esc(label)}</option>`;
+    });
+
+    const html=`<div style="padding:20px;">
+      <div style="font-weight:600;margin-bottom:12px;">Attribuer un agent au contrat</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Contrat : ${esc(c?.id_service||contratId)}</div>
+      <select id="assign-agent-select" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+        ${opts}
+      </select>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-primary btn-sm" onclick="confirmAssignAgent('${contratId}')">✅ Confirmer</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeModalAssignAgent()">Annuler</button>
+      </div>
+    </div>`;
+
+    // Show in a simple overlay
+    let overlay=document.getElementById('modal-assign-agent');
+    if(!overlay){
+      overlay=document.createElement('div');
+      overlay.id='modal-assign-agent';
+      overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:420px;width:90%;">${html}</div>`;
+    overlay.style.display='flex';
+  }catch(e){ showToast('Erreur : '+e.message,'error'); }
+}
+
+async function confirmAssignAgent(contratId){
+  const val=document.getElementById('assign-agent-select').value;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{
+      method:'PATCH',headers:H,
+      body:JSON.stringify({inscrit_par:val||null})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    // Update local data
+    const idx=allContrats.findIndex(c=>c.id===contratId);
+    if(idx>=0) allContrats[idx].inscrit_par=val||null;
+    if(contratMap[contratId]) contratMap[contratId].inscrit_par=val||null;
+    showToast('✅ Agent '+(val?'attribué':'retiré'));
+    const m=document.getElementById('modal-assign-agent');
+    if(m) m.style.display='none';
+    filterContrats();
+  }catch(e){ showToast('Erreur : '+e.message,'error'); }
+}
+
+function closeModalAssignAgent(){
+  const m=document.getElementById('modal-assign-agent');
+  if(m) m.style.display='none';
+}
+
+async function updateContratStatus(id,newStatus,sel){
+  const idx=allContrats.findIndex(c=>c.id===id);
+  const oldStatus=idx>=0?allContrats[idx].contrat_status:null;
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify({contrat_status:newStatus})});
+  if(r.ok){
+    if(idx>=0)allContrats[idx].contrat_status=newStatus;
+    const badge=document.getElementById(`badge-cs-${id}`);
+    if(badge){badge.className=`badge badge-${newStatus}`;badge.textContent=newStatus;}
+    // Historique
+    if(oldStatus!==newStatus){
+      await fetch(`${SUPABASE_URL}/rest/v1/historique`,{method:'POST',headers:{...H,'Prefer':'return=minimal'},
+        body:JSON.stringify([{table_name:'contrats',record_id:id,champ:'contrat_status',ancienne_valeur:oldStatus,nouvelle_valeur:newStatus,action_type:'UPDATE'}])});
+    }
+    showToast(`Statut → ${newStatus}`,'success');filterContrats();
+  }else showToast('Erreur mise à jour','error');
+}
+function showBulkStatus(){
+  document.getElementById('bulk-desc').textContent=`Modifier le statut de ${cSelected.size} contrat(s)`;
+  openModal('modal-bulk');
+}
+async function applyBulkStatus(){
+  const newStatus=document.getElementById('bulk-new-status').value;
+  let ok=0;
+  for(const id of [...cSelected]){
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify({contrat_status:newStatus})});
+    if(r.ok){const idx=allContrats.findIndex(c=>c.id===id);if(idx>=0)allContrats[idx].contrat_status=newStatus;ok++;}
+  }
+  closeModal('modal-bulk');cSelected.clear();updateSelectionUI();filterContrats();
+  showToast(`${ok} contrat(s) → ${newStatus}`,'success');
+}
+function exportContrats(){
+  const rows=filtContrats.map(c=>{
+    const p=personneMap[c.personne_id]||{};
+    return [[p.prenom,p.nom].join(' '),p.email||c.source,c.id_fournisseur,normFournisseur(c.fournisseur),c.energie_type,c.contrat_status,c.date_debut||''].map(v=>`"${v||''}"`).join(',');
+  });
+  downloadCSV(['Nom,Email,ID Fourn,Fournisseur,Énergie,Statut,Date',...rows].join('\n'),'contrats.csv');
+}
+
+async function deduplicateContrats(){
+  // Group by personne_id + id_fournisseur, keep newest (by created_at), delete rest
+  const groups={};
+  allContrats.forEach(c=>{
+    if(!c.personne_id||!c.id_fournisseur)return;
+    const key=`${c.personne_id}__${c.id_fournisseur}`;
+    if(!groups[key])groups[key]=[];
+    groups[key].push(c);
+  });
+  const toDelete=[];
+  Object.values(groups).forEach(arr=>{
+    if(arr.length<=1)return;
+    // Sort by created_at desc, keep first (newest)
+    arr.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    for(let i=1;i<arr.length;i++)toDelete.push(arr[i]);
+  });
+  if(toDelete.length===0){showToast('Aucun doublon détecté ✓','success');return;}
+  if(!window.confirm(`${toDelete.length} contrats en double détectés.\n\nSupprimer les doublons ? (garde le plus récent pour chaque personne + id_fournisseur)`))return;
+  showToast(`Suppression de ${toDelete.length} doublons...`,'info');
+  let ok=0,fail=0;
+  // Also delete associated commissions
+  const deleteIds=toDelete.map(c=>c.id);
+  for(let i=0;i<deleteIds.length;i+=50){
+    const chunk=deleteIds.slice(i,i+50);
+    const ids=chunk.join(',');
+    // Delete commissions first
+    await fetch(`${SUPABASE_URL}/rest/v1/commissions?contrat_id=in.(${ids})`,{method:'DELETE',headers:H});
+    // Delete contrats
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=in.(${ids})`,{method:'DELETE',headers:H});
+    if(r.ok){ok+=chunk.length;}else{fail+=chunk.length;console.error('Delete error',await r.text());}
+    if(i>0&&i%200===0)showToast(`${ok} supprimés...`,'info');
+  }
+  showToast(`✓ ${ok} doublons supprimés${fail>0?` (${fail} erreurs)`:''}. Rechargement...`,'success');
+  // Reload all data
+  await initData();
+  filterContrats();
+  updateBadges();
+}
+
+// ===== COMMISSIONS =====
+function filterCommByStatut(statut){
+  document.getElementById('comm-statut').value=statut;
+  filterCommissions();
+  // Scroll vers la liste
+  document.getElementById('comm-table').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function initCommissions(){
+  let total=0,paye=0,nonPaye=0;
+  let payeCount=0,nonPayeCount=0;
+  allComm.forEach(c=>{
+    const m=parseFloat(c.montant||0);
+    total+=m;
+    if(c.statut==='paye'){paye+=m;payeCount++;}
+    else{nonPaye+=m;nonPayeCount++;}
+  });
+  const totalTTC=total*1.2;
+  const avg=allComm.length>0?(totalTTC/allComm.length):0;
+  const nonPayePct=total>0?((nonPaye/total)*100).toFixed(0):0;
+
+  // KPI 1
+  document.getElementById('comm-total').textContent='€'+totalTTC.toLocaleString('fr-FR',{maximumFractionDigits:0});
+  document.getElementById('comm-total-sub').textContent=`${allComm.length.toLocaleString()} lignes`;
+  document.getElementById('comm-avg').textContent='€'+avg.toLocaleString('fr-FR',{maximumFractionDigits:2});
+  document.getElementById('comm-avg-sub').textContent='par ligne';
+
+  // KPI 2
+  document.getElementById('comm-paye').textContent='€'+(paye*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0});
+  document.getElementById('comm-paye-sub').textContent=`${payeCount.toLocaleString()} lignes payées`;
+  document.getElementById('comm-nonpaye').textContent='€'+(nonPaye*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0});
+  document.getElementById('comm-nonpaye-pct').textContent=`${nonPayePct}% non payé`;
+
+  // KPI 3
+  document.getElementById('comm-count-nonpaye').textContent=nonPayeCount.toLocaleString();
+  document.getElementById('comm-nonpaye-sub').textContent=`€${(nonPaye*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0})} TTC en attente`;
+
+  // KPI 4: Top 5 intermédiaires par nb de lignes
+  const intermCount={};
+  allComm.forEach(c=>{
+    const p=personneMap[c.intermediaire_id];
+    const name=p?(p.prenom||p.email||'?'):'?';
+    const key=c.intermediaire_id||'?';
+    if(!intermCount[key])intermCount[key]={name,count:0};
+    intermCount[key].count++;
+  });
+  const top5=Object.values(intermCount).sort((a,b)=>b.count-a.count).slice(0,5);
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  document.getElementById('comm-top5').innerHTML=top5.map((x,i)=>
+    `<div style="display:flex;justify-content:space-between;align-items:center">
+      <span>${medals[i]} <span style="color:var(--text)">${x.name}</span></span>
+      <span style="color:var(--accent);font-weight:700">${x.count.toLocaleString()}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('comm-sub').textContent=`${allComm.length.toLocaleString()} lignes · €${totalTTC.toLocaleString('fr-FR',{maximumFractionDigits:0})} TTC`;
+  document.getElementById('badge-commissions').textContent=nonPayeCount||'0';
+  filterCommissions();
+}
+function onCommMoisChange(){
+  document.getElementById('comm-jour').value='';
+  filterCommissions();
+}
+function onCommJourChange(){
+  const jour=document.getElementById('comm-jour').value;
+  if(jour){
+    document.getElementById('comm-mois').value=jour.slice(0,7);
+    document.getElementById('comm-annee').value='';
+  }
+  filterCommissions();
+}
+function filterCommissions(){
+  const interm=document.getElementById('comm-interm').value;
+  const statut=document.getElementById('comm-statut').value;
+  const annee=document.getElementById('comm-annee').value;
+  const mois=document.getElementById('comm-mois').value;
+  const jour=document.getElementById('comm-jour').value;
+  filtComm=allComm.filter(c=>{
+    if(interm&&c.intermediaire_id!==interm)return false;
+    if(statut&&c.statut!==statut)return false;
+    if(annee){const ct=contratMap[c.contrat_id];if(!ct)return false;const d=new Date(ct.date_debut||ct.created_at);if(isNaN(d)||String(d.getFullYear())!==annee)return false;}
+    if(mois&&!jour){const ct=contratMap[c.contrat_id];if(!ct)return false;const d=new Date(ct.date_debut||ct.created_at);if(isNaN(d))return false;const m=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(m!==mois)return false;}
+    if(jour){const ct=contratMap[c.contrat_id];if(!ct)return false;const d=new Date(ct.date_debut||ct.created_at);if(isNaN(d))return false;if(d.toISOString().slice(0,10)!==jour)return false;}
+    return true;
+  });
+  // Sort: non_paye first, then by contrat date desc
+  filtComm.sort((a,b)=>{
+    const pa=a.statut==='paye'?1:0, pb=b.statut==='paye'?1:0;
+    if(pa!==pb) return pa-pb;
+    const ca=contratMap[a.contrat_id]||{}, cb=contratMap[b.contrat_id]||{};
+    const da=new Date(ca.date_debut||ca.created_at||0), db=new Date(cb.date_debut||cb.created_at||0);
+    return db-da;
+  });
+  // Update stats cards to reflect filtered data
+  let total=0,paye=0,nonPaye=0,payeCount=0,nonPayeCount=0;
+  filtComm.forEach(c=>{const m=parseFloat(c.montant||0);total+=m;if(c.statut==='paye'){paye+=m;payeCount++;}else{nonPaye+=m;nonPayeCount++;}});
+  const totalTTC=total*1.2;
+  const avg=filtComm.length>0?(totalTTC/filtComm.length):0;
+  const nonPayePct=total>0?((nonPaye/total)*100).toFixed(0):0;
+
+  document.getElementById('comm-total').textContent='€'+totalTTC.toLocaleString('fr-FR',{maximumFractionDigits:0});
+  document.getElementById('comm-total-sub').textContent=`${filtComm.length.toLocaleString()} lignes`;
+  document.getElementById('comm-avg').textContent='€'+avg.toLocaleString('fr-FR',{maximumFractionDigits:2});
+  document.getElementById('comm-paye').textContent='€'+(paye*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0});
+  document.getElementById('comm-paye-sub').textContent=`${payeCount.toLocaleString()} lignes payées`;
+  document.getElementById('comm-nonpaye').textContent='€'+(nonPaye*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0});
+  document.getElementById('comm-nonpaye-pct').textContent=`${nonPayePct}% non payé`;
+  document.getElementById('comm-count-nonpaye').textContent=nonPayeCount.toLocaleString();
+  document.getElementById('comm-nonpaye-sub').textContent=`€${(nonPaye*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0})} TTC en attente`;
+
+  // Update subtitle
+  const hasFilter=!!(interm||statut||annee||mois||jour);
+  if(hasFilter){
+    const intermName=interm?(personneMap[interm]?[personneMap[interm].prenom,personneMap[interm].nom].filter(Boolean).join(' ')||personneMap[interm].email:''):'';
+    document.getElementById('comm-sub').textContent=`${filtComm.length.toLocaleString()} lignes · €${totalTTC.toLocaleString('fr-FR',{maximumFractionDigits:0})} TTC`+(intermName?` · ${intermName}`:'');
+  } else {
+    document.getElementById('comm-sub').textContent=`${allComm.length.toLocaleString()} lignes · €${(allComm.reduce((s,c)=>s+parseFloat(c.montant||0),0)*1.2).toLocaleString('fr-FR',{maximumFractionDigits:0})} TTC`;
+  }
+  commPage=1;renderCommissions();
+}
+function renderCommissions(){
+  document.getElementById('comm-loading').style.display='none';
+  if(filtComm.length===0){document.getElementById('comm-table').style.display='none';document.getElementById('comm-empty').style.display='block';return;}
+  document.getElementById('comm-empty').style.display='none';
+  document.getElementById('comm-table').style.display='block';
+  const start=(commPage-1)*PAGE,end=start+PAGE;
+  document.getElementById('comm-tbody').innerHTML=filtComm.slice(start,end).map(c=>{
+    const interm=personneMap[c.intermediaire_id]||{};
+    const ct=contratMap[c.contrat_id]||null;
+    const hasCt=!!ct;
+    const addr=hasCt&&ct.adresse_id?adresseMap[ct.adresse_id]||{}:{};
+    const rue=addr.rue||'';
+    const pdlPce=addr.pdl?`PDL ${addr.pdl}`:addr.pce?`PCE ${addr.pce}`:'';
+    const client=hasCt?personneMap[ct.personne_id]||{}:{};
+    const clientName=hasCt?([client.prenom,client.nom].filter(Boolean).join(' ')||client.email||client.email_reel||ct.source||'⚠️ Inconnu'):'⚠️ Contrat manquant';
+    const idService=hasCt?(fmtId(ct.id_service)):'';
+    const idFourn=hasCt?(ct.id_fournisseur||'—'):`ID: ${c.contrat_id?.substring(0,8)||'?'}...`;
+    const date=hasCt&&(ct.date_debut||ct.created_at)?new Date(ct.date_debut||ct.created_at).toLocaleDateString('fr-FR'):'—';
+    const isPaid=c.statut==='paye';
+    const ht=parseFloat(c.montant||0);
+    const ttc=(ht*1.2).toFixed(0);
+    const cny=(ht*1.2*8).toFixed(0);
+    return `<tr class="${commSelected.has(c.id)?'selected':''}" style="${hasCt?'':'opacity:0.6'}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" ${commSelected.has(c.id)?'checked':''} onchange="toggleCommSelect('${c.id}',this)"></td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${idService||'—'}</td>
+      <td style="cursor:pointer" onclick="event.stopPropagation();openCommClient('${(ct&&ct.personne_id)||''}')"><div style="font-weight:600;font-size:13px;color:${hasCt?'var(--accent)':'#e74c3c'};text-decoration:underline;text-underline-offset:2px">${clientName}</div><div style="font-size:11px;color:var(--muted)">${client.email||''}</div><div style="font-size:10px;color:var(--muted)">${rue}${pdlPce?' · '+pdlPce:''}</div></td>
+      <td><div style="font-size:13px;font-family:monospace">${idFourn}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${idService}</div></td>
+      <td><div style="font-weight:700;font-size:14px;color:var(--accent)">€${ttc} TTC</div><div style="font-size:11px;color:var(--muted)">HT €${ht.toFixed(0)} · ¥${cny}</div></td>
+      <td style="font-size:12px;color:var(--muted)">${date}</td>
+      <td style="font-size:12px"><div style="font-weight:600;color:var(--text)">${interm.login||interm.email?.split('@')[0]||'—'}</div><div style="font-size:10px;color:var(--muted)">${[interm.prenom,interm.nom].filter(Boolean).join(' ')||''}</div></td>
+      <td style="text-align:center" onclick="event.stopPropagation();toggleCommPaid('${c.id}',${!isPaid})"><span class="badge badge-${c.statut||'non_paye'}" style="cursor:pointer;padding:5px 14px;font-size:12px;user-select:none;transition:transform 0.1s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">${isPaid?'✓ payé':'non_payé'}</span></td>
+    </tr>`;
+  }).join('');
+  renderPagination('comm',filtComm.length,commPage,n=>{commPage=n;renderCommissions();});
+}
+function toggleCommSelect(id,cb){
+  if(cb.checked)commSelected.add(id);else commSelected.delete(id);
+  const n=commSelected.size;
+  document.getElementById('comm-selected-count').style.display=n?'inline':'none';
+  document.getElementById('comm-selected-count').textContent=`${n} sél.`;
+  document.getElementById('btn-bulk-pay').style.display=n?'inline-flex':'none';
+}
+function toggleAllComm(cb){
+  filtComm.slice((commPage-1)*PAGE,commPage*PAGE).forEach(c=>{if(cb.checked)commSelected.add(c.id);else commSelected.delete(c.id);});
+  renderCommissions();
+  const n=commSelected.size;
+  document.getElementById('comm-selected-count').style.display=n?'inline':'none';
+  document.getElementById('btn-bulk-pay').style.display=n?'inline-flex':'none';
+}
+async function toggleCommPaid(id, markPaid){
+  const today=new Date().toISOString().split('T')[0];
+  const body=markPaid?{statut:'paye',date_paiement:today}:{statut:'non_paye',date_paiement:null};
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify(body)});
+  if(r.ok){
+    const idx=allComm.findIndex(c=>c.id===id);
+    if(idx>=0){allComm[idx].statut=body.statut;allComm[idx].date_paiement=body.date_paiement;}
+    filterCommissions();
+    showToast(markPaid?'✓ Payé':'↩ Non payé',markPaid?'success':'warning');
+  }else{
+    const txt=await r.text();
+    console.error('toggleCommPaid error',r.status,txt);
+    showToast('Erreur: '+r.status,'error');
+  }
+}
+async function bulkMarkPaid(){
+  const ids=[...commSelected];let ok=0;
+  for(const id of ids){const r=await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify({statut:'paye',date_paiement:new Date().toISOString().split('T')[0]})});if(r.ok){const idx=allComm.findIndex(c=>c.id===id);if(idx>=0){allComm[idx].statut='paye';}ok++;}}
+  commSelected.clear();
+  document.getElementById('comm-selected-count').style.display='none';
+  document.getElementById('btn-bulk-pay').style.display='none';
+  showToast(`${ok} commission(s) payées ✓`,'success');
+  initCommissions();
+}
+
+// ===== BULK MARK PAID UP TO FEB 2026 =====
+async function bulkPayAllNonPaye(){
+  const target=allComm.filter(c=>c.statut==='non_paye');
+  if(target.length===0){showToast('Aucune commission non payée','info');return;}
+  const ok=window.confirm(`Marquer ${target.length.toLocaleString()} commissions comme payées ?`);
+  if(!ok)return;
+  let done=0;
+  const today=new Date().toISOString().split('T')[0];
+  for(let i=0;i<target.length;i+=100){
+    const ids=target.slice(i,i+100).map(c=>c.id);
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=in.(${ids.join(',')})`,{
+      method:'PATCH',headers:H,
+      body:JSON.stringify({statut:'paye',date_paiement:today})
+    });
+    if(r.ok){
+      ids.forEach(id=>{const idx=allComm.findIndex(x=>x.id===id);if(idx>=0){allComm[idx].statut='paye';allComm[idx].date_paiement=today;}});
+      done+=ids.length;
+    }
+    showToast(`${done}/${target.length} traités...`,'info');
+  }
+  showToast(`✓ ${done} commissions marquées payées`,'success');
+  initCommissions();
+}
+
+function exportCommissions(){
+  const rows=filtComm.map(c=>{
+    const interm=personneMap[c.intermediaire_id]||{};
+    const ct=contratMap[c.contrat_id]||{};
+    return [interm.email||'',parseFloat(c.montant||0).toFixed(0),c.statut,c.date_paiement||'',ct.id_fournisseur||''].map(v=>`"${v}"`).join(',');
+  });
+  downloadCSV(['Email intermédiaire,Montant HT,Statut,Date paiement,ID Fournisseur',...rows].join('\n'),'commissions.csv');
+}
+
+// ===== SYNC MISSING COMMISSIONS =====
+async function cleanOrphanCommissions(){
+  // Find commissions whose contrat_id doesn't exist in contratMap
+  const orphans=allComm.filter(c=>!contratMap[c.contrat_id]);
+  if(orphans.length===0){showToast('Aucune commission orpheline trouvée.','info');return;}
+  if(!confirm(`${orphans.length} commission(s) orpheline(s) trouvée(s) (contrat supprimé ou inexistant).\n\nSupprimer ?`))return;
+  let ok=0;
+  for(let i=0;i<orphans.length;i+=50){
+    const batch=orphans.slice(i,i+50);
+    const ids=batch.map(c=>c.id).join(',');
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=in.(${ids})`,{method:'DELETE',headers:H});
+    if(r.ok) ok+=batch.length;
+  }
+  allComm=allComm.filter(c=>contratMap[c.contrat_id]);
+  filterCommissions();
+  showToast(`${ok} commission(s) orpheline(s) supprimée(s).`,'success');
+}
+
+async function syncMissingCommissions(){
+  // Build set of contrat_ids that already have commission records
+  const commContratIds=new Set(allComm.map(c=>c.contrat_id));
+  // Build email->personne map for intermediaires
+  const emailToInterm={};
+  allPersonnes.filter(p=>p.est_intermediaire).forEach(p=>{emailToInterm[p.email.toLowerCase()]=p;});
+  // Find contrats with source (intermediaire email) but no commission
+  const missing=allContrats.filter(c=>{
+    if(!c.source)return false;
+    if(commContratIds.has(c.id))return false;
+    const key=c.source.toLowerCase();
+    return !!emailToInterm[key];
+  });
+  if(missing.length===0){showToast('Toutes les commissions sont déjà créées ✓','success');return;}
+  if(!window.confirm(`${missing.length} contrats sans commission détectés. Créer les commissions manquantes (€20/contrat) ?`))return;
+  showToast(`Création de ${missing.length} commissions en cours...`,'info');
+  let ok=0,fail=0;
+  // Batch insert 50 at a time
+  for(let i=0;i<missing.length;i+=50){
+    const batch=missing.slice(i,i+50);
+    const bodies=batch.map(c=>{
+      const interm=emailToInterm[c.source.toLowerCase()];
+      return {contrat_id:c.id,intermediaire_id:interm.id,montant:20,statut:'non_paye',date_paiement:null,notes:null};
+    });
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/commissions`,{method:'POST',headers:HR,body:JSON.stringify(bodies)});
+    if(r.ok||r.status===201){
+      const data=await r.json();
+      if(Array.isArray(data)){data.forEach(c=>{allComm.push(c);commContratIds.add(c.contrat_id);});ok+=data.length;}
+      else{ok+=batch.length;}
+    }else{
+      const errText=await r.text();
+      console.error('Sync error batch',i,r.status,errText);
+      fail+=batch.length;
+    }
+    // Progress toast every 200
+    if(i>0&&i%200===0)showToast(`${ok} créées...`,'info');
+  }
+  showToast(`✓ ${ok} commissions créées${fail>0?` (${fail} erreurs)`:''}`,ok>0?'success':'error');
+  // Rebuild maps
+  allComm.forEach(c=>{contratMap[c.contrat_id]=contratMap[c.contrat_id]||null;});
+  buildIntermediaires();initCommissions();updateBadges();
+}
+
+// ===== INTERMEDIAIRES =====
+function filterIntermediaires(){
+  const q=document.getElementById('interm-search').value.toLowerCase();
+  const cat=document.getElementById('interm-cat').value;
+  filtInterm=allIntermediaires.filter(p=>{
+    if(cat&&guessCat(p.email)!==cat)return false;
+    if(q){const s=[p.email,p.prenom,p.nom,p.wechat].join(' ').toLowerCase();if(!s.includes(q))return false;}
+    return true;
+  });
+  renderIntermediaires();
+}
+function renderIntermediaires(){
+  document.getElementById('interm-loading').style.display='none';
+  const grid=document.getElementById('interm-grid');
+  if(filtInterm.length===0){grid.innerHTML='<div class="empty">Aucun intermédiaire trouvé.</div>';return;}
+  const sortIcon=k=>intermSortKey===k?(intermSortAsc?'▲':'▼'):'⇅';
+  const thStyle='text-align:left;padding:8px 6px;cursor:pointer;user-select:none;white-space:nowrap';
+  const thR='text-align:right;padding:8px 6px;cursor:pointer;user-select:none;white-space:nowrap';
+  const header=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">
+    <th style="${thStyle}" onclick="sortInterm('cat')">Cat. ${sortIcon('cat')}</th>
+    <th style="${thStyle}" onclick="sortInterm('email')">Email ${sortIcon('email')}</th>
+    <th style="${thStyle}" onclick="sortInterm('nom')">Nom ${sortIcon('nom')}</th>
+    <th style="${thStyle}" onclick="sortInterm('login')">Login ${sortIcon('login')}</th>
+    <th style="${thStyle}" onclick="sortInterm('wechat')">WeChat ${sortIcon('wechat')}</th>
+    <th style="${thStyle}" onclick="sortInterm('tel')">Tél ${sortIcon('tel')}</th>
+    <th style="${thStyle}" onclick="sortInterm('emailReel')">Email réel ${sortIcon('emailReel')}</th>
+    <th style="${thR}" onclick="sortInterm('contrats')">Contrats ${sortIcon('contrats')}</th>
+    <th style="${thR}" onclick="sortInterm('total')">Total HT ${sortIcon('total')}</th>
+    <th style="${thR}" onclick="sortInterm('pending')">En attente ${sortIcon('pending')}</th>
+    <th style="text-align:center;padding:8px 6px"></th>
+  </tr></thead><tbody>`;
+  const rows=filtInterm.map(p=>{
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.wechat||'';
+    const cat=guessCat(p);
+    const pending=p.totalComm-p.payeComm;
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''" onclick="openIntermComms('${p.id}','${(name||p.email).replace(/'/g,"\\'")}')">
+      <td style="padding:7px 6px;white-space:nowrap"><span style="background:rgba(212,175,55,0.15);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:10px">${cat}</span></td>
+      <td style="padding:7px 6px;font-weight:600;font-size:12px">${p.email}</td>
+      <td style="padding:7px 6px;color:var(--muted);font-size:12px">${name}</td>
+      <td style="padding:7px 6px;color:var(--muted);font-size:11px">${p.login||''}</td>
+      <td style="padding:7px 6px;color:var(--muted);font-size:11px">${p.wechat||''}</td>
+      <td style="padding:7px 6px;color:var(--muted);font-size:11px">${p.telephone||''}</td>
+      <td style="padding:7px 6px;color:var(--muted);font-size:11px">${p.email_reel||''}</td>
+      <td style="padding:7px 6px;text-align:right;font-weight:700">${p.contrats.length}</td>
+      <td style="padding:7px 6px;text-align:right;font-weight:700;color:var(--accent)">€${(p.totalComm||0).toLocaleString('fr-FR',{maximumFractionDigits:0})}</td>
+      <td style="padding:7px 6px;text-align:right;font-weight:700;${pending>0?'color:var(--warning)':'color:var(--muted)'}">€${pending.toLocaleString('fr-FR',{maximumFractionDigits:0})}</td>
+      <td style="padding:7px 6px;text-align:center" onclick="event.stopPropagation()">
+        <button class="btn btn-secondary btn-sm" style="padding:2px 6px;font-size:10px" onclick="openEditInterm('${p.email.toLowerCase()}')">✏️</button>
+      </td>
+    </tr>`;
+  }).join('');
+  grid.innerHTML=header+rows+'</tbody></table>';
+}
+function openIntermComms(id, name){
+  // Filter commissions by this intermediaire's ID specifically
+  document.getElementById('comm-interm').value=id;
+  showPage('commissions');
+  filterCommissions();
+  showToast(`Commissions de ${name}`,'info');
+}
+function openAddInterm(){
+  editingIntermId=null;
+  document.getElementById('modal-interm-title').textContent='Ajouter un intermédiaire';
+  document.getElementById('interm-form-email').value='';
+  document.getElementById('interm-form-categorie').value='';
+  document.getElementById('interm-form-id-fournisseur').value='';
+  document.getElementById('interm-form-prenom').value='';
+  document.getElementById('interm-form-nom').value='';
+  document.getElementById('interm-form-telephone').value='';
+  document.getElementById('interm-form-wechat').value='';
+  document.getElementById('interm-form-ht').value='16.67';
+  document.getElementById('interm-form-ttc').value='20';
+  document.getElementById('interm-form-cny').value='160';
+  document.getElementById('interm-form-rate').value='8';
+  document.getElementById('interm-form-email').disabled=false;
+  document.getElementById('btn-delete-interm').style.display='none';
+  document.getElementById('btn-apply-comm-all').style.display='none';
+  openModal('modal-interm');
+}
+function openEditInterm(emailKey){
+  const p=allIntermediaires.find(x=>x.email.toLowerCase()===emailKey);
+  if(!p)return;
+  editingIntermId=p.id;
+  document.getElementById('modal-interm-title').textContent='Modifier l\'intermédiaire';
+  document.getElementById('interm-form-email').value=p.email;
+  document.getElementById('interm-form-email-reel').value=p.email_reel||'';
+  document.getElementById('interm-form-categorie').value=p.categorie||'';
+  document.getElementById('interm-form-id-fournisseur').value=p.id_fournisseur||'';
+  document.getElementById('interm-form-login').value=p.login||'';
+  document.getElementById('interm-form-prenom').value=p.prenom||'';
+  document.getElementById('interm-form-nom').value=p.nom||'';
+  document.getElementById('interm-form-telephone').value=p.telephone||'';
+  document.getElementById('interm-form-wechat').value=p.wechat||'';
+  // Read current commission amount from their commission records
+  const intermComms=allComm.filter(c=>c.intermediaire_id===p.id);
+  const currentHT=intermComms.length>0?parseFloat(intermComms[0].montant||0):16.67;
+  document.getElementById('interm-form-rate').value='8';
+  document.getElementById('interm-form-ht').value=currentHT.toFixed(2);
+  calcFromHT();
+  document.getElementById('interm-form-password').value=''; // Ne jamais afficher le hash
+  document.getElementById('interm-form-note').value=p.note||'';
+  document.getElementById('interm-form-email').disabled=true;
+  document.getElementById('btn-delete-interm').style.display='inline-flex';
+  document.getElementById('btn-apply-comm-all').style.display=intermComms.length>0?'block':'none';
+  openModal('modal-interm');
+}
+// ===== COMMISSION CALC =====
+function getRate(){return parseFloat(document.getElementById('interm-form-rate').value)||8;}
+function calcFromHT(){
+  const ht=parseFloat(document.getElementById('interm-form-ht').value)||0;
+  const rate=getRate();
+  document.getElementById('interm-form-ttc').value=(ht*1.2).toFixed(2);
+  document.getElementById('interm-form-cny').value=(ht*1.2*rate).toFixed(2);
+}
+function calcFromTTC(){
+  const ttc=parseFloat(document.getElementById('interm-form-ttc').value)||0;
+  const rate=getRate();
+  document.getElementById('interm-form-ht').value=(ttc/1.2).toFixed(2);
+  document.getElementById('interm-form-cny').value=(ttc*rate).toFixed(2);
+}
+function calcFromCNY(){
+  const cny=parseFloat(document.getElementById('interm-form-cny').value)||0;
+  const rate=getRate();
+  const ttc=cny/rate;
+  document.getElementById('interm-form-ttc').value=ttc.toFixed(2);
+  document.getElementById('interm-form-ht').value=(ttc/1.2).toFixed(2);
+}
+async function applyCommToAll(){
+  if(!editingIntermId)return;
+  const ht=parseFloat(document.getElementById('interm-form-ht').value);
+  if(isNaN(ht)||ht<0){showToast('Montant HT invalide','error');return;}
+  const intermComms=allComm.filter(c=>c.intermediaire_id===editingIntermId);
+  if(intermComms.length===0){showToast('Aucune commission à modifier','info');return;}
+  const ttc=(ht*1.2).toFixed(2);
+  const rate=getRate();
+  const cny=(ht*1.2*rate).toFixed(2);
+  const p=personneMap[editingIntermId]||{};
+  const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'';
+  if(!window.confirm(`Modifier ${intermComms.length} commission(s) de ${name} :\n\nHT: €${ht.toFixed(2)}\nTTC: €${ttc}\nCNY: ¥${cny}\n\nConfirmer ?`))return;
+  showToast(`Mise à jour de ${intermComms.length} commissions...`,'info');
+  let ok=0;
+  // Batch update 50 at a time using filter
+  for(let i=0;i<intermComms.length;i+=50){
+    const chunk=intermComms.slice(i,i+50);
+    const ids=chunk.map(c=>c.id);
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=in.(${ids.join(',')})`,{
+      method:'PATCH',headers:H,body:JSON.stringify({montant:ht})
+    });
+    if(r.ok){
+      chunk.forEach(c=>{const idx=allComm.findIndex(x=>x.id===c.id);if(idx>=0)allComm[idx].montant=ht;});
+      ok+=chunk.length;
+    }else{
+      const err=await r.text();
+      console.error('Batch update error',r.status,err);
+    }
+    if(i>0&&i%200===0)showToast(`${ok} mises à jour...`,'info');
+  }
+  showToast(`✓ ${ok}/${intermComms.length} commissions → €${ht.toFixed(2)} HT`,'success');
+  buildIntermediaires();
+  if(document.getElementById('page-commissions').style.display!=='none')initCommissions();
+}
+
+async function saveInterm(){
+  const email=document.getElementById('interm-form-email').value.trim();
+  const prenom=document.getElementById('interm-form-prenom').value.trim();
+  const nom=document.getElementById('interm-form-nom').value.trim();
+  const telephone=document.getElementById('interm-form-telephone').value.trim()||null;
+  const wechat=document.getElementById('interm-form-wechat').value.trim();
+  const login=document.getElementById('interm-form-login').value.trim().toLowerCase()||null;
+  const emailReel=document.getElementById('interm-form-email-reel').value.trim().toLowerCase()||null;
+  const categorie=document.getElementById('interm-form-categorie').value||null;
+  const idFournisseur=document.getElementById('interm-form-id-fournisseur').value.trim()||null;
+  const password=document.getElementById('interm-form-password').value.trim();
+  const note=document.getElementById('interm-form-note').value.trim()||null;
+  if(!email){showToast('Email obligatoire','error');return;}
+  if(editingIntermId){
+    // Update existing
+    const patch={prenom,nom,telephone,wechat,login:login||null,email_reel:emailReel||null,categorie:categorie||null,id_fournisseur:idFournisseur||null,note:note||null};
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${editingIntermId}`,{method:'PATCH',headers:H,body:JSON.stringify(patch)});
+    if(r.ok){
+      // Change password via auth function if provided
+      if(password){
+        try{
+          const rpc=await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_change_password`,{method:'POST',headers:H,body:JSON.stringify({p_personne_id:editingIntermId,p_new_password:password})});
+          if(!rpc.ok) console.warn('Password change failed:',await rpc.text());
+        }catch(e){console.warn('Password change error:',e);}
+      }
+      const idx=allPersonnes.findIndex(p=>p.id===editingIntermId);
+      if(idx>=0){
+        allPersonnes[idx].prenom=prenom;allPersonnes[idx].nom=nom;
+        allPersonnes[idx].telephone=telephone;allPersonnes[idx].wechat=wechat;
+        allPersonnes[idx].login=login||null;allPersonnes[idx].email_reel=emailReel||null;
+        allPersonnes[idx].categorie=categorie||null;allPersonnes[idx].id_fournisseur=idFournisseur||null;
+        allPersonnes[idx].note=note||null;
+        personneMap[editingIntermId]=allPersonnes[idx];
+      }
+      showToast('Intermédiaire mis à jour'+(password?' + MDP':''),'success');
+    }else{
+      const errText=await r.text();
+      console.error('saveInterm error:',r.status,errText);
+      showToast('Erreur '+r.status+': '+errText.slice(0,80),'error');
+    }
+  }else{
+    // Create new intermediaire + auth account
+    const defaultPwd=password||'Fuwu2024';
+    try{
+      // 1. Create auth user via RPC
+      const rpc=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_auth_user`,{method:'POST',headers:H,body:JSON.stringify({p_email:email,p_password:defaultPwd,p_role:'intermediaire',p_prenom:prenom,p_nom:nom})});
+      if(!rpc.ok){const e=await rpc.text();throw new Error(e);}
+      const authId=await rpc.json();
+      // 2. Create personnes record with auth_user_id
+      const body={email,prenom,nom,telephone,wechat,login,email_reel:emailReel,categorie,id_fournisseur:idFournisseur,note,est_intermediaire:true,est_client:false,role:'intermediaire',auth_user_id:authId};
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes`,{method:'POST',headers:HR,body:JSON.stringify(body)});
+      if(r.ok||r.status===201){
+        const data=await r.json();
+        const newP=Array.isArray(data)?data[0]:data;
+        if(newP){allPersonnes.push(newP);personneMap[newP.id]=newP;}
+        showToast('Intermédiaire ajouté ✓ (MDP: '+defaultPwd+')','success');
+      }else throw new Error(await r.text());
+    }catch(e){showToast('Erreur création: '+e.message,'error');}
+  }
+  closeModal('modal-interm');
+  buildIntermediaires();renderIntermediaires();
+}
+async function deleteInterm(){
+  if(!editingIntermId)return;
+  const p=allPersonnes.find(x=>x.id===editingIntermId);
+  const name=p?p.email:'cet intermédiaire';
+  if(!window.confirm(`Supprimer ${name} ? Cette action est irréversible.`))return;
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${editingIntermId}`,{method:'DELETE',headers:H});
+  if(r.ok){
+    allPersonnes=allPersonnes.filter(p=>p.id!==editingIntermId);
+    delete personneMap[editingIntermId];
+    showToast('Intermédiaire supprimé','success');
+    closeModal('modal-interm');buildIntermediaires();renderIntermediaires();
+  }else showToast('Erreur suppression','error');
+}
+
+// ===== CRM =====
+function initDashboard(){
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // KPI 1 : contrats actifs / total
+  const actifs = allContrats.filter(c=>c.contrat_status==='actif').length;
+  document.getElementById('d-actifs').textContent = actifs.toLocaleString();
+  document.getElementById('d-total').textContent = allContrats.length.toLocaleString();
+  document.getElementById('d-actifs-sub').innerHTML = `sur <span id="d-total">${allContrats.length.toLocaleString()}</span> total`;
+
+  // KPI 2 : total contrats
+  document.getElementById('d-clients').textContent = allContrats.length.toLocaleString();
+  const clientsActifs = new Set(allContrats.filter(c=>c.contrat_status==='actif'&&c.personne_id).map(c=>c.personne_id)).size;
+  document.getElementById('d-clients-sub').textContent = `${clientsActifs.toLocaleString()} clients avec contrat actif`;
+
+  // nouveaux contrats ce mois vs même mois année dernière
+  const sameMonthLastYear = `${now.getFullYear()-1}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const newThisM = allContrats.filter(c=>{
+    const d = new Date(c.date_debut||c.created_at);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === thisMonth;
+  }).length;
+  const newSameLastY = allContrats.filter(c=>{
+    const d = new Date(c.date_debut||c.created_at);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === sameMonthLastYear;
+  }).length;
+
+  // KPI 3 : commissions dues
+  const commDue = allComm.filter(c=>c.statut==='non_paye').reduce((s,c)=>s+parseFloat(c.montant||0),0);
+  document.getElementById('d-comm-due').textContent = '€'+commDue.toLocaleString('fr-FR',{maximumFractionDigits:0});
+
+  // KPI 4 : nouveaux ce mois vs même mois an dernier
+  document.getElementById('d-new-mois').textContent = newThisM.toLocaleString();
+  const vsSign = newSameLastY > 0 ? ((newThisM-newSameLastY)/newSameLastY*100).toFixed(0) : null;
+  const vsTxt = vsSign !== null ? ` (${vsSign>=0?'+':''}${vsSign}% vs ${sameMonthLastYear})` : '';
+  document.getElementById('d-new-mois-sub').textContent = `contrats en ${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}${vsTxt}`;
+
+  // GRAPHIQUE : contrats par mois (12 derniers mois)
+  const monthBuckets = {};
+  for(let i=11;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    monthBuckets[k] = 0;
+  }
+  allContrats.forEach(c=>{
+    const d = new Date(c.date_debut||c.created_at);
+    if(isNaN(d)) return;
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(monthBuckets[k]!==undefined) monthBuckets[k]++;
+  });
+  const vals = Object.values(monthBuckets);
+  const maxV = Math.max(...vals,1);
+  const chartEl = document.getElementById('d-chart-mois');
+  const labelsEl = document.getElementById('d-chart-mois-labels');
+  chartEl.innerHTML = Object.entries(monthBuckets).map(([k,v])=>{
+    const h = Math.max(4, Math.round(v/maxV*110));
+    const isThis = k===thisMonth;
+    return `<div title="${k}: ${v} contrats" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="font-size:9px;color:var(--muted)">${v||''}</div>
+      <div style="width:100%;height:${h}px;background:${isThis?'var(--accent)':'rgba(200,169,110,0.3)'};border-radius:3px 3px 0 0;transition:height 0.3s"></div>
+    </div>`;
+  }).join('');
+  labelsEl.innerHTML = Object.keys(monthBuckets).map(k=>{
+    const [y,m] = k.split('-');
+    return `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted)">${m}/${y.slice(2)}</div>`;
+  }).join('');
+
+  // FOURNISSEURS
+  const fournMap = {};
+  allContrats.forEach(c=>{
+    const f = c.fournisseur||'Autre';
+    const fn = f.toLowerCase().includes('total')?'TotalEnergies':f.toLowerCase().includes('edf')?'EDF':f.toLowerCase().includes('engie')?'Engie':f||'Autre';
+    fournMap[fn] = (fournMap[fn]||0)+1;
+  });
+  const fournSorted = Object.entries(fournMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const fournMax = fournSorted[0]?.[1]||1;
+  const fournColors = ['#3b82f6','#22c55e','#f59e0b','#a78bfa','#f87171'];
+  document.getElementById('d-fourn-list').innerHTML = fournSorted.map(([name,count],i)=>{
+    const pct = Math.round(count/allContrats.length*100);
+    const barW = Math.round(count/fournMax*100);
+    return `<div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="color:var(--text)">${name}</span>
+        <span style="color:var(--muted)">${count.toLocaleString()} (${pct}%)</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:4px;height:6px">
+        <div style="width:${barW}%;height:100%;background:${fournColors[i]};border-radius:4px"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // TOP 5 INTERMÉDIAIRES par nb contrats
+  const intermCount = {};
+  allContrats.forEach(c=>{ if(c.source) intermCount[c.source]=(intermCount[c.source]||0)+1; });
+  const top5 = Object.entries(intermCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('d-top-interm').innerHTML = top5.map(([email,count],i)=>{
+    const p = allPersonnes.find(x=>x.email===email);
+    const name = p ? [p.prenom,p.nom].filter(Boolean).join(' ')||email : email;
+    const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border-radius:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span>${medals[i]}</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${name}</div>
+          <div style="font-size:10px;color:var(--muted)">${email}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent)">${count}</div>
+    </div>`;
+  }).join('');
+
+  // ACTIVITÉ RÉCENTE (10 derniers contrats)
+  const recent = allContrats.slice(0,10);
+  document.getElementById('d-recent').innerHTML = recent.map(c=>{
+    const p = personneMap[c.personne_id];
+    const name = p ? [p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—' : '—';
+    const date = c.date_debut ? new Date(c.date_debut).toLocaleDateString('fr-FR') : '—';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">${name}</div>
+        <div style="font-size:10px;color:var(--muted)">${c.source||'—'} · ${date}</div>
+      </div>
+      <span class="badge badge-${c.contrat_status}">${c.contrat_status||'—'}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dash-updated').textContent = 'Mis à jour : ' + new Date().toLocaleTimeString('fr-FR');
+}
+
+function initCRM(){
+  const thisYear=new Date().getFullYear();
+  const lastYear=thisYear-1;
+  const cbpInit=window._contratsByPerson||{};
+  const clients=allPersonnes.filter(p=>p.est_client||cbpInit[p.id]);
+  document.getElementById('crm-sub').textContent=`${clients.length.toLocaleString()} clients`;
+  document.getElementById('crm-stat-total')?.textContent !== undefined && (document.getElementById('crm-stat-total').textContent=clients.length.toLocaleString());
+  const firstContratByPerson={};
+  allContrats.forEach(c=>{
+    if(!c.personne_id)return;
+    const d=new Date(c.date_debut||c.created_at);
+    if(isNaN(d))return;
+    if(!firstContratByPerson[c.personne_id]||d<firstContratByPerson[c.personne_id])
+      firstContratByPerson[c.personne_id]=d;
+  });
+  let countThisYear=0,countLastYear=0;
+  Object.values(firstContratByPerson).forEach(d=>{
+    const y=d.getFullYear();
+    if(y===thisYear)countThisYear++;
+    if(y===lastYear)countLastYear++;
+  });
+  document.getElementById('crm-stat-annee')?.textContent !== undefined && (document.getElementById('crm-stat-annee').textContent=countThisYear.toLocaleString());
+  document.getElementById('crm-stat-annee-label')?.textContent !== undefined && (document.getElementById('crm-stat-annee-label').textContent=`nouveaux en ${thisYear}`);
+  document.getElementById('crm-stat-last')?.textContent !== undefined && (document.getElementById('crm-stat-last').textContent=countLastYear.toLocaleString());
+  document.getElementById('crm-stat-last-label')?.textContent !== undefined && (document.getElementById('crm-stat-last-label').textContent=`nouveaux en ${lastYear}`);
+  if(countLastYear>0){
+    const growth=((countThisYear-countLastYear)/countLastYear*100).toFixed(1);
+    const sign=growth>=0?'+':'';
+    document.getElementById('crm-stat-growth')?.textContent !== undefined && (document.getElementById('crm-stat-growth').textContent=`${sign}${growth}%`);
+    document.getElementById('crm-stat-growth') && (document.getElementById('crm-stat-growth').style.color=growth>=0?'#4ade80':'#f87171');
+  } else {
+    document.getElementById('crm-stat-growth') && (document.getElementById('crm-stat-growth').textContent=countThisYear>0?'Nouveau':'—');
+  }
+  // Initialiser filtPersonnes avec tous les clients
+  filtPersonnes = allPersonnes.filter(p=>p.est_client);
+  crmPage = 1;
+  filterCRM();
+}
+function renderCRM(){ filterCRM(); }
+function filterCRM(){
+  document.getElementById('crm-loading').style.display='none';
+  const search=(document.getElementById('crm-search')?.value||'').toLowerCase().trim();
+  const role=document.getElementById('crm-role')?.value||'';
+  const status=document.getElementById('crm-status')?.value||'';
+  const cbp=window._contratsByPerson||{};
+  const clients=allPersonnes.filter(p=>p.est_client||cbp[p.id]);
+  filtPersonnes=clients.filter(p=>{
+    if(search){
+      const hay=[p.prenom,p.nom,p.email,p.telephone,p.wechat].filter(Boolean).join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    if(role==='intermediaire'&&!p.est_intermediaire) return false;
+    if(role==='client_only'&&p.est_intermediaire) return false;
+    if(status){
+      const pContrats=cbp[p.id]||[];
+      const hasStatus=pContrats.some(c=>c.contrat_status===status);
+      if(!hasStatus) return false;
+    }
+    return true;
+  });
+  const total=filtPersonnes.length;
+  if(total===0){document.getElementById('crm-table').style.display='none';document.getElementById('crm-empty').style.display='block';return;}
+  document.getElementById('crm-empty').style.display='none';
+  document.getElementById('crm-table').style.display='block';
+  const start=(crmPage-1)*PAGE,end=start+PAGE;
+  document.getElementById('crm-tbody').innerHTML=filtPersonnes.slice(start,end).map(p=>{
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||'—';
+    const pContrats=cbp[p.id]||[];
+    const nb=pContrats.length;
+    // Main status: most recent contrat's status
+    const sorted=pContrats.slice().sort((a,b)=>new Date(b.date_debut||b.created_at)-new Date(a.date_debut||a.created_at));
+    const mainStatus=sorted[0]?.contrat_status||'—';
+    const idx=allPersonnes.findIndex(x=>x.id===p.id);
+    const idFuwu=sorted[0]?.id_service||'';
+    return `<tr onclick="openCRMDetail(${idx})" style="cursor:pointer">
+      <td style="width:32px" onclick="event.stopPropagation()"><input type="checkbox" class="crm-select" data-id="${p.id}" data-idx="${idx}" onchange="onCRMSelect()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)"></td>
+      <td><div style="font-size:10px;color:var(--muted);letter-spacing:0.5px;margin-bottom:2px">${idFuwu}</div><div style="font-weight:600">${name}</div></td>
+      <td style="font-size:12px;color:var(--muted)">${p.email||'—'}</td>
+      <td style="font-size:12px">${p.telephone||'—'}</td>
+      <td style="font-weight:600;color:${nb>0?'var(--accent)':'var(--muted)'}">${nb} contrat${nb>1?'s':''}</td>
+      <td><span class="badge badge-${mainStatus}">${mainStatus}</span></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openCRMDetail(${idx})">Voir</button></td>
+    </tr>`;
+  }).join('');
+  renderPagination('crm',total,crmPage,n=>{crmPage=n;renderCRM();});
+}
+function openCommClient(personneId){
+  if(!personneId)return;
+  const idx=allPersonnes.findIndex(p=>p.id===personneId);
+  if(idx>=0)openCRMDetail(idx);
+}
+function medit(id,val,ph){
+  return `<input id="crme-${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph||''}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`;
+}
+function msel(id,val,options){
+  return `<select id="crme-${id}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;appearance:none;box-sizing:border-box">${options.map(o=>`<option value="${o.v}" ${val===o.v?'selected':''}>${o.l}</option>`).join('')}</select>`;
+}
+function mrow(label,html){
+  return `<div class="modal-row" style="align-items:flex-start;gap:12px"><span class="modal-key" style="padding-top:10px;min-width:120px">${label}</span><span class="modal-val" style="flex:1">${html}</span></div>`;
+}
+
+function openCRMDetail(idx){
+  const p=allPersonnes[idx];if(!p)return;
+  window._crmIdx=idx;
+  window._crmPersonneId=p.id;
+  const pContrats=allContrats.filter(c=>c.personne_id===p.id).sort((a,b)=>new Date(b.date_debut||b.created_at)-new Date(a.date_debut||a.created_at));
+  const commsP=allComm.filter(c=>c.intermediaire_id===p.id);
+  const totalComm=commsP.reduce((s,c)=>s+parseFloat(c.montant||0),0);
+  document.getElementById('mcrm-title').textContent=[p.prenom,p.nom].filter(Boolean).join(' ')||'—';
+  const firstContrat=pContrats[0]||{};
+  const ad=adresseMap[firstContrat.adresse_id]||{};
+  window._crmAdresseId=firstContrat.adresse_id||null;
+  window._crmContratId=firstContrat.id||null;
+  const ibanDisplay=(firstContrat.iban||'').replace(/(.{4})/g,'$1 ').trim();
+
+  const contratRows=pContrats.map(c=>{
+    const cad=adresseMap[c.adresse_id]||{};
+    const adStr=[cad.rue,cad.code_postal,cad.ville].filter(Boolean).join(', ')||'—';
+    const date=c.date_debut?new Date(c.date_debut).toLocaleDateString('fr-FR'):(c.created_at?new Date(c.created_at).toLocaleDateString('fr-FR'):'—');
+    const iban=c.iban?'•••• '+c.iban.slice(-4):'—';
+    const contratIdx=allContrats.findIndex(x=>x.id===c.id);
+    return `<div class="contrat-row" style="cursor:pointer;transition:border-color 0.2s;border:1px solid transparent" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'transparent\'" onclick="closeModal(\'modal-crm\');openContrat(${contratIdx})">
+      <div class="contrat-row-head">
+        <span style="font-weight:600;font-size:13px">${fmtId(c.id_service)} ${c.fournisseur||'—'} — ${c.id_fournisseur||'—'}</span>
+        <span class="badge badge-${c.contrat_status}">${c.contrat_status}</span>
+      </div>
+      <div class="contrat-row-sub">📍 ${adStr}</div>
+      <div class="contrat-row-sub" style="margin-top:2px">PDL: ${cad.pdl||'—'} · PCE: ${cad.pce||'—'} · ${date} · IBAN: <span style="font-family:monospace">${iban}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('mcrm-body').innerHTML=`
+    <div class="modal-section">👤 Identité</div>
+    ${mrow('Civilité',msel('civilite',p.civilite||'',[{v:'M.',l:'M.'},{v:'Mme',l:'Mme'},{v:'M. & Mme',l:'M. & Mme'},{v:'Société',l:'Société'},{v:'',l:'—'}]))}
+    ${mrow('Prénom',medit('prenom',p.prenom,'JEAN'))}
+    ${mrow('Nom',medit('nom',p.nom,'DUPONT'))}
+    ${mrow('Date naissance',`<input id="crme-date_naissance" type="text" value="${p.date_naissance?p.date_naissance.split('-').reverse().join('/'):''}" placeholder="JJ/MM/AAAA" maxlength="10" oninput="let v=this.value.replace(/[^0-9]/g,'');if(v.length>=3&&v.length<5)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>=5)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4,8);this.value=v;" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('SIRET',medit('siret',p.siret,'14 chiffres'))}
+    ${mrow('Colocataire',`<div style="display:flex;gap:8px">${medit('coloc_prenom',p.colocataire_prenom,'Prénom')}${medit('coloc_nom',p.colocataire_nom,'Nom')}</div>`)}
+    <div class="modal-section">📞 Contact</div>
+    ${mrow('Email 1 *',`<input id="crme-email" type="email" value="${(p.email||'').replace(/"/g,'&quot;')}" placeholder="email@exemple.com" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="const re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;this.style.borderColor=this.value&&!re.test(this.value)?'#ef4444':'var(--border)'">`)}
+    ${mrow('Email 2',`<input id="crme-email2" type="email" value="${(p.email_reel||'').replace(/"/g,'&quot;')}" placeholder="email2@exemple.com" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="const re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;this.style.borderColor=this.value&&!re.test(this.value)?'#ef4444':'var(--border)'">`)}
+    ${mrow('Téléphone 1',`<input id="crme-telephone" value="${(p.telephone||'').replace(/"/g,'&quot;')}" placeholder="0612345678" oninput="this.value=this.value.replace(/\D/g,'')" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('Téléphone 2',`<input id="crme-telephone2" value="${(p.whatsapp||'').replace(/"/g,'&quot;')}" placeholder="0612345678" oninput="this.value=this.value.replace(/\D/g,'')" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('WeChat/WA/IG 1',medit('wechat',p.wechat,'ID ou @pseudo'))}
+    ${mrow('WeChat/WA/IG 2',medit('wechat2',p.wechat2,'ID ou @pseudo'))}
+    <div class="modal-section">🏠 Adresse (contrat principal)</div>
+    ${mrow('Rue',`<input id="crme-rue" value="${(ad.rue||'').replace(/"/g,'&quot;')}" placeholder="12 RUE DE LA PAIX" oninput="this.value=this.value.toUpperCase()" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('Complément',`<input id="crme-complement" value="${(ad.complement||'').replace(/"/g,'&quot;')}" placeholder="APT 3B..." oninput="this.value=this.value.toUpperCase()" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('Code postal',`<input id="crme-code_postal" value="${(ad.code_postal||'').replace(/"/g,'&quot;')}" placeholder="75001" maxlength="5" oninput="this.value=this.value.replace(/\D/g,'')" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('Ville',`<input id="crme-ville" value="${(ad.ville||'').replace(/"/g,'&quot;')}" placeholder="PARIS" oninput="this.value=this.value.toUpperCase()" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    ${mrow('PDL',medit('pdl',ad.pdl,'14 chiffres'))}
+    ${mrow('PCE',medit('pce',ad.pce,'14 chiffres'))}
+    ${mrow('Puissance',msel('puissance',ad.puissance||'',[{v:'',l:'—'},{v:'3',l:'3 kVA'},{v:'6',l:'6 kVA'},{v:'9',l:'9 kVA'},{v:'12',l:'12 kVA'},{v:'15',l:'15 kVA'},{v:'18',l:'18 kVA'},{v:'24',l:'24 kVA'}]))}
+    ${mrow('Logement',msel('logement',ad.type_logement||'',[{v:'',l:'—'},{v:'appartement',l:'Appartement'},{v:'maison',l:'Maison'}]))}
+    <div class="modal-section">💳 Finance</div>
+    ${mrow('IBAN',`<input id="crme-iban" value="${ibanDisplay}" placeholder="FR76 3000 6000 0112 3456 7890 189" oninput="let v=this.value.replace(/\s/g,'').toUpperCase();this.value=v.match(/.{1,4}/g)?.join(' ')||v" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;font-family:monospace" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`)}
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button onclick="deleteCRMClient()" style="padding:11px 16px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#ef4444;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;white-space:nowrap">🗑 Supprimer</button>
+      <button onclick="saveCRMEdits()" style="flex:1;padding:11px;background:var(--accent);border:none;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:#0a0c10">💾 Enregistrer</button>
+    </div>
+    <div class="modal-section" style="margin-top:20px">📄 Contrats (${pContrats.length})</div>
+    ${contratRows||'<div style="color:var(--muted);font-size:13px;padding:8px 0">Aucun contrat</div>'}
+    ${p.est_intermediaire?`
+    <div class="modal-section">💶 Commissions</div>
+    ${mr('Total',`€${totalComm.toLocaleString('fr-FR',{maximumFractionDigits:0})} HT`)}
+    ${mr('En attente',`€${commsP.filter(c=>c.statut!=='paye').reduce((s,c)=>s+parseFloat(c.montant||0),0).toLocaleString('fr-FR',{maximumFractionDigits:0})} HT`)}
+    `:''}`;
+  openModal('modal-crm');
+  document.getElementById('mcrm-note').value=p.note||'';
+}
+
+async function saveCRMEdits(){
+  const id=window._crmPersonneId; if(!id)return;
+  const adId=window._crmAdresseId;
+  const contratId=window._crmContratId;
+  const idx=window._crmIdx;
+  const p=allPersonnes[idx]||{};
+  const g=fid=>{const el=document.getElementById('crme-'+fid);return el?el.value.trim()||null:null;};
+  const note=document.getElementById('mcrm-note')?.value||null;
+
+  const pFields={civilite:g('civilite'),prenom:g('prenom'),nom:g('nom'),
+    date_naissance:(()=>{const v=g('date_naissance');if(!v)return null;const p=v.split('/');return p.length===3&&p[2].length===4?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:null;})(),siret:g('siret'),
+    colocataire_prenom:g('coloc_prenom'),colocataire_nom:g('coloc_nom'),
+    email:g('email'),email_reel:g('email2'),
+    telephone:g('telephone'),whatsapp:g('telephone2'),
+    wechat:g('wechat'),wechat2:g('wechat2'),note};
+  const pData={};
+  const histRows=[];
+  Object.entries(pFields).forEach(([k,v])=>{
+    const old=p[k]||null; const nv=v||null;
+    if(String(old||'')!==String(nv||'')){
+      pData[k]=nv;
+      histRows.push({table_name:'personnes',record_id:id,champ:k,ancienne_valeur:old,nouvelle_valeur:nv,action_type:'UPDATE'});
+    }
+  });
+
+  const ad=adresseMap[adId]||{};
+  const aFields={rue:g('rue'),complement:g('complement'),code_postal:g('code_postal'),
+    ville:g('ville'),pdl:g('pdl'),pce:g('pce'),puissance:g('puissance'),type_logement:g('logement')};
+  const aData={};
+  Object.entries(aFields).forEach(([k,v])=>{
+    const old=ad[k]||null; const nv=v||null;
+    if(String(old||'')!==String(nv||'')) aData[k]=nv;
+  });
+
+  const ibanRaw=document.getElementById('crme-iban')?.value?.replace(/\s/g,'')||null;
+  const oldIban=allContrats.find(c=>c.id===contratId)?.iban||null;
+  const ibanChanged=ibanRaw!==oldIban;
+
+  try{
+    if(Object.keys(pData).length>0){
+      const rP=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify(pData)});
+      if(!rP.ok){const e=await rP.json();throw new Error(JSON.stringify(e));}
+      Object.assign(allPersonnes[idx],pData); personneMap[id]=allPersonnes[idx];
+    }
+    if(adId && Object.keys(aData).length>0){
+      const rA=await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=eq.${adId}`,{method:'PATCH',headers:H,body:JSON.stringify(aData)});
+      if(!rA.ok){const e=await rA.json();throw new Error(JSON.stringify(e));}
+      Object.assign(adresseMap[adId],aData);
+    }
+    if(contratId && ibanChanged){
+      await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H,body:JSON.stringify({iban:ibanRaw})});
+      const ci=allContrats.findIndex(c=>c.id===contratId);
+      if(ci>=0) allContrats[ci].iban=ibanRaw;
+    }
+    if(histRows.length>0){
+      await fetch(`${SUPABASE_URL}/rest/v1/historique`,{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(histRows)});
+    }
+    showToast('Enregistré ✓','success');
+    filterCRM();
+  }catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function deleteCRMClient(){
+  const id=window._crmPersonneId; if(!id)return;
+  const p=allPersonnes[window._crmIdx]||{};
+  const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'ce client';
+  if(!window.confirm(`Supprimer définitivement ${name} et tous ses contrats ?`)) return;
+  try{
+    const ids=allContrats.filter(c=>c.personne_id===id).map(c=>c.id);
+    if(ids.length>0){
+      await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=in.(${ids.join(',')})`,{method:'DELETE',headers:H});
+      allContrats=allContrats.filter(c=>c.personne_id!==id);
+    }
+    await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'DELETE',headers:H});
+    allPersonnes=allPersonnes.filter(x=>x.id!==id);
+    delete personneMap[id];
+    closeModal('modal-crm');
+    showToast('Client supprimé','success');
+    filterCRM();
+  }catch(e){showToast('Erreur suppression: '+e.message,'error');}
+}
+
+// ===== UTILS =====
+async function saveCRMNote(){
+  const id=window._crmPersonneId;if(!id)return;
+  const note=document.getElementById('mcrm-note').value;
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify({note})});
+  if(r.ok){
+    const idx=allPersonnes.findIndex(p=>p.id===id);
+    if(idx>=0) allPersonnes[idx].note=note;
+    showToast('Note enregistrée ✓','success');
+  } else showToast('Erreur sauvegarde note','error');
+}
+async function openHistorique(){
+  const id=window._crmPersonneId;if(!id)return;
+  const p=allPersonnes.find(x=>x.id===id);
+  const name=p?([p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—'):'—';
+  document.getElementById('modal-historique-name').textContent=name;
+  document.getElementById('modal-historique-body').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">Chargement...</div>';
+  openModal('modal-historique');
+
+  const contratIds=allContrats.filter(c=>c.personne_id===id).map(c=>c.id);
+  let rows=[];
+
+  // Historique personnes
+  const r1=await fetch(`${SUPABASE_URL}/rest/v1/historique?record_id=eq.${id}&table_name=eq.personnes&order=created_at.desc&limit=100`,{headers:H});
+  const d1=await r1.json();
+  if(Array.isArray(d1)) rows=rows.concat(d1);
+
+  // Historique contrats
+  if(contratIds.length>0){
+    const r2=await fetch(`${SUPABASE_URL}/rest/v1/historique?record_id=in.(${contratIds.join(',')})&table_name=eq.contrats&order=created_at.desc&limit=200`,{headers:H});
+    const d2=await r2.json();
+    if(Array.isArray(d2)) rows=rows.concat(d2);
+  }
+
+  rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+  if(rows.length===0){
+    document.getElementById('modal-historique-body').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">Aucune modification enregistrée.</div>';
+    return;
+  }
+
+  const LABELS={
+    contrat_status:'Statut contrat',email:'Email',prenom:'Prénom',nom:'Nom',
+    telephone:'Téléphone',wechat:'WeChat',login:'Login',email_reel:'Email réel',
+    note:'Note',password_hash:'Mot de passe',
+    fournisseur:'Fournisseur',id_fournisseur:'ID Fournisseur',id_service:'BS',
+    formule:'Formule',option_tarifaire:'Option tarifaire',iban:'IBAN',
+    elec_car:'CAR',energie_type:'Énergie',source:'Source',date_debut:'Date début'
+  };
+
+  const html=rows.map(row=>{
+    const date=new Date(row.created_at).toLocaleString('fr-FR');
+    const table=row.table_name==='personnes'?'👤 Personne':'📄 Contrat';
+    const champ=row.champ||'';
+    const label=LABELS[champ]||champ;
+    const oldVal=row.ancienne_valeur===null||row.ancienne_valeur===undefined?'—':String(row.ancienne_valeur);
+    const newVal=row.nouvelle_valeur===null||row.nouvelle_valeur===undefined?'—':String(row.nouvelle_valeur);
+    const action=row.action_type||'UPDATE';
+
+    let diffHtml;
+    if(false){
+      // password visible pour admin
+    } else {
+      diffHtml=`<span style="font-size:12px">• <b>${label}</b>: <span style="color:#ef4444">${oldVal}</span> → <span style="color:#22c55e">${newVal}</span></span>`;
+    }
+
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div>${diffHtml}</div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:11px;color:var(--muted)">${table} · ${action}</div>
+        <div style="font-size:11px;color:var(--muted)">${date}</div>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  document.getElementById('modal-historique-body').innerHTML=html||'<div style="color:var(--muted);text-align:center;padding:20px">Aucune modification.</div>';
+}
+
+function fmtId(id){ return id ? id.replace(/^F/,'#') : '—'; }
+function mr(k,v){return `<div class="modal-row"><span class="modal-key">${k}</span><span class="modal-val">${v||'—'}</span></div>`;}
+function renderPagination(prefix,total,current,onPageChange){
+  const totalPages=Math.ceil(total/PAGE);
+  const start=(current-1)*PAGE;
+  document.getElementById(`${prefix}-page-info`).textContent=`${start+1}–${Math.min(start+PAGE,total)} sur ${total.toLocaleString()}`;
+  const el=document.getElementById(`${prefix}-page-btns`);el.innerHTML='';
+  const prev=document.createElement('button');prev.className='page-btn';prev.textContent='←';prev.disabled=current===1;prev.onclick=()=>onPageChange(current-1);el.appendChild(prev);
+  const startP=Math.max(1,current-2),endP=Math.min(totalPages,startP+4);
+  for(let i=startP;i<=endP;i++){const b=document.createElement('button');b.className=`page-btn${i===current?' active':''}`;b.textContent=i;b.onclick=((n)=>()=>onPageChange(n))(i);el.appendChild(b);}
+  const next=document.createElement('button');next.className='page-btn';next.textContent='→';next.disabled=current===totalPages;next.onclick=()=>onPageChange(current+1);el.appendChild(next);
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+let toastTimer;
+function showToast(msg,type='success'){
+  const el=document.getElementById('toast');const dot=document.getElementById('toast-dot');
+  const colors={success:'#22c55e',error:'#ef4444',info:'#3b82f6',warning:'#f59e0b'};
+  dot.style.background=colors[type]||colors.success;
+  document.getElementById('toast-msg').textContent=msg;
+  el.style.display='flex';setTimeout(()=>el.classList.add('show'),10);
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.style.display='none',300);},3000);
+}
+function updateBadges(){
+  document.getElementById('badge-contrats').textContent=allContrats.filter(c=>c.contrat_status==='en_attente').length||'0';
+  document.getElementById('badge-commissions').textContent=allComm.filter(c=>c.statut==='non_paye').length||'0';
+}
+function showPage(name){
+  ['dashboard','contrats','commissions','intermediaires','crm','inscription','agents','fournisseurs','health','schema'].forEach(p=>{
+    const el=document.getElementById(`page-${p}`);
+    if(el)el.style.display=p===name?'block':'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const navEl=document.querySelector(`.nav-item[onclick*="${name}"]`);
+  if(navEl)navEl.classList.add('active');
+  if(name==='dashboard')initDashboard();
+  if(name==='contrats'&&filtContrats.length===0){
+    filtContrats=[...allContrats];
+    filtContrats.sort((a,b)=>{
+      const pa=statusPriority(a.contrat_status),pb=statusPriority(b.contrat_status);
+      if(pa!==pb)return pa-pb;
+      const da=new Date(a.date_debut||a.created_at),db=new Date(b.date_debut||b.created_at);
+      return db-da;
+    });
+    renderContrats();
+  }
+  if(name==='commissions')initCommissions();
+  if(name==='intermediaires')renderIntermediaires();
+  if(name==='crm')initCRM();
+  if(name==='agents')initAgents();
+  if(name==='fournisseurs')initFournisseurs();
+  if(name==='health')runHealthCheck();
+  if(name==='schema')initSchema();
+}
+function downloadCSV(csv,filename){
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+}
+// ===== AGENTS =====
+async function initAgents(){
+  const wrap=document.getElementById('agents-list-wrap');
+  wrap.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;"><span class="spinner"></span> Chargement…</div>';
+  try{
+    const ar=await fetch(`${SUPABASE_URL}/rest/v1/personnes?select=id,prenom,nom,email,login,est_agent,agent_commission_par_contrat,agent_code&est_agent=eq.true&order=nom.asc`,{headers:H});
+    if(!ar.ok) throw new Error(await ar.text());
+    const agents=await ar.json();
+    if(!agents.length){
+      wrap.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;">Aucun agent.</div>';
+      return;
+    }
+    wrap.innerHTML=agents.map(a=>`
+      <div class="agent-row" id="arow-${a.id}" style="flex-wrap:wrap;">
+        <div class="agent-row-name">${esc(a.prenom||'')} ${esc(a.nom||'')}</div>
+        <div class="agent-row-email">${esc(a.email||'')}</div>
+        <div class="agent-row-login">🔑 ${esc(a.login||a.email||'')}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:10px;color:var(--muted);white-space:nowrap;">Code</label>
+          <input type="text" class="agent-pwd-input" id="acode-${a.id}" placeholder="A001…" value="${esc(a.agent_code||'')}" style="width:80px;text-align:center;font-weight:700;color:var(--accent);">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:10px;color:var(--muted);white-space:nowrap;">MDP</label>
+          <input type="text" class="agent-pwd-input" id="apwd-${a.id}" placeholder="Nouveau mdp…" value="" style="width:120px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:10px;color:var(--muted);white-space:nowrap;">€/contrat</label>
+          <input type="number" class="agent-pwd-input" id="acomm-${a.id}" value="${a.agent_commission_par_contrat||5}" style="width:70px;text-align:center;" min="0" step="0.5">
+        </div>
+        <button class="btn btn-sm" onclick="saveAgent('${a.id}')" style="background:rgba(200,169,110,0.15);color:var(--accent);border:1px solid rgba(200,169,110,0.2);">💾 Sauver</button>
+        <button class="btn btn-sm" onclick="removeAgent('${a.id}','${esc(a.prenom||'')} ${esc(a.nom||'')}')">❌ Retirer</button>
+      </div>`).join('');
+  }catch(e){
+    wrap.innerHTML=`<div style="padding:20px;color:#f87171;font-size:13px;">Erreur : ${esc(e.message)}</div>`;
+  }
+}
+
+async function searchPersonneForAgent(){
+  const q=document.getElementById('agent-search-email').value.trim();
+  const res=document.getElementById('agent-search-result');
+  if(!q){ res.innerHTML=''; return; }
+  res.innerHTML='<div style="color:var(--muted);font-size:13px;"><span class="spinner"></span> Recherche…</div>';
+  try{
+    const resp=await fetch(`${SUPABASE_URL}/rest/v1/personnes?select=id,prenom,nom,email,login,est_agent&email=ilike.%25${encodeURIComponent(q)}%25&limit=10`,{headers:H});
+    if(!resp.ok) throw new Error(await resp.text());
+    const rows=await resp.json();
+    if(!rows.length){
+      res.innerHTML='<div style="color:var(--muted);font-size:13px;margin-top:8px;">Aucun résultat.</div>';
+      return;
+    }
+    res.innerHTML=rows.map(p=>{
+      const isAgent=p.est_agent===true;
+      return `<div class="agent-result-card">
+        <div class="agent-result-name">${esc(p.prenom||'')} ${esc(p.nom||'')} ${isAgent?'<span style="color:var(--accent);font-size:11px;">● Agent actif</span>':''}</div>
+        <div class="agent-result-meta">${esc(p.email||'')} · login: ${esc(p.login||p.email||'')} · ${isAgent?'Agent':'Non-agent'}</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Mot de passe</label>
+            <input type="text" id="newpwd-${p.id}" class="agent-pwd-input" value="Fuwu2024" style="width:200px;">
+          </div>
+          <div>
+            <label style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">€ / contrat</label>
+            <input type="number" id="newcomm-${p.id}" class="agent-pwd-input" value="5" style="width:80px;text-align:center;" min="0" step="0.5">
+          </div>
+          ${isAgent
+            ? `<button class="btn btn-sm" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.2);margin-top:14px;" onclick="removeAgent('${p.id}','${esc(p.prenom||'')} ${esc(p.nom||'')}')">❌ Retirer le rôle agent</button>`
+            : `<button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="promoteToAgent('${p.id}','${esc(p.email||'')}')">🛡 Promouvoir en agent</button>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    res.innerHTML=`<div style="color:#f87171;font-size:13px;">Erreur : ${esc(e.message)}</div>`;
+  }
+}
+
+async function promoteToAgent(pid, email){
+  const pwd=document.getElementById('newpwd-'+pid)?.value?.trim()||'Fuwu2024';
+  const comm=parseFloat(document.getElementById('newcomm-'+pid)?.value)||5;
+  try{
+    // Check if already has auth account
+    const chk=await fetch(`${SUPABASE_URL}/rest/v1/personnes?select=auth_user_id&id=eq.${pid}`,{headers:H});
+    const chkData=await chk.json();
+    let authId=chkData[0]?.auth_user_id;
+    if(!authId){
+      // Create auth account
+      const rpc=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_auth_user`,{method:'POST',headers:H,body:JSON.stringify({p_email:email,p_password:pwd,p_role:'agent_interne',p_prenom:'',p_nom:''})});
+      if(!rpc.ok) throw new Error(await rpc.text());
+      authId=await rpc.json();
+    }
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${pid}`,{
+      method:'PATCH', headers:H,
+      body:JSON.stringify({est_agent:true, login:email, role:'agent_interne', auth_user_id:authId, agent_commission_par_contrat:comm})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast('✅ Agent créé (MDP: '+pwd+')');
+    document.getElementById('agent-search-result').innerHTML='';
+    document.getElementById('agent-search-email').value='';
+    initAgents();
+  }catch(e){ showToast('Erreur : '+e.message,'error'); }
+}
+
+async function saveAgent(pid){
+  const pwd=document.getElementById('apwd-'+pid)?.value?.trim();
+  const comm=parseFloat(document.getElementById('acomm-'+pid)?.value);
+  const code=document.getElementById('acode-'+pid)?.value?.trim()||null;
+  try{
+    // Check code uniqueness
+    if(code){
+      const chk=await fetch(`${SUPABASE_URL}/rest/v1/personnes?select=id&agent_code=eq.${encodeURIComponent(code)}&id=neq.${pid}`,{headers:H});
+      if(chk.ok){
+        const dups=await chk.json();
+        if(dups.length){ showToast('Ce code agent est déjà utilisé !','error'); return; }
+      }
+    }
+    const body={agent_code:code};
+    if(!isNaN(comm)) body.agent_commission_par_contrat=comm;
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${pid}`,{
+      method:'PATCH', headers:H, body:JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error(await r.text());
+    // Change password via auth function if provided
+    if(pwd){
+      const rpc=await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_change_password`,{method:'POST',headers:H,body:JSON.stringify({p_personne_id:pid,p_new_password:pwd})});
+      if(!rpc.ok) console.warn('Password change failed:',await rpc.text());
+    }
+    showToast('✅ Agent mis à jour'+(pwd?' + MDP':''));
+  }catch(e){ showToast('Erreur : '+e.message,'error'); }
+}
+
+async function removeAgent(pid, name){
+  if(!confirm(`Retirer le rôle agent de ${name} ?`)) return;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${pid}`,{
+      method:'PATCH', headers:H,
+      body:JSON.stringify({est_agent:false})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast('✅ Rôle agent retiré');
+    initAgents();
+  }catch(e){ showToast('Erreur : '+e.message,'error'); }
+}
+
+function showToast(msg, type='success'){
+  let t=document.getElementById('admin-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='admin-toast';
+    t.style.cssText='position:fixed;bottom:28px;right:28px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;z-index:9999;transition:opacity .3s;box-shadow:0 4px 20px rgba(0,0,0,.4);';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.color=type==='error'?'#f87171':'var(--accent)';
+  t.style.opacity='1';
+  clearTimeout(t._to);
+  t._to=setTimeout(()=>t.style.opacity='0',3000);
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===== FUSION =====
+let fusionSelection = [];
+function onCRMSelect(){
+  const checked = [...document.querySelectorAll('.crm-select:checked')];
+  fusionSelection = checked.map(el=>({id:el.dataset.id, idx:parseInt(el.dataset.idx)}));
+  const btn = document.getElementById('btn-fusionner');
+  const count = document.getElementById('fusion-count');
+  if(fusionSelection.length >= 2){
+    btn.style.display='inline-flex';
+    count.textContent=fusionSelection.length;
+  } else {
+    btn.style.display='none';
+  }
+}
+function openFusion(){
+  const list = document.getElementById('fusion-list');
+  list.innerHTML = fusionSelection.map((s,i)=>{
+    const p = allPersonnes[s.idx]||{};
+    const name = [p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+    const nb = (window._contratsByPerson||{})[p.id]?.length||0;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s" id="fusion-card-${i}" onclick="selectFusionMain(${i})">
+      <input type="radio" name="fusion-main" value="${i}" style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${name}</div>
+        <div style="font-size:12px;color:var(--muted)">${p.email||'—'} · ${p.telephone||'—'}</div>
+        <div style="font-size:12px;color:var(--accent);margin-top:2px">${nb} contrat${nb>1?'s':''}</div>
+      </div>
+      <span style="font-size:11px;color:var(--muted)">← Principal</span>
+    </div>`;
+  }).join('');
+  const maxIdx = fusionSelection.reduce((mi,s,i)=>{
+    const nb=(window._contratsByPerson||{})[s.id]?.length||0;
+    const maxNb=(window._contratsByPerson||{})[fusionSelection[mi].id]?.length||0;
+    return nb>maxNb?i:mi;
+  },0);
+  selectFusionMain(maxIdx);
+  openModal('modal-fusion');
+}
+function selectFusionMain(i){
+  document.querySelectorAll('[id^="fusion-card-"]').forEach((el,j)=>{
+    el.style.borderColor = j===i?'var(--accent)':'var(--border)';
+  });
+  const radio = document.querySelector(`input[name="fusion-main"][value="${i}"]`);
+  if(radio) radio.checked=true;
+}
+async function confirmFusion(){
+  const radio = document.querySelector('input[name="fusion-main"]:checked');
+  if(!radio){showToast('Choisissez le client principal','error');return;}
+  const mainIdx = parseInt(radio.value);
+  const main = fusionSelection[mainIdx];
+  const others = fusionSelection.filter((_,i)=>i!==mainIdx);
+  const mainName = [allPersonnes[main.idx]?.prenom,allPersonnes[main.idx]?.nom].filter(Boolean).join(' ')||'—';
+  if(!confirm(`Fusionner ${others.length} client(s) vers ${mainName} ?\n\nTous leurs contrats seront transférés. Irréversible.`)) return;
+  try{
+    for(const other of others){
+      const r1 = await fetch(`${SUPABASE_URL}/rest/v1/contrats?personne_id=eq.${other.id}`,{method:'PATCH',headers:H,body:JSON.stringify({personne_id:main.id})});
+      if(!r1.ok){const e=await r1.json();throw new Error(JSON.stringify(e));}
+      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${other.id}`,{method:'DELETE',headers:H});
+      allContrats.forEach(c=>{if(c.personne_id===other.id)c.personne_id=main.id;});
+      allPersonnes = allPersonnes.filter(p=>p.id!==other.id);
+      delete personneMap[other.id];
+    }
+    window._contratsByPerson={};
+    allContrats.forEach(c=>{
+      if(!c.personne_id)return;
+      if(!window._contratsByPerson[c.personne_id])window._contratsByPerson[c.personne_id]=[];
+      window._contratsByPerson[c.personne_id].push(c);
+    });
+    closeModal('modal-fusion');
+    fusionSelection=[];
+    document.getElementById('btn-fusionner').style.display='none';
+    showToast(`Fusion réussie → ${mainName}`,'success');
+    filterCRM();
+  }catch(e){showToast('Erreur: '+e.message,'error');}
+}
+// ===== HEALTH CHECK =====
+async function runHealthCheck(){
+  const body=document.getElementById('health-body');
+  const sub=document.getElementById('health-sub');
+  const summary=document.getElementById('health-summary');
+  const info=document.getElementById('health-info');
+  body.innerHTML='<tr><td colspan="4" style="padding:20px;color:var(--muted);font-size:13px;"><span class="spinner"></span> Diagnostic en cours…</td></tr>';
+  sub.textContent='Diagnostic en cours…';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/system_health_check`,{method:'POST',headers:H});
+    if(!r.ok) throw new Error(await r.text());
+    const checks=await r.json();
+    let ok=0,warn=0,err=0;
+    body.innerHTML=checks.map(c=>{
+      if(c.status==='ok')ok++;
+      else if(c.status==='warning')warn++;
+      else err++;
+      const icon=c.status==='ok'?'✅':c.status==='warning'?'⚠️':'❌';
+      const color=c.status==='ok'?'var(--muted)':c.status==='warning'?'#f59e0b':'#ef4444';
+      return `<tr>
+        <td style="text-align:center;font-size:16px;">${icon}</td>
+        <td style="font-weight:600;font-size:13px;">${esc(c.check_name)}</td>
+        <td style="font-size:12px;color:${color}">${esc(c.detail)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:center;color:var(--muted)">${c.value!=null?c.value:''}</td>
+      </tr>`;
+    }).join('');
+    const total=ok+warn+err;
+    sub.textContent=`${ok}/${total} OK` + (warn?` · ${warn} avertissement(s)`:'') + (err?` · ${err} erreur(s)`:'');
+    summary.innerHTML=`
+      <div style="flex:1;min-width:120px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#22c55e;">${ok}</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">OK</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#f59e0b;">${warn}</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Avertissements</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#ef4444;">${err}</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Erreurs</div>
+      </div>`;
+    info.innerHTML=`
+      Dernière vérification : ${new Date().toLocaleString('fr-FR')}<br>
+      Tables principales : personnes, contrats, adresses, commissions, historique<br>
+      Tables fournisseur : fournisseurs, fournisseur_tarifs, fournisseur_commissions, fournisseur_factures<br>
+      Auth users : vérifiés via auth_user_id<br>
+      RLS : vérification automatique sur toutes les tables`;
+  }catch(e){
+    body.innerHTML=`<tr><td colspan="4" style="padding:20px;color:#ef4444;font-size:13px;">Erreur : ${esc(e.message)}</td></tr>`;
+    sub.textContent='Erreur de diagnostic';
+  }
+}
+
+// ===== FOURNISSEURS =====
+let allFournisseurs=[];
+async function initFournisseurs(){
+  const wrap=document.getElementById('fournisseurs-list');
+  wrap.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;"><span class="spinner"></span> Chargement…</div>';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/fournisseurs?select=*&order=nom.asc`,{headers:H});
+    if(!r.ok) throw new Error(await r.text());
+    allFournisseurs=await r.json();
+    if(!allFournisseurs.length){
+      wrap.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;">Aucun fournisseur. Cliquez sur "+ Ajouter" pour commencer.</div>';
+      return;
+    }
+    // Count contrats per fournisseur
+    const fNames=allFournisseurs.map(f=>f.nom);
+    wrap.innerHTML=`<table class="data-table" style="width:100%">
+      <thead><tr><th>Nom</th><th>Contact</th><th>Email</th><th>Tarifs</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${allFournisseurs.map(f=>`<tr style="cursor:pointer" onclick="openFournisseurDetail('${f.id}')">
+        <td style="font-weight:600;">${esc(f.nom)}</td>
+        <td style="font-size:12px;color:var(--muted)">${esc(f.contact_nom||'—')}</td>
+        <td style="font-size:12px;">${esc(f.contact_email||'—')}</td>
+        <td style="font-size:12px;color:var(--accent)">Voir →</td>
+        <td><span style="font-size:11px;padding:3px 8px;border-radius:6px;${f.actif?'background:rgba(34,197,94,0.1);color:#22c55e':'background:rgba(239,68,68,0.1);color:#ef4444'}">${f.actif?'Actif':'Inactif'}</span></td>
+        <td><button class="btn btn-sm" onclick="event.stopPropagation();editFournisseur('${f.id}')" style="font-size:11px;">✏️</button></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }catch(e){
+    wrap.innerHTML=`<div style="padding:20px;color:#ef4444;font-size:13px;">Erreur : ${esc(e.message)}</div>`;
+  }
+}
+
+function openFournisseurForm(f){
+  const isEdit=!!f;
+  const html=`
+    <div class="modal-title">${isEdit?'Modifier':'Ajouter'} un fournisseur</div>
+    <div class="form-group"><label>Nom *</label><input type="text" class="form-input" id="f-nom" value="${esc(f?.nom||'')}" placeholder="Ex: Engie, EDF…"></div>
+    <div style="display:flex;gap:12px;">
+      <div class="form-group" style="flex:1"><label>Contact</label><input type="text" class="form-input" id="f-contact" value="${esc(f?.contact_nom||'')}" placeholder="Nom du contact"></div>
+      <div class="form-group" style="flex:1"><label>Email</label><input type="email" class="form-input" id="f-email" value="${esc(f?.contact_email||'')}"></div>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <div class="form-group" style="flex:1"><label>Téléphone</label><input type="tel" class="form-input" id="f-tel" value="${esc(f?.contact_telephone||'')}"></div>
+      <div class="form-group" style="flex:1"><label>SIRET</label><input type="text" class="form-input" id="f-siret" value="${esc(f?.siret||'')}"></div>
+    </div>
+    <div class="form-group"><label>Adresse</label><input type="text" class="form-input" id="f-adresse" value="${esc(f?.adresse||'')}"></div>
+    <div class="form-group"><label>IBAN</label><input type="text" class="form-input" id="f-iban" value="${esc(f?.iban||'')}"></div>
+    <div class="form-group"><label>Note</label><textarea class="form-input" id="f-note" rows="2">${esc(f?.note||'')}</textarea></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="saveFournisseur(${isEdit?"'"+f.id+"'":"null"})">${isEdit?'💾 Sauver':'✅ Créer'}</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-fournisseur')">Annuler</button>
+      ${isEdit?`<button class="btn btn-sm" style="margin-left:auto;color:#ef4444;" onclick="deleteFournisseur('${f.id}')">🗑 Supprimer</button>`:''}
+    </div>`;
+  document.getElementById('mf-body').innerHTML=html;
+  document.getElementById('modal-fournisseur').style.display='flex';
+}
+
+function editFournisseur(id){
+  const f=allFournisseurs.find(x=>x.id===id);
+  if(f)openFournisseurForm(f);
+}
+
+async function saveFournisseur(id){
+  const body={
+    nom:document.getElementById('f-nom').value.trim(),
+    contact_nom:document.getElementById('f-contact').value.trim()||null,
+    contact_email:document.getElementById('f-email').value.trim()||null,
+    contact_telephone:document.getElementById('f-tel').value.trim()||null,
+    siret:document.getElementById('f-siret').value.trim()||null,
+    adresse:document.getElementById('f-adresse').value.trim()||null,
+    iban:document.getElementById('f-iban').value.trim()||null,
+    note:document.getElementById('f-note').value.trim()||null,
+  };
+  if(!body.nom){showToast('Nom obligatoire','error');return;}
+  try{
+    let r;
+    if(id){
+      r=await fetch(`${SUPABASE_URL}/rest/v1/fournisseurs?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify(body)});
+    }else{
+      r=await fetch(`${SUPABASE_URL}/rest/v1/fournisseurs`,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(body)});
+    }
+    if(!r.ok) throw new Error(await r.text());
+    showToast(id?'Fournisseur mis à jour':'Fournisseur créé ✓');
+    closeModal('modal-fournisseur');
+    initFournisseurs();
+  }catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function deleteFournisseur(id){
+  if(!confirm('Supprimer ce fournisseur ?'))return;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/fournisseurs?id=eq.${id}`,{method:'DELETE',headers:H});
+    if(!r.ok) throw new Error(await r.text());
+    showToast('Fournisseur supprimé');
+    closeModal('modal-fournisseur');
+    initFournisseurs();
+  }catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function openFournisseurDetail(id){
+  const f=allFournisseurs.find(x=>x.id===id);
+  if(!f)return;
+  // Load tarifs
+  const rt=await fetch(`${SUPABASE_URL}/rest/v1/fournisseur_tarifs?fournisseur_id=eq.${id}&order=direction.asc,energie_type.asc`,{headers:H});
+  const tarifs=rt.ok?await rt.json():[];
+  // Load commissions summary
+  const rc=await fetch(`${SUPABASE_URL}/rest/v1/fournisseur_commissions?fournisseur_id=eq.${id}&select=direction,statut,montant_ht`,{headers:H});
+  const comms=rc.ok?await rc.json():[];
+  const entrant=comms.filter(c=>c.direction==='entrant');
+  const sortant=comms.filter(c=>c.direction==='sortant');
+  const sumE=entrant.reduce((s,c)=>s+Number(c.montant_ht||0),0);
+  const sumS=sortant.reduce((s,c)=>s+Number(c.montant_ht||0),0);
+
+  document.getElementById('mf-body').innerHTML=`
+    <div class="modal-title">${esc(f.nom)}</div>
+    <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:140px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:10px;padding:14px;">
+        <div style="font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;">Entrant (ils nous paient)</div>
+        <div style="font-size:20px;font-weight:700;color:#22c55e;">€${sumE.toFixed(2)} HT</div>
+        <div style="font-size:11px;color:var(--muted);">${entrant.length} commission(s)</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:14px;">
+        <div style="font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;">Sortant (on les paie)</div>
+        <div style="font-size:20px;font-weight:700;color:#ef4444;">€${sumS.toFixed(2)} HT</div>
+        <div style="font-size:11px;color:var(--muted);">${sortant.length} commission(s)</div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px;">Tarifs</div>
+    ${tarifs.length?`<table class="data-table" style="width:100%;margin-bottom:16px;">
+      <thead><tr><th>Direction</th><th>Énergie</th><th>€ HT</th><th>Début</th><th>Fin</th><th></th></tr></thead>
+      <tbody>${tarifs.map(t=>`<tr>
+        <td><span style="font-size:11px;padding:2px 6px;border-radius:4px;${t.direction==='entrant'?'background:rgba(34,197,94,0.1);color:#22c55e':'background:rgba(239,68,68,0.1);color:#ef4444'}">${t.direction}</span></td>
+        <td>${t.energie_type||'Tout'}</td>
+        <td style="font-weight:600;">${Number(t.montant_ht).toFixed(2)}</td>
+        <td style="font-size:12px;color:var(--muted)">${t.date_debut||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${t.date_fin||'∞'}</td>
+        <td><button class="btn btn-sm" style="font-size:10px;color:#ef4444;" onclick="deleteTarif('${t.id}','${id}')">✕</button></td>
+      </tr>`).join('')}</tbody>
+    </table>`:'<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Aucun tarif défini.</div>'}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px;">+ Ajouter un tarif</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Direction</label>
+          <select class="form-input" id="nt-dir" style="width:110px;padding:6px;font-size:12px;">
+            <option value="entrant">Entrant</option><option value="sortant">Sortant</option>
+          </select></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Énergie</label>
+          <select class="form-input" id="nt-nrj" style="width:90px;padding:6px;font-size:12px;">
+            <option value="">Tout</option><option value="elec">Elec</option><option value="gaz">Gaz</option><option value="dual">Dual</option>
+          </select></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">€ HT/contrat</label>
+          <input type="number" class="form-input" id="nt-montant" step="0.01" style="width:90px;padding:6px;font-size:12px;" placeholder="20"></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Début</label>
+          <input type="date" class="form-input" id="nt-debut" style="width:130px;padding:6px;font-size:12px;"></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Fin</label>
+          <input type="date" class="form-input" id="nt-fin" style="width:130px;padding:6px;font-size:12px;"></div>
+        <button class="btn btn-primary btn-sm" onclick="addTarif('${id}')">Ajouter</button>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px;">Batch — Affecter commissions</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Direction</label>
+          <select class="form-input" id="ba-dir" style="width:110px;padding:6px;font-size:12px;">
+            <option value="entrant">Entrant</option><option value="sortant">Sortant</option>
+          </select></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Du</label>
+          <input type="date" class="form-input" id="ba-debut" style="width:140px;padding:6px;font-size:12px;"></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Au</label>
+          <input type="date" class="form-input" id="ba-fin" style="width:140px;padding:6px;font-size:12px;"></div>
+        <button class="btn btn-primary btn-sm" onclick="batchAffect('${id}')">⚡ Affecter</button>
+      </div>
+      <div id="ba-result" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px;">Générer une facture</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Direction</label>
+          <select class="form-input" id="gf-dir" style="width:110px;padding:6px;font-size:12px;">
+            <option value="entrant">Entrant</option><option value="sortant">Sortant</option>
+          </select></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Période du</label>
+          <input type="date" class="form-input" id="gf-debut" style="width:140px;padding:6px;font-size:12px;"></div>
+        <div><label style="font-size:10px;color:var(--muted);display:block;">Au</label>
+          <input type="date" class="form-input" id="gf-fin" style="width:140px;padding:6px;font-size:12px;"></div>
+        <button class="btn btn-primary btn-sm" onclick="generateFacture('${id}')">📄 Générer facture</button>
+      </div>
+      <div id="gf-result" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;">
+      <button class="btn btn-sm" onclick="editFournisseur('${id}')">✏️ Modifier fiche</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-fournisseur')">Fermer</button>
+    </div>`;
+  document.getElementById('modal-fournisseur').style.display='flex';
+}
+
+async function addTarif(fournisseurId){
+  const body={
+    fournisseur_id:fournisseurId,
+    direction:document.getElementById('nt-dir').value,
+    energie_type:document.getElementById('nt-nrj').value||null,
+    montant_ht:parseFloat(document.getElementById('nt-montant').value),
+    date_debut:document.getElementById('nt-debut').value||null,
+    date_fin:document.getElementById('nt-fin').value||null
+  };
+  if(!body.montant_ht){showToast('Montant obligatoire','error');return;}
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/fournisseur_tarifs`,{method:'POST',headers:H,body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(await r.text());
+    showToast('Tarif ajouté ✓');
+    openFournisseurDetail(fournisseurId);
+  }catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function deleteTarif(tarifId,fournisseurId){
+  if(!confirm('Supprimer ce tarif ?'))return;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/fournisseur_tarifs?id=eq.${tarifId}`,{method:'DELETE',headers:H});
+    showToast('Tarif supprimé');
+    openFournisseurDetail(fournisseurId);
+  }catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function batchAffect(fournisseurId){
+  const res=document.getElementById('ba-result');
+  res.innerHTML='<span class="spinner"></span> Traitement…';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/batch_affect_commissions`,{method:'POST',headers:H,body:JSON.stringify({
+      p_fournisseur_id:fournisseurId,
+      p_direction:document.getElementById('ba-dir').value,
+      p_date_debut:document.getElementById('ba-debut').value,
+      p_date_fin:document.getElementById('ba-fin').value
+    })});
+    if(!r.ok) throw new Error(await r.text());
+    const data=await r.json();
+    const d=Array.isArray(data)?data[0]:data;
+    res.innerHTML=`<span style="color:#22c55e;">✅ ${d.affected} contrat(s) affecté(s)</span> · ${d.skipped} ignoré(s) · Total: €${Number(d.total_ht||0).toFixed(2)} HT`;
+    openFournisseurDetail(fournisseurId);
+  }catch(e){res.innerHTML=`<span style="color:#ef4444;">❌ ${esc(e.message)}</span>`;}
+}
+
+async function generateFacture(fournisseurId){
+  const res=document.getElementById('gf-result');
+  res.innerHTML='<span class="spinner"></span> Génération…';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/generate_facture`,{method:'POST',headers:H,body:JSON.stringify({
+      p_fournisseur_id:fournisseurId,
+      p_direction:document.getElementById('gf-dir').value,
+      p_periode_debut:document.getElementById('gf-debut').value,
+      p_periode_fin:document.getElementById('gf-fin').value
+    })});
+    if(!r.ok) throw new Error(await r.text());
+    const factureId=await r.json();
+    // Fetch facture details
+    const rf=await fetch(`${SUPABASE_URL}/rest/v1/fournisseur_factures?id=eq.${factureId}&select=*`,{headers:H});
+    const fdata=await rf.json();
+    const fac=fdata[0];
+    res.innerHTML=`<span style="color:#22c55e;">✅ Facture <strong>${esc(fac.numero)}</strong> générée</span> · ${fac.nb_contrats} contrat(s) · €${Number(fac.total_ht).toFixed(2)} HT / €${Number(fac.total_ttc).toFixed(2)} TTC`;
+    openFournisseurDetail(fournisseurId);
+  }catch(e){res.innerHTML=`<span style="color:#ef4444;">❌ ${esc(e.message)}</span>`;}
+}
+
+// ===== SCHEMA MANAGER =====
+const SCHEMA_TABLES = ['personnes','contrats','adresses','commissions','fournisseurs','fournisseur_tarifs','fournisseur_commissions','fournisseur_factures','historique'];
+let schemaCurrentTable = 'personnes';
+let schemaColumns = [];
+
+async function initSchema(){
+  // Render tabs
+  const tabs = document.getElementById('schema-table-tabs');
+  tabs.innerHTML = SCHEMA_TABLES.map(t =>
+    `<button class="btn btn-sm ${t===schemaCurrentTable?'btn-primary':'btn-secondary'}" onclick="schemaSelectTable('${t}')">${t}</button>`
+  ).join('');
+  await loadSchemaColumns(schemaCurrentTable);
+}
+
+function schemaSelectTable(t){
+  schemaCurrentTable = t;
+  initSchema();
+}
+
+async function loadSchemaColumns(table){
+  const wrap = document.getElementById('schema-content');
+  wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement…</div>';
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_table_columns`, {
+      method:'POST', headers:H, body:JSON.stringify({p_table: table})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    schemaColumns = await r.json();
+
+    let html = `
+      <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${esc(table)} <span style="color:var(--muted);font-weight:400;font-size:12px;">(${schemaColumns.length} champs)</span></div>
+        <button class="btn btn-sm btn-success" onclick="schemaShowAdd()">+ Ajouter un champ</button>
+      </div>
+      <div id="schema-add-form" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+          <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Nom du champ</label>
+            <input type="text" class="form-input" id="schema-new-name" placeholder="ex: mobile" style="width:180px;padding:8px 12px;font-size:13px;"></div>
+          <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Type</label>
+            <select class="form-input" id="schema-new-type" style="width:140px;padding:8px 12px;font-size:13px;">
+              <option value="text">text</option>
+              <option value="numeric">numeric</option>
+              <option value="integer">integer</option>
+              <option value="boolean">boolean</option>
+              <option value="date">date</option>
+              <option value="timestamp with time zone">timestamp</option>
+              <option value="uuid">uuid</option>
+            </select></div>
+          <button class="btn btn-sm btn-primary" onclick="schemaAddColumn()">Ajouter</button>
+          <button class="btn btn-sm btn-secondary" onclick="document.getElementById('schema-add-form').style.display='none'">Annuler</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr>
+          <th style="width:40px">#</th>
+          <th>Nom du champ</th>
+          <th>Type</th>
+          <th>Nullable</th>
+          <th>Défaut</th>
+          <th style="width:200px">Actions</th>
+        </tr></thead><tbody>`;
+
+    schemaColumns.forEach((col, i) => {
+      const isSystem = ['id','created_at','updated_at'].includes(col.column_name);
+      html += `<tr${isSystem?' style="opacity:0.5"':''}>
+        <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+        <td><strong>${esc(col.column_name)}</strong></td>
+        <td><span style="font-family:monospace;font-size:12px;color:var(--accent);">${esc(col.data_type)}</span></td>
+        <td>${col.is_nullable==='YES'?'<span style="color:var(--success)">✓</span>':'<span style="color:var(--danger)">✗</span>'}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;">${col.column_default?esc(String(col.column_default)):'-'}</td>
+        <td>${isSystem?'<span style="font-size:11px;color:var(--muted)">système</span>':`
+          <button class="btn btn-sm btn-secondary" onclick="schemaRenamePrompt('${esc(col.column_name)}')">✏️ Renommer</button>
+          <button class="btn btn-sm btn-danger" onclick="schemaDropColumn('${esc(col.column_name)}')">🗑</button>
+        `}</td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    wrap.innerHTML = html;
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty" style="color:var(--danger)">Erreur: ${esc(e.message)}<br><br><span style="font-size:12px;color:var(--muted);">Vérifiez que la fonction <code>get_table_columns</code> existe dans Supabase.</span></div>`;
+  }
+}
+
+function schemaShowAdd(){
+  document.getElementById('schema-add-form').style.display='block';
+  document.getElementById('schema-new-name').focus();
+}
+
+async function schemaAddColumn(){
+  const name = document.getElementById('schema-new-name').value.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  const type = document.getElementById('schema-new-type').value;
+  if(!name){showToast('Nom obligatoire','error');return;}
+  if(schemaColumns.find(c=>c.column_name===name)){showToast('Ce champ existe déjà','error');return;}
+  if(!confirm(`Ajouter "${name}" (${type}) à ${schemaCurrentTable} ?`))return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/manage_column`, {
+      method:'POST', headers:H, body:JSON.stringify({p_table:schemaCurrentTable, p_action:'add', p_column:name, p_type:type})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast(`Champ "${name}" ajouté ✓`);
+    document.getElementById('schema-add-form').style.display='none';
+    document.getElementById('schema-new-name').value='';
+    await loadSchemaColumns(schemaCurrentTable);
+  } catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function schemaRenamePrompt(oldName){
+  const newName = prompt(`Renommer "${oldName}" en :`, oldName);
+  if(!newName || newName===oldName) return;
+  const clean = newName.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  if(!clean){showToast('Nom invalide','error');return;}
+  if(schemaColumns.find(c=>c.column_name===clean)){showToast('Ce nom existe déjà','error');return;}
+  if(!confirm(`Renommer "${oldName}" → "${clean}" dans ${schemaCurrentTable} ?\n\n⚠️ Cela peut casser le code qui référence l'ancien nom.`))return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/manage_column`, {
+      method:'POST', headers:H, body:JSON.stringify({p_table:schemaCurrentTable, p_action:'rename', p_column:oldName, p_new_name:clean})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast(`"${oldName}" → "${clean}" ✓`);
+    await loadSchemaColumns(schemaCurrentTable);
+  } catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+async function schemaDropColumn(colName){
+  if(!confirm(`⚠️ SUPPRIMER le champ "${colName}" de ${schemaCurrentTable} ?\n\nToutes les données de ce champ seront perdues !`))return;
+  if(!confirm(`CONFIRMER la suppression de "${colName}" ?`))return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/manage_column`, {
+      method:'POST', headers:H, body:JSON.stringify({p_table:schemaCurrentTable, p_action:'drop', p_column:colName})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast(`Champ "${colName}" supprimé`);
+    await loadSchemaColumns(schemaCurrentTable);
+  } catch(e){showToast('Erreur: '+e.message,'error');}
+}
+
+</script>
+
+<!-- MODAL FUSION -->
+<div class="modal-overlay" id="modal-fusion">
+  <div class="modal" style="max-width:600px">
+    <button class="modal-close" onclick="closeModal('modal-fusion')">✕</button>
+    <div class="modal-title">⚡ Fusionner des clients</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Choisissez le client principal. Tous les contrats des autres seront transférés vers lui, puis les doublons seront supprimés.</p>
+    <div id="fusion-list"></div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-fusion')" style="flex:1">Annuler</button>
+      <button onclick="confirmFusion()" style="flex:2;padding:12px;background:var(--accent);border:none;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:#0a0c10">⚡ Confirmer la fusion</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

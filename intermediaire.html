@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuwu — Espace Intermédiaire</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface2: #f0ede6;
+  --border: #e2ddd4;
+  --accent: #c8a96e;
+  --accent2: #8b6914;
+  --text: #1a1610;
+  --muted: #8a8070;
+  --danger: #d4453a;
+  --success: #2d7d4f;
+  --pending: #c8820a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+/* ===== LOGIN ===== */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text);
+  position: relative;
+  overflow: hidden;
+}
+
+#login-screen::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,169,110,0.15), transparent 70%);
+  top: -100px; right: -100px;
+}
+
+#login-screen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,169,110,0.08), transparent 70%);
+  bottom: -50px; left: -50px;
+}
+
+.login-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(200,169,110,0.2);
+  border-radius: 20px;
+  padding: 48px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(20px);
+}
+
+.login-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+  margin-bottom: 36px;
+  letter-spacing: 0.5px;
+}
+
+.login-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 8px;
+}
+
+.login-box input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+
+.login-box input:focus { border-color: var(--accent); }
+.login-box input::placeholder { color: rgba(255,255,255,0.2); }
+
+.login-btn {
+  width: 100%;
+  background: var(--accent);
+  color: var(--text);
+  border: none;
+  border-radius: 10px;
+  padding: 15px;
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.login-btn:hover { background: #d4b87a; transform: translateY(-1px); }
+
+.login-error {
+  background: rgba(212,69,58,0.15);
+  border: 1px solid rgba(212,69,58,0.3);
+  border-radius: 8px;
+  padding: 12px;
+  color: #ff8078;
+  font-size: 13px;
+  margin-top: 16px;
+  display: none;
+  text-align: center;
+}
+
+/* ===== DASHBOARD ===== */
+#dashboard { display: none; min-height: 100vh; }
+
+header {
+  background: var(--text);
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px;
+  color: var(--text);
+}
+
+.user-info { text-align: right; }
+.user-name { font-size: 13px; font-weight: 600; color: #fff; }
+.user-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+.logout-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.logout-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+/* ===== STATS ===== */
+.stats-bar {
+  background: var(--text);
+  padding: 0 40px 28px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(200,169,110,0.15);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px;
+  color: #fff;
+  line-height: 1;
+}
+
+.stat-value.gold { color: var(--accent); }
+.stat-value.green { color: #4ade80; }
+.stat-value.orange { color: #fb923c; }
+
+.stat-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 4px;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content { padding: 32px 40px; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+/* ===== TABLE ===== */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+td {
+  padding: 14px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+
+.client-name { font-weight: 600; }
+.client-id { font-size: 11px; color: var(--muted); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge.actif { background: rgba(45,125,79,0.12); color: var(--success); }
+.badge.historique { background: rgba(138,128,112,0.15); color: var(--muted); }
+.badge.en_attente { background: rgba(200,130,10,0.12); color: var(--pending); }
+
+.commission-paid { color: var(--success); font-weight: 600; }
+.commission-pending { color: var(--pending); font-weight: 600; }
+.commission-none { color: var(--muted); }
+
+/* ===== PAGINATION ===== */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+}
+
+.page-info { font-size: 13px; color: var(--muted); }
+
+.page-btns { display: flex; gap: 6px; }
+
+.page-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.page-btn:hover { border-color: var(--accent); color: var(--accent2); }
+.page-btn.active { background: var(--accent); border-color: var(--accent); color: var(--text); font-weight: 600; }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===== INSCRIPTION ===== */
+.ins-steps { display:flex; align-items:center; justify-content:center; }
+.ins-step { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.ins-dot { width:32px; height:32px; border-radius:50%; border:2px solid rgba(201,168,76,0.2); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:#7a8099; background:#12151c; transition:all 0.3s; }
+.ins-label { font-size:10px; color:#7a8099; white-space:nowrap; }
+.ins-step.ins-active .ins-dot { border-color:#c9a84c; color:#c9a84c; background:rgba(201,168,76,0.15); box-shadow:0 0 0 4px rgba(201,168,76,0.1); }
+.ins-step.ins-active .ins-label { color:#c9a84c; }
+.ins-step.ins-done .ins-dot { border-color:#4caf82; color:#4caf82; background:rgba(76,175,130,0.1); }
+.ins-step.ins-done .ins-label { color:#4caf82; }
+.ins-line { width:36px; height:1px; background:rgba(201,168,76,0.18); margin-bottom:18px; transition:background 0.3s; }
+.ins-line.ins-done { background:#4caf82; }
+.ins-card { background:#12151c; border:1px solid rgba(201,168,76,0.18); border-radius:18px; padding:28px; margin-bottom:16px; }
+.ins-card-title { font-family:'Playfair Display',serif; font-size:16px; color:#c9a84c; letter-spacing:1px; margin-bottom:20px; }
+.ins-fg { margin-bottom:16px; }
+.ins-input { width:100%; background:#1a1e28; border:1.5px solid rgba(201,168,76,0.18); border-radius:9px; padding:11px 14px; font-family:'DM Sans',sans-serif; font-size:14px; color:#eef0f4; outline:none; transition:border-color 0.2s; box-sizing:border-box; appearance:none; }
+.ins-input:focus { border-color:#c9a84c; }
+.ins-input::placeholder { color:#3a3f52; }
+.ins-label-txt { display:block; font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#7a8099; margin-bottom:6px; }
+.ins-toggle { flex:1; min-width:60px; background:#1a1e28; border:1.5px solid rgba(201,168,76,0.18); border-radius:8px; padding:9px 8px; text-align:center; cursor:pointer; font-size:13px; font-weight:500; color:#7a8099; transition:all 0.2s; user-select:none; }
+.ins-toggle:hover { border-color:#c9a84c; color:#eef0f4; }
+.ins-toggle.ins-selected { border-color:#c9a84c; background:rgba(201,168,76,0.15); color:#c9a84c; }
+.ins-svc-btn { background:#1a1e28; border:1.5px solid rgba(201,168,76,0.18); border-radius:12px; padding:16px 12px; cursor:pointer; transition:all 0.2s; text-align:center; color:#7a8099; }
+.ins-svc-btn:hover:not(.ins-disabled) { border-color:#c9a84c; color:#eef0f4; }
+.ins-svc-btn.ins-selected { border-color:#c9a84c; background:rgba(201,168,76,0.15); color:#c9a84c; }
+.ins-svc-btn.ins-disabled { opacity:0.4; cursor:not-allowed; }
+.ins-sous-card { background:#1a1e28; border:1.5px solid rgba(201,168,76,0.18); border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s; color:#7a8099; }
+.ins-sous-card:hover { border-color:#c9a84c; color:#eef0f4; }
+.ins-sous-card.ins-selected { border-color:#c9a84c; background:rgba(201,168,76,0.15); color:#c9a84c; }
+.ins-btn-primary { flex:1; background:#c9a84c; color:#0a0c10; border:none; border-radius:12px; padding:14px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.ins-btn-primary:hover { background:#e8c96a; transform:translateY(-1px); }
+.ins-btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+.ins-btn-secondary { background:#1a1e28; color:#7a8099; border:1px solid rgba(201,168,76,0.18); border-radius:12px; padding:14px 20px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; flex:0 0 auto; }
+.ins-btn-secondary:hover { color:#eef0f4; border-color:#c9a84c; }
+.ins-alert { display:none; background:rgba(224,92,92,0.1); border:1px solid rgba(224,92,92,0.3); border-radius:9px; padding:12px 16px; font-size:13px; color:#e05c5c; margin-bottom:12px; }
+.ins-alert.ins-show { display:block; }
+.ins-dup-warning { display:none; background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.3); border-radius:12px; padding:16px; margin-bottom:16px; }
+.ins-dup-warning.ins-show { display:block; }
+.ins-page { display:none; }
+.ins-page.ins-active { display:block; }
+.ins-recap-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(201,168,76,0.12); gap:16px; }
+.ins-recap-row:last-child { border-bottom:none; }
+.ins-recap-key { font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#7a8099; flex-shrink:0; padding-top:2px; }
+.ins-recap-val { font-size:13px; color:#eef0f4; text-align:right; word-break:break-word; }
+@media(max-width:480px) {
+  .ins-line { width:18px; }
+}
+/* ===== LOADING ===== */
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--muted);
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty {
+  text-align: center;
+  padding: 60px;
+  color: var(--muted);
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Fuwu.fr</div>
+    <div class="login-subtitle">ESPACE INTERMÉDIAIRE</div>
+    <label>Adresse email</label>
+    <input type="text" id="login-email" placeholder="identifiant (ex: fc999)" onkeydown="if(event.key==='Enter')login()" autocomplete="username" autocapitalize="none">
+    <label>Mot de passe</label>
+    <div style="position:relative">
+      <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()" style="padding-right:40px">
+      <span onclick="togglePwd()" id="pwd-eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;user-select:none;opacity:0.6">👁</span>
+    </div>
+    <button class="login-btn" onclick="login()" id="login-btn">Se connecter</button>
+    <div class="login-error" id="login-error"></div>
+    <div style="text-align:center;margin-top:20px;border-top:1px solid rgba(255,255,255,0.08);padding-top:20px">
+      <span style="font-size:12px;color:rgba(255,255,255,0.3)">Nouveau client ?</span>
+      <button onclick="showInscription()" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;margin-left:6px;font-family:'DM Sans',sans-serif;text-decoration:underline">Inscrire un client →</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSCRIPTION SCREEN -->
+<div id="inscription-screen" style="display:none;min-height:100vh;background:#0a0c10">
+  <div style="max-width:640px;margin:0 auto;padding:40px 24px 60px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-family:'Playfair Display',serif;font-size:24px;color:#c9a84c;letter-spacing:2px;margin-bottom:6px">服务 FUWU</div>
+      <div style="font-size:12px;color:#7a8099;letter-spacing:1px">Formulaire d'inscription</div>
+      <button id="ins-back-btn" onclick="hideInscription()" style="margin-top:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Retour connexion</button>
+    </div>
+
+    <!-- Steps -->
+    <div class="ins-steps" id="ins-steps" style="display:flex;align-items:center;justify-content:center;margin-bottom:32px">
+      <div class="ins-step ins-active" id="ins-step-1"><div class="ins-dot">1</div><div class="ins-label">Service</div></div>
+      <div class="ins-line" id="ins-line-1"></div>
+      <div class="ins-step" id="ins-step-2"><div class="ins-dot">2</div><div class="ins-label">Identité</div></div>
+      <div class="ins-line" id="ins-line-2"></div>
+      <div class="ins-step" id="ins-step-3"><div class="ins-dot">3</div><div class="ins-label">Détails</div></div>
+      <div class="ins-line" id="ins-line-3"></div>
+      <div class="ins-step" id="ins-step-4"><div class="ins-dot">4</div><div class="ins-label">Finance</div></div>
+      <div class="ins-line" id="ins-line-4"></div>
+      <div class="ins-step" id="ins-step-5"><div class="ins-dot">5</div><div class="ins-label">Validation</div></div>
+    </div>
+
+    <!-- Success -->
+    <div id="ins-success" style="display:none;text-align:center;padding:40px 20px">
+      <div style="font-size:56px;margin-bottom:16px">✅</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:#c9a84c;margin-bottom:8px">Inscription enregistrée</div>
+      <div style="font-size:14px;color:#7a8099;line-height:1.6">Votre demande a bien été reçue.<br>Notre équipe vous contactera sous 24h.</div>
+      <div id="ins-success-id" style="font-family:monospace;font-size:13px;color:#c9a84c;background:rgba(201,168,76,0.12);padding:8px 16px;border-radius:8px;margin:16px auto 0;display:inline-block"></div>
+      <br><button id="ins-success-back-btn" onclick="hideInscription()" style="margin-top:20px;background:#c9a84c;color:#0a0c10;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Retour à la connexion</button>
+    </div>
+
+    <!-- Page 1 -->
+    <div class="ins-page ins-active" id="ins-page-1">
+      <div class="ins-card">
+        <div class="ins-card-title">⚡ Choisissez votre service</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="ins-svc-btn ins-selected" id="ins-svc-energie" onclick="insSelectService('energie')"><div style="font-size:22px;margin-bottom:6px">⚡</div><div style="font-size:13px;font-weight:600">Énergie</div><div style="font-size:10px;color:#7a8099;margin-top:2px">Électricité &amp; Gaz</div></div>
+          <div class="ins-svc-btn ins-disabled"><div style="font-size:22px;margin-bottom:6px">📡</div><div style="font-size:13px;font-weight:600">Télécom</div><div style="font-size:10px;color:#7a8099;margin-top:2px">Bientôt disponible</div></div>
+          <div class="ins-svc-btn ins-disabled"><div style="font-size:22px;margin-bottom:6px">🏦</div><div style="font-size:13px;font-weight:600">Banque</div><div style="font-size:10px;color:#7a8099;margin-top:2px">Bientôt disponible</div></div>
+          <div class="ins-svc-btn ins-disabled"><div style="font-size:22px;margin-bottom:6px">🛎️</div><div style="font-size:13px;font-weight:600">Services Fuwu</div><div style="font-size:10px;color:#7a8099;margin-top:2px">Bientôt disponible</div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(201,168,76,0.18);margin:20px 0">
+        <div>
+          <label class="ins-label-txt">Type de client</label>
+          <div style="display:flex;gap:8px">
+            <div class="ins-toggle ins-selected" id="ins-tc-particulier" onclick="insSelectTypeClient('particulier')">👤 Particulier</div>
+            <div class="ins-toggle" id="ins-tc-professionnel" onclick="insSelectTypeClient('professionnel')">🏢 Professionnel</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="ins-btn-primary" onclick="insGoTo(2)">Continuer →</button>
+      </div>
+    </div>
+
+    <!-- Page 2 -->
+    <div class="ins-page" id="ins-page-2">
+      <div class="ins-card">
+        <div class="ins-card-title">👤 Informations personnelles</div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Civilité <span style="color:#c9a84c">*</span></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="ins-toggle" id="ins-civ-m" onclick="insSelectCiv('M.')">M.</div>
+            <div class="ins-toggle" id="ins-civ-mme" onclick="insSelectCiv('Mme')">Mme</div>
+            <div class="ins-toggle" id="ins-civ-mrmme" onclick="insSelectCiv('M. & Mme')">M. &amp; Mme</div>
+            <div class="ins-toggle" id="ins-civ-societe" onclick="insSelectCiv('Société')">Société</div>
+          </div>
+        </div>
+        <div class="ins-fg" id="ins-fg-siret" style="display:none">
+          <label class="ins-label-txt">Numéro SIRET</label>
+          <input class="ins-input" type="text" id="ins-f-siret" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Prénom <span style="color:#c9a84c">*</span></label>
+            <input class="ins-input" type="text" id="ins-f-prenom" placeholder="JEAN" oninput="insToUpper(this);insCheckDuplicate()">
+          </div>
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Nom <span style="color:#c9a84c">*</span></label>
+            <input class="ins-input" type="text" id="ins-f-nom" placeholder="DUPONT" oninput="insToUpper(this);insCheckDuplicate()">
+          </div>
+        </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Date de naissance</label>
+          <input class="ins-input" type="date" id="ins-f-naissance" value="1998-08-08">
+        </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Colocataire — Prénom &amp; Nom</label>
+          <div style="display:flex;gap:12px">
+            <input class="ins-input" type="text" id="ins-f-coloc-prenom" placeholder="PRÉNOM" oninput="insToUpper(this)" style="flex:1">
+            <input class="ins-input" type="text" id="ins-f-coloc-nom" placeholder="NOM" oninput="insToUpper(this)" style="flex:1">
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(201,168,76,0.18);margin:16px 0">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c9a84c;margin-bottom:16px">Contact</div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Email 1 <span style="color:#c9a84c">*</span></label>
+            <input class="ins-input" type="email" id="ins-f-email" placeholder="jean@email.com" oninput="insCheckDuplicate()">
+          </div>
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Email 2</label>
+            <input class="ins-input" type="email" id="ins-f-email2" placeholder="autre@email.com">
+          </div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Téléphone 1</label>
+            <input class="ins-input" type="tel" id="ins-f-telephone" placeholder="0612345678" oninput="insOnlyDigits(this);insCheckDuplicate()">
+          </div>
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Téléphone 2</label>
+            <input class="ins-input" type="tel" id="ins-f-telephone2" placeholder="0612345678" oninput="insOnlyDigits(this)">
+          </div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">WeChat / WhatsApp / Instagram 1</label>
+            <input class="ins-input" type="text" id="ins-f-wechat" placeholder="ID ou @pseudo" maxlength="30">
+          </div>
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">WeChat / WhatsApp / Instagram 2</label>
+            <input class="ins-input" type="text" id="ins-f-wechat2" placeholder="ID ou @pseudo" maxlength="30">
+          </div>
+        </div>
+      </div>
+      <div class="ins-dup-warning" id="ins-dup-warning">
+        <div style="font-size:12px;font-weight:700;color:#c9a84c;margin-bottom:8px">🔍 Client existant détecté</div>
+        <div id="ins-dup-info" style="font-size:13px;color:#eef0f4;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <button onclick="insUseExistingClient()" style="padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:#c9a84c;color:#0a0c10;font-family:'DM Sans',sans-serif">Utiliser ce client</button>
+          <button onclick="insDismissDuplicate()" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);font-size:12px;font-weight:600;cursor:pointer;background:#1a1e28;color:#7a8099;font-family:'DM Sans',sans-serif">C'est un nouveau client</button>
+        </div>
+      </div>
+      <div class="ins-alert" id="ins-err-identity"></div>
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="ins-btn-secondary" onclick="insGoTo(1)">←</button>
+        <button class="ins-btn-primary" onclick="insGoTo(3)">Continuer →</button>
+      </div>
+    </div>
+
+    <!-- Page 3 -->
+    <div class="ins-page" id="ins-page-3">
+      <div class="ins-card">
+        <div class="ins-card-title">⚡ Détails énergie</div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Type de souscription <span style="color:#c9a84c">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="ins-sous-card ins-selected" id="ins-sous-mise" onclick="insSelectSouscription('mise_en_service')"><div style="font-size:24px;margin-bottom:8px">🔌</div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Mise en service</div><div style="font-size:11px;color:#7a8099;line-height:1.4">Nouveau compteur ou première activation</div></div>
+            <div class="ins-sous-card" id="ins-sous-change" onclick="insSelectSouscription('en_service')"><div style="font-size:24px;margin-bottom:8px">🔄</div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Changement fournisseur</div><div style="font-size:11px;color:#7a8099;line-height:1.4">Compteur actif, changer de fournisseur</div></div>
+          </div>
+        </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Type d'énergie <span style="color:#c9a84c">*</span></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="ins-toggle ins-selected" id="ins-egy-elec" onclick="insSelectEnergie('elec')">⚡ Électricité</div>
+            <div class="ins-toggle" id="ins-egy-gaz" onclick="insSelectEnergie('gaz')">🔥 Gaz</div>
+            <div class="ins-toggle" id="ins-egy-both" onclick="insSelectEnergie('elec+gaz')">⚡🔥 Les deux</div>
+          </div>
+        </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Fournisseur actuel</label>
+          <select class="ins-input" id="ins-f-fournisseur">
+            <option value="TotalEnergies">TotalEnergies</option><option value="EDF">EDF</option><option value="Engie">Engie</option><option value="Eni">Eni</option><option value="Vattenfall">Vattenfall</option><option value="Mint Énergies">Mint Énergies</option><option value="Ohm Énergie">Ohm Énergie</option><option value="Ekwateur">Ekwateur</option><option value="Octopus Energy">Octopus Energy</option><option value="Autre">Autre</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" id="ins-fg-pdl" style="flex:1">
+            <label class="ins-label-txt">PDL (élec)</label>
+            <input class="ins-input" type="text" id="ins-f-pdl" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'');insCheckPDL(this.value)">
+            <div id="ins-pdl-suggest" style="display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer" onclick="insFillFromPDL()">
+              <div style="font-size:12px;color:#7a8099;margin-bottom:4px">📍 Adresse existante trouvée</div>
+              <div id="ins-pdl-suggest-info" style="font-size:13px;font-weight:600;color:#eef0f4"></div>
+            </div>
+          </div>
+          <div class="ins-fg" id="ins-fg-pce" style="flex:1;display:none">
+            <label class="ins-label-txt">PCE (gaz)</label>
+            <input class="ins-input" type="text" id="ins-f-pce" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'');insCheckPCE(this.value)">
+            <div id="ins-pce-suggest" style="display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer" onclick="insFillFromPCE()">
+              <div style="font-size:12px;color:#7a8099;margin-bottom:4px">📍 Adresse existante trouvée</div>
+              <div id="ins-pce-suggest-info" style="font-size:13px;font-weight:600;color:#eef0f4"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Puissance (kVA)</label>
+            <select class="ins-input" id="ins-f-puissance">
+              <option value="6" selected>6 kVA</option><option value="3">3 kVA</option><option value="9">9 kVA</option><option value="12">12 kVA</option><option value="15">15 kVA</option><option value="18">18 kVA</option><option value="24">24 kVA</option>
+            </select>
+          </div>
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Type de logement</label>
+            <select class="ins-input" id="ins-f-logement">
+              <option value="appartement" selected>Appartement</option><option value="maison">Maison</option>
+            </select>
+          </div>
+        </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Option tarifaire</label>
+          <div style="display:flex;gap:8px">
+            <div class="ins-toggle ins-selected" id="ins-opt-base" onclick="insSelectOptionTarifaire('BASE')">📊 BASE</div>
+            <div class="ins-toggle" id="ins-opt-hphc" onclick="insSelectOptionTarifaire('HPHC')">🌙 HPHC</div>
+          </div>
+        </div>
+        <div class="ins-fg" style="margin-bottom:0">
+          <label class="ins-label-txt">Notes</label>
+          <textarea class="ins-input" id="ins-f-note" rows="3" placeholder="Informations utiles pour le dossier..." style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="ins-card" style="margin-top:16px">
+        <div class="ins-card-title">🏠 Adresse Consommation</div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Rue <span style="color:#c9a84c">*</span></label>
+          <input class="ins-input" type="text" id="ins-f-rue" placeholder="12 RUE DE LA PAIX" oninput="insToUpper(this)">
+        </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Complément d'adresse</label>
+          <input class="ins-input" type="text" id="ins-f-complement" placeholder="APT 3B, BÂT C..." oninput="insToUpper(this)">
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Code postal <span style="color:#c9a84c">*</span></label>
+            <input class="ins-input" type="text" id="ins-f-cp" placeholder="75001" maxlength="5" oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <div class="ins-fg" style="flex:1">
+            <label class="ins-label-txt">Ville <span style="color:#c9a84c">*</span></label>
+            <input class="ins-input" type="text" id="ins-f-ville" placeholder="PARIS" oninput="insToUpper(this)">
+          </div>
+        </div>
+      </div>
+      <div class="ins-alert" id="ins-err-service-detail"></div>
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="ins-btn-secondary" onclick="insGoTo(2)">←</button>
+        <button class="ins-btn-primary" onclick="insGoTo(4)">Continuer →</button>
+      </div>
+    </div>
+
+    <!-- Page 4 -->
+    <div class="ins-page" id="ins-page-4">
+      <div class="ins-card">
+        <div class="ins-card-title">💳 Informations bancaires</div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">IBAN</label>
+          <input class="ins-input" type="text" id="ins-f-iban" placeholder="FR76 3000 6000 0112 3456 7890 189" oninput="insFormatIban(this)">
+        </div>
+        <p style="font-size:12px;color:#7a8099;line-height:1.5;margin-top:-8px;margin-bottom:16px">Nécessaire pour la mise en place du prélèvement automatique. Transmis de manière sécurisée.</p>
+        <hr style="border:none;border-top:1px solid rgba(201,168,76,0.18);margin:16px 0">
+        <div class="ins-fg" style="margin-bottom:0">
+          <label class="ins-label-txt">Intermédiaire <span style="color:#c9a84c">*</span></label>
+          <div style="position:relative;display:flex;align-items:center">
+            <input class="ins-input" type="text" id="ins-f-interm" placeholder="fc305" oninput="this.value=this.value.replace(/\s/g,'').toLowerCase();insCheckInterm(this.value)" autocomplete="off" style="border-radius:9px 0 0 9px;border-right:none">
+            <span id="ins-interm-status" style="position:absolute;right:120px;top:50%;transform:translateY(-50%);font-size:16px;display:none"></span>
+            <div style="background:#1a1e28;border:1.5px solid rgba(201,168,76,0.18);border-left:none;border-radius:0 9px 9px 0;padding:11px 14px;font-size:13px;color:#7a8099;white-space:nowrap;flex-shrink:0">@aaaww.top</div>
+          </div>
+          <p style="font-size:11px;color:#7a8099;margin-top:6px">Entrez le code de l'intermédiaire (ex: fc305, ss503…)</p>
+        </div>
+      </div>
+      <div class="ins-alert" id="ins-err-finance"></div>
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="ins-btn-secondary" onclick="insGoTo(3)">←</button>
+        <button class="ins-btn-primary" onclick="insGoTo(5)">Vérifier →</button>
+      </div>
+    </div>
+
+    <!-- Page 5 -->
+    <div class="ins-page" id="ins-page-5">
+      <div class="ins-card">
+        <div class="ins-card-title">📋 Récapitulatif</div>
+        <div id="ins-recap-body"></div>
+      </div>
+      <div class="ins-alert" id="ins-err-submit"></div>
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="ins-btn-secondary" onclick="insGoTo(4)">←</button>
+        <button class="ins-btn-primary" id="ins-btn-submit" onclick="insSubmitForm()">Confirmer l'inscription</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <header>
+    <div class="header-logo">Fuwu.fr</div>
+    <div class="header-user">
+      <div class="user-info">
+        <div class="user-name" id="user-name">—</div>
+        <div class="user-role">Intermédiaire</div>
+      </div>
+      <div class="user-avatar" id="user-avatar">?</div>
+      <button onclick="showInscriptionFromDashboard()" style="background:var(--accent);color:var(--text);border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s" onmouseover="this.style.background='#d4b87a'" onmouseout="this.style.background='var(--accent)'">+ Inscrire</button>
+      <button class="logout-btn" onclick="logout()">Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Total clients</div>
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-sub">depuis le début</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><span id="stat-periode-label">Période</span> — <span id="stat-mois-label" style="color:var(--accent)">—</span></div>
+      <div class="stat-value gold" id="stat-mois">—</div>
+      <div class="stat-sub">vs <span id="stat-mois-an-dernier" style="color:rgba(255,255,255,0.5)">—</span> l'an dernier</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" id="stat-comm-label">Commissions totales</div>
+      <div class="stat-value green" id="stat-comm-total">—</div>
+      <div class="stat-sub">€ TTC</div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPaymentManager()">
+      <div class="stat-label">Déjà payé</div>
+      <div class="stat-value green" id="stat-comm-paye">—</div>
+      <div class="stat-sub">€ TTC <span style="color:var(--accent);font-size:10px">▶ Gérer</span></div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="filterByStatus('en_attente')" title="Voir les clients en attente">
+      <div class="stat-label">En attente</div>
+      <div class="stat-value orange" id="stat-comm-attente">—</div>
+      <div class="stat-sub">€ TTC <span style="color:var(--pending);font-size:10px">▶ Voir</span></div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="section-header">
+      <div class="section-title">Mes clients</div>
+      <div class="filters">
+        <select class="filter-select" id="filter-annee" onchange="loadClients()">
+          <option value="">Toutes années</option>
+        </select>
+        <select class="filter-select" id="filter-mois" onchange="loadClients()">
+          <option value="">Tous les mois</option>
+          <option value="01">Janvier</option>
+          <option value="02">Février</option>
+          <option value="03">Mars</option>
+          <option value="04">Avril</option>
+          <option value="05">Mai</option>
+          <option value="06">Juin</option>
+          <option value="07">Juillet</option>
+          <option value="08">Août</option>
+          <option value="09">Septembre</option>
+          <option value="10">Octobre</option>
+          <option value="11">Novembre</option>
+          <option value="12">Décembre</option>
+        </select>
+        <select class="filter-select" id="filter-status" onchange="loadClients()">
+          <option value="">Tous les statuts</option>
+          <option value="actif">Actif</option>
+          <option value="historique">Historique</option>
+          <option value="en_attente">En attente</option>
+        </select>
+        <div style="position:relative;display:inline-block">
+          <input type="text" class="filter-select" id="filter-email" placeholder="Rechercher email client..." oninput="loadClients();document.getElementById('clear-email').style.display=this.value?'block':'none'" style="width:220px;padding-right:28px">
+          <span id="clear-email" onclick="clearEmail()" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-size:16px;line-height:1">✕</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="loading" id="table-loading">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+      </div>
+      <div id="table-content" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>ID Fournisseur</th>
+              <th>ID Fuwu</th>
+              <th>Fournisseur</th>
+              <th>Adresse</th>
+              <th>Date</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="pagination">
+          <div class="page-info" id="page-info">—</div>
+          <div class="page-btns" id="page-btns"></div>
+        </div>
+      </div>
+      <div class="empty" id="table-empty" style="display:none">
+        Aucun client trouvé pour cette période.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+// Config from common.js
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
+
+let currentUser = null;
+let accessToken = null;
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let allClients = [];
+let filteredClients = [];
+
+function getHeaders(){ return fuwuH(); }
+
+function togglePwd(){ fuwuTogglePwd(); }
+
+// ===== AUTH (Hybrid: try Supabase Auth first, fallback to password check) =====
+async function login() {
+  let raw = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  document.getElementById('login-error').style.display = 'none';
+  if (!raw || !password) { showError('Veuillez remplir tous les champs.'); return; }
+  btn.textContent = 'Connexion...'; btn.disabled = true;
+  
+  const headers = {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`};
+  
+  try {
+    // Resolve email
+    let email = raw.includes('@') ? raw : raw + '@aaaww.top';
+    if (!raw.includes('@')) {
+      try {
+        const r1 = await fetch(`${SUPABASE_URL}/rest/v1/personnes?login=eq.${encodeURIComponent(raw)}&est_intermediaire=eq.true&select=email`, {headers});
+        const d1 = await r1.json();
+        if (d1 && d1.length > 0) email = d1[0].email;
+      } catch(e) {}
+    }
+
+    // Try Supabase Auth first
+    let authOk = false;
+    try {
+      const res = await fuwuAuthLogin(email, password);
+      if (res.ok) {
+        accessToken = res.data.access_token;
+        authOk = true;
+        const data = res.data;
+        fuwuSaveSession('fuwu_interm_session', {
+          access_token: data.access_token, refresh_token: data.refresh_token,
+          expires_at: Date.now() + data.expires_in * 1000, user_id: data.user.id
+        }));
+      }
+    } catch(e) {}
+
+    // Find personne record
+    const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?email=ilike.${encodeURIComponent(email)}&est_intermediaire=eq.true&select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,code_parrainage,note,categorie`, {headers: getHeaders()});
+    const pd = await rp.json();
+    if (!pd || pd.length === 0) {
+      showError('Compte introuvable.'); btn.textContent = 'Se connecter'; btn.disabled = false; return;
+    }
+    const personne = pd[0];
+
+    // Auth required — no plaintext fallback
+    if (!authOk) {
+      showError('Mot de passe incorrect.'); btn.textContent = 'Se connecter'; btn.disabled = false; return;
+    }
+
+    currentUser = personne;
+    showDashboard();
+  } catch(e) { showError('Erreur de connexion.'); btn.textContent = 'Se connecter'; btn.disabled = false; }
+}
+
+async function autoLogin() {
+  try {
+    const saved = fuwuLoadSession('fuwu_interm_session');
+    if (!saved) return;
+
+    // Auth session
+    if (saved.access_token) {
+      if (Date.now() >= (saved.expires_at||0)) {
+        try {
+          const res = await fuwuAuthRefresh(saved.refresh_token);
+          if (!res.ok) { fuwuClearSession('fuwu_interm_session'); return; }
+          saved.access_token = res.data.access_token; saved.refresh_token = res.data.refresh_token;
+          saved.expires_at = Date.now() + res.data.expires_in * 1000;
+          fuwuSaveSession('fuwu_interm_session', saved);
+        } catch(e) { fuwuClearSession('fuwu_interm_session'); return; }
+      }
+      accessToken = saved.access_token;
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?auth_uid=eq.${saved.user_id}&select=*`, {headers: getHeaders()});
+      const pd = await rp.json();
+      if (pd && pd.length > 0) { currentUser = pd[0]; showDashboard(); return; }
+    }
+
+    // Fallback session (personne_id based)
+    if (saved.personne_id) {
+      if (Date.now() - (saved.ts||0) > 7*24*60*60*1000) { fuwuClearSession('fuwu_interm_session'); return; }
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${saved.personne_id}&est_intermediaire=eq.true&select=*`, {headers: getHeaders()});
+      const pd = await rp.json();
+      if (pd && pd.length > 0) { currentUser = pd[0]; showDashboard(); return; }
+    }
+
+    fuwuClearSession('fuwu_interm_session');
+  } catch(e) { console.warn('Auto-login failed', e); }
+}
+
+function showError(msg) {
+  const el = document.getElementById('login-error'); el.textContent = msg; el.style.display = 'block';
+}
+
+function logout() {
+  await fuwuAuthLogout();
+  fuwuClearSession('fuwu_interm_session');
+  currentUser = null; accessToken = null; allClients = [];
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-btn').textContent = 'Se connecter';
+  document.getElementById('login-btn').disabled = false;
+}
+
+autoLogin();
+
+
+// ===== DASHBOARD =====
+async function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  const name = [currentUser.prenom, currentUser.nom].filter(Boolean).join(' ') || currentUser.email;
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+
+  await loadAllData();
+  populateMonthFilter();
+  loadClients(); // loadClients calls updateStats internally
+}
+
+async function loadAllData() {
+  document.getElementById('table-loading').style.display = 'block';
+  document.getElementById('table-content').style.display = 'none';
+
+  try {
+    const headers = getHeaders();
+    const email = currentUser.email;
+    let contrats = [];
+    let offset = 0;
+    const limit = 1000;
+    while (true) {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/contrats?source=ilike.${encodeURIComponent(email)}&select=id,id_service,id_fournisseur,fournisseur,formule,option_tarifaire,elec_car,iban,energie_type,contrat_status,status,created_at,date_debut,personne_id,adresse_id&order=created_at.desc&offset=${offset}&limit=${limit}`,
+        { headers }
+      );
+      const batch = await r.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      contrats = contrats.concat(batch);
+      if (batch.length < limit) break;
+      offset += limit;
+    }
+    const personneIds = [...new Set(contrats.map(c => c.personne_id).filter(Boolean))];
+    let personnesMap = {};
+    for (let i = 0; i < personneIds.length; i += 50) {
+      const batch = personneIds.slice(i, i + 50);
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,civilite,prenom,nom,email,telephone,wechat`,
+        { headers }
+      );
+      const data = await r.json();
+      if (Array.isArray(data)) data.forEach(p => { personnesMap[p.id] = p; });
+    }
+    // Fetch all commissions with pagination
+    let commissions = [];
+    let commOffset = 0;
+    const commBatch = 1000;
+    while (true) {
+      const commRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/commissions?intermediaire_id=eq.${currentUser.id}&contrat_id=not.is.null&select=id,contrat_id,montant,statut&order=id.asc&limit=${commBatch}&offset=${commOffset}`,
+        { headers }
+      );
+      const batch = await commRes.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      commissions = commissions.concat(batch);
+      if (batch.length < commBatch) break;
+      commOffset += commBatch;
+    }
+    console.log(`Commissions loaded: ${commissions.length} for user ${currentUser.id}`);
+    console.log(`User email: ${currentUser.email}, id: ${currentUser.id}`);
+    if (commissions.length > 0) {
+      console.log('Sample commission:', commissions[0]);
+    } else {
+      console.warn('⚠️ ZERO commissions found for this user ID');
+    }
+    const commMap = {};
+    // Build set of valid contrat IDs
+    const validContratIds = new Set(contrats.map(c => c.id));
+    if (Array.isArray(commissions)) {
+      const seen = new Set();
+      commissions
+        .filter(c => { if(seen.has(c.id)) return false; seen.add(c.id); return true; })
+        .filter(c => validContratIds.has(c.contrat_id))
+        .forEach(c => { commMap[c.contrat_id] = c; });
+    }
+    // Charger adresses
+    const adresseIds = [...new Set(contrats.map(c => c.adresse_id).filter(Boolean))];
+    let adressesMap = {};
+    for (let i = 0; i < adresseIds.length; i += 50) {
+      const ids = adresseIds.slice(i, i + 50).join(',');
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/adresses?id=in.(${ids})&select=id,rue,complement,ville,code_postal,pdl,pce,puissance,type_logement`,
+        { headers }
+      );
+      const data = await r.json();
+      if (Array.isArray(data)) data.forEach(a => { adressesMap[a.id] = a; });
+    }
+
+    allClients = contrats.map(c => ({
+      ...c,
+      personnes: personnesMap[c.personne_id] || null,
+      _adresse: adressesMap[c.adresse_id] || null,
+      _commission: commMap[c.id] || null
+    }));
+    // Sort by date_debut desc (most recent first)
+    allClients.sort((a,b)=>{
+      // en_attente first, then by date desc
+      const statusOrder = s => s === 'en_attente' ? 0 : 1;
+      const so = statusOrder(a.contrat_status) - statusOrder(b.contrat_status);
+      if (so !== 0) return so;
+      const da=new Date(a.date_debut||a.created_at||0);
+      const db=new Date(b.date_debut||b.created_at||0);
+      return db-da;
+    });
+    filteredClients = [...allClients];
+  } catch(e) {
+    console.error('Erreur:', e);
+    allClients = [];
+    filteredClients = [];
+  }
+}
+
+function populateMonthFilter() {
+  const years = new Set();
+  allClients.forEach(c => {
+    const d = new Date(c.date_debut || c.created_at);
+    if (!isNaN(d)) years.add(d.getFullYear());
+  });
+  const sorted = Array.from(years).sort().reverse();
+  const sel = document.getElementById('filter-annee');
+  sel.innerHTML = '<option value="">Toutes années</option>';
+  sorted.forEach(y => {
+    sel.innerHTML += `<option value="${y}">${y}</option>`;
+  });
+  // Default: toutes années, tous les mois
+  sel.value = '';
+  document.getElementById('filter-mois').value = '';;
+}
+
+function updateStats() {
+  const now = new Date();
+
+  // Lire les filtres actifs
+  const selAnnee = document.getElementById('filter-annee').value;  // ex: "2026" ou ""
+  const selMois  = document.getElementById('filter-mois').value;   // ex: "03" ou ""
+
+  // Période de référence pour le compteur "Ce mois / Période"
+  const refYear  = selAnnee ? parseInt(selAnnee) : now.getFullYear();
+  const refMonth = selMois  ? parseInt(selMois)  : now.getMonth() + 1;
+
+  // Label affiché dans la stat card
+  const moisNames = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  let periodeLabel, moisLabel;
+  if (selAnnee && selMois) {
+    periodeLabel = `${moisNames[refMonth]} ${refYear}`;
+    moisLabel    = `${String(refMonth).padStart(2,'0')}/${refYear}`;
+  } else if (selAnnee && !selMois) {
+    periodeLabel = `Année ${refYear}`;
+    moisLabel    = `${refYear}`;
+  } else if (!selAnnee && selMois) {
+    periodeLabel = `${moisNames[refMonth]}`;
+    moisLabel    = `${String(refMonth).padStart(2,'0')}`;
+  } else {
+    periodeLabel = 'Total';
+    moisLabel    = `${String(refMonth).padStart(2,'0')}/${refYear}`;
+  }
+
+  // Mettre à jour le label
+  const labelEl = document.getElementById('stat-mois-label');
+  if (labelEl) labelEl.textContent = moisLabel;
+  const periodeEl = document.getElementById('stat-periode-label');
+  if (periodeEl) periodeEl.textContent = periodeLabel;
+
+  // Clients dans la période de référence
+  const periodeClients = allClients.filter(c => {
+    const d = new Date(c.date_debut || c.created_at);
+    if (isNaN(d)) return false;
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    if (selAnnee && selMois) return y === refYear && m === refMonth;
+    if (selAnnee && !selMois) return y === refYear;
+    if (!selAnnee && selMois) return m === refMonth;
+    // Aucun filtre: mois courant
+    return y === now.getFullYear() && m === (now.getMonth() + 1);
+  });
+
+  // Période N-1 pour comparaison
+  const lastYear = refYear - 1;
+  const lastYearClients = allClients.filter(c => {
+    const d = new Date(c.date_debut || c.created_at);
+    if (isNaN(d)) return false;
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    if (selAnnee && selMois) return y === lastYear && m === refMonth;
+    if (selAnnee && !selMois) return y === lastYear;
+    if (!selAnnee && selMois) return m === refMonth && y === lastYear;
+    return y === lastYear && m === (now.getMonth() + 1);
+  });
+
+  // Diff vs N-1
+  const diff = periodeClients.length - lastYearClients.length;
+  const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
+  const diffColor = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : 'rgba(255,255,255,0.4)';
+  const anDernierEl = document.getElementById('stat-mois-an-dernier');
+  if (anDernierEl) anDernierEl.innerHTML =
+    `${lastYearClients.length} <span style="color:${diffColor};font-size:11px">(${diffStr})</span>`;
+
+  // Commissions globales (toujours sur tous les clients)
+  let totalCommAll = 0, payeCommAll = 0;
+  allClients.forEach(c => {
+    if (c._commission) {
+      totalCommAll += parseFloat(c._commission.montant || 0) * 1.2;
+      if (c._commission.statut === 'paye') payeCommAll += parseFloat(c._commission.montant || 0) * 1.2;
+    }
+  });
+
+  // Commissions de la période filtrée
+  let totalCommPeriode = 0, payeCommPeriode = 0;
+  filteredClients.forEach(c => {
+    if (c._commission) {
+      totalCommPeriode += parseFloat(c._commission.montant || 0) * 1.2;
+      if (c._commission.statut === 'paye') payeCommPeriode += parseFloat(c._commission.montant || 0) * 1.2;
+    }
+  });
+
+  const hasFilter = !!(selAnnee || selMois);
+  const totalComm = hasFilter ? totalCommPeriode : totalCommAll;
+  const payeComm  = hasFilter ? payeCommPeriode  : payeCommAll;
+
+  document.getElementById('stat-total').textContent = allClients.filter(c => c._commission).length;
+  document.getElementById('stat-mois').textContent = periodeClients.length;
+  document.getElementById('stat-comm-total').textContent = totalComm > 0 ? totalComm.toFixed(0) : '—';
+  document.getElementById('stat-comm-paye').textContent = payeComm > 0 ? payeComm.toFixed(0) : '—';
+  const attente = totalComm - payeComm;
+  document.getElementById('stat-comm-attente').textContent = attente > 0 ? attente.toFixed(0) : '—';
+
+  // Update commission card labels to reflect context
+  const commLabel = document.getElementById('stat-comm-label');
+  if (commLabel) commLabel.textContent = hasFilter ? `Commissions (${moisLabel})` : 'Commissions totales';
+}
+
+function filterByStatus(status) {
+  // Scroll vers la table
+  document.querySelector('.main-content').scrollIntoView({behavior:'smooth'});
+  // Mettre à jour le select statut
+  const sel = document.getElementById('filter-status');
+  if (sel) {
+    sel.value = status;
+    // Highlight visuel temporaire
+    sel.style.borderColor = 'var(--accent)';
+    sel.style.boxShadow = '0 0 0 2px rgba(200,169,110,0.3)';
+    setTimeout(() => { sel.style.borderColor = ''; sel.style.boxShadow = ''; }, 1500);
+  }
+  loadClients();
+}
+
+function loadClients() {
+  const anneeFilter = document.getElementById('filter-annee').value;
+  const moisFilter = document.getElementById('filter-mois').value; // format MM
+  const statusFilter = document.getElementById('filter-status').value;
+  const emailFilter = (document.getElementById('filter-email').value || '').trim().toLowerCase();
+
+  filteredClients = allClients.filter(c => {
+    // Filtre par année et/ou mois
+    if (anneeFilter || moisFilter) {
+      const dateStr = c.date_debut || c.created_at;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (isNaN(d)) return false;
+      if (anneeFilter && String(d.getFullYear()) !== anneeFilter) return false;
+      if (moisFilter && String(d.getMonth()+1).padStart(2,'0') !== moisFilter) return false;
+    }
+    // Filtre par statut
+    if (statusFilter && c.contrat_status !== statusFilter) return false;
+    // Filtre par email client
+    if (emailFilter) {
+      const p = c.personnes;
+      const clientEmail = (p && p.email) ? p.email.toLowerCase() : '';
+      if (!clientEmail.includes(emailFilter)) return false;
+    }
+    return true;
+  });
+
+  // Si aucun filtre actif, filteredClients = tous
+  if (!anneeFilter && !moisFilter && !statusFilter && !emailFilter) {
+    filteredClients = [...allClients];
+  }
+  currentPage = 1;
+  updateStats();
+  renderTable();
+}
+
+function renderTable() {
+  document.getElementById('table-loading').style.display = 'none';
+
+  if (filteredClients.length === 0) {
+    document.getElementById('table-content').style.display = 'none';
+    document.getElementById('table-empty').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('table-empty').style.display = 'none';
+  document.getElementById('table-content').style.display = 'block';
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const page = filteredClients.slice(start, end);
+  const totalPages = Math.ceil(filteredClients.length / PAGE_SIZE);
+
+  // Render rows
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = page.map(c => {
+    const p = c.personnes || {};
+    const name = [p.prenom, p.nom].filter(Boolean).join(' ') || p.email || '—';
+    const date = (c.date_debut || c.created_at) ? new Date(c.date_debut || c.created_at).toLocaleDateString('fr-FR') : '—';
+    const status = c.contrat_status || 'en_attente';
+    const comm = c._commission;
+    const commMontant = comm ? `${parseFloat(comm.montant||0).toFixed(0)} €` : '—';
+    const commStatus = comm
+      ? (comm.statut === 'paye'
+          ? `<span class="commission-paid">✓ Payé</span>`
+          : `<span class="commission-pending">⏳ En attente</span>`)
+      : `<span class="commission-none">—</span>`;
+
+    const adresse = c._adresse || {};
+    const adresseStr = (adresse && adresse.rue)
+      ? [adresse.rue, [adresse.code_postal, adresse.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+      : '—';
+
+    const clientIndex = allClients.findIndex(x => x.id === c.id);
+    return `<tr style="cursor:pointer" onclick="showClientDetail(${clientIndex})">
+      <td>
+        <div class="client-name">${name}</div>
+        <div class="client-id">${p ? p.email || '' : ''}</div>
+      </td>
+      <td style="font-size:12px;color:var(--muted);font-family:monospace">${c.id_fournisseur ? String(c.id_fournisseur) : '—'}</td>
+      <td style="font-size:12px;color:var(--muted);font-family:monospace">${c.id_service || '—'}</td>
+      <td>${c.fournisseur || '—'}</td>
+      <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${adresseStr}">${adresseStr}</td>
+      <td>${date}</td>
+      <td><span class="badge ${status}">${status}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const total = filteredClients.length;
+  document.getElementById('page-info').textContent =
+    `${start+1}–${Math.min(end, total)} sur ${total} clients`;
+
+  const pageBtns = document.getElementById('page-btns');
+  pageBtns.innerHTML = '';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'page-btn';
+  prevBtn.textContent = '←';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.onclick = () => { currentPage--; renderTable(); };
+  pageBtns.appendChild(prevBtn);
+
+  // Show max 5 page buttons
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, startPage + 4);
+  for (let i = startPage; i <= endPage; i++) {
+    const btn = document.createElement('button');
+    btn.className = `page-btn${i === currentPage ? ' active' : ''}`;
+    btn.textContent = i;
+    btn.onclick = ((pg) => () => { currentPage = pg; renderTable(); })(i);
+    pageBtns.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'page-btn';
+  nextBtn.textContent = '→';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.onclick = () => { currentPage++; renderTable(); };
+  pageBtns.appendChild(nextBtn);
+}
+</script>
+
+<!-- MODAL CLIENT DETAIL -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal()">
+  <div style="background:#fff;border-radius:20px;padding:40px;width:100%;max-width:520px;position:relative;max-height:85vh;overflow-y:auto">
+    <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:24px;color:var(--text)" id="modal-title">Détail client</div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ===== PAYMENT MANAGER =====
+async function showPaymentManager() {
+  const overlay = document.getElementById('payment-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('payment-body').innerHTML = '<div style="text-align:center;padding:40px;color:#999">Chargement...</div>';
+  
+  const headers = getHeaders();
+  try {
+    // 1. Charger les commissions
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/commissions?intermediaire_id=eq.${currentUser.id}&contrat_id=not.is.null&select=id,contrat_id,montant,statut&order=statut.asc&limit=500`,
+      { headers }
+    );
+    const comms = await r.json();
+
+    // 2. Charger les contrats associés (avec personne + adresse)
+    const contratIds = [...new Set(comms.map(c => c.contrat_id).filter(Boolean))];
+    let contratInfoMap = {};
+    if (contratIds.length > 0) {
+      // Par lots de 100
+      for (let i = 0; i < contratIds.length; i += 100) {
+        const ids = contratIds.slice(i, i+100).join(',');
+        const rc = await fetch(
+          `${SUPABASE_URL}/rest/v1/contrats?id=in.(${ids})&select=id,id_service,personne_id,adresse_id`,
+          { headers }
+        );
+        const cts = await rc.json();
+        if (Array.isArray(cts)) cts.forEach(ct => { contratInfoMap[ct.id] = ct; });
+      }
+    }
+
+    // 3. Charger les personnes
+    const personneIds = [...new Set(Object.values(contratInfoMap).map(ct => ct.personne_id).filter(Boolean))];
+    let personneMap = {};
+    if (personneIds.length > 0) {
+      for (let i = 0; i < personneIds.length; i += 100) {
+        const ids = personneIds.slice(i, i+100).join(',');
+        const rp = await fetch(
+          `${SUPABASE_URL}/rest/v1/personnes?id=in.(${ids})&select=id,prenom,nom,email`,
+          { headers }
+        );
+        const ps = await rp.json();
+        if (Array.isArray(ps)) ps.forEach(p => { personneMap[p.id] = p; });
+      }
+    }
+
+    // 4. Charger les adresses
+    const adresseIds = [...new Set(Object.values(contratInfoMap).map(ct => ct.adresse_id).filter(Boolean))];
+    let adresseMap = {};
+    if (adresseIds.length > 0) {
+      for (let i = 0; i < adresseIds.length; i += 100) {
+        const ids = adresseIds.slice(i, i+100).join(',');
+        const ra = await fetch(
+          `${SUPABASE_URL}/rest/v1/adresses?id=in.(${ids})&select=id,rue,ville,code_postal,pdl,pce`,
+          { headers }
+        );
+        const as = await ra.json();
+        if (Array.isArray(as)) as.forEach(a => { adresseMap[a.id] = a; });
+      }
+    }
+
+    const nonPaye = comms.filter(c => c.statut !== 'paye');
+    const paye = comms.filter(c => c.statut === 'paye');
+    const totalNon = nonPaye.reduce((s,c) => s + parseFloat(c.montant||0) * 1.2, 0);
+    const totalPaye = paye.reduce((s,c) => s + parseFloat(c.montant||0) * 1.2, 0);
+    
+    document.getElementById('payment-body').innerHTML = `
+      <div style="display:flex;gap:16px;margin-bottom:20px">
+        <div style="flex:1;background:#f7f5f0;border-radius:10px;padding:16px;text-align:center">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8a8070">En attente</div>
+          <div style="font-size:28px;font-family:'Playfair Display',serif;color:#c8820a">${nonPaye.length}</div>
+          <div style="font-size:13px;color:#8a8070">${totalNon.toFixed(0)} € TTC</div>
+        </div>
+        <div style="flex:1;background:#f7f5f0;border-radius:10px;padding:16px;text-align:center">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8a8070">Payé</div>
+          <div style="font-size:28px;font-family:'Playfair Display',serif;color:#2d7d4f">${paye.length}</div>
+          <div style="font-size:13px;color:#8a8070">${totalPaye.toFixed(0)} € TTC</div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:#8a8070;margin-bottom:12px">Les paiements sont marqués par l'administrateur. Contactez votre responsable pour toute question.</p>
+      <p style="font-size:12px;color:#a09070;margin-bottom:12px">${comms.length} commissions sur ${allClients.length} contrats au total.</p>
+      <div style="max-height:360px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="background:#f0ede6;position:sticky;top:0">
+            <th style="padding:8px 10px;text-align:left;font-size:11px;letter-spacing:0.5px">Client · Adresse · PDL</th>
+            <th style="padding:8px;text-align:right;font-size:11px">Montant</th>
+            <th style="padding:8px;text-align:center;font-size:11px">Statut</th>
+          </tr></thead>
+          <tbody>
+            ${comms.slice(0,200).map(c => {
+              const ct = contratInfoMap[c.contrat_id] || {};
+              const p = personneMap[ct.personne_id] || {};
+              const a = adresseMap[ct.adresse_id] || {};
+              const nom = [p.prenom, p.nom].filter(Boolean).join(' ') || '—';
+              const adresse = [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+              const pdl = a.pdl || a.pce || '—';
+              return `
+              <tr style="border-bottom:1px solid #f0ede6">
+                <td style="padding:8px 10px">
+                  <div style="font-weight:600;color:#1a1610;font-size:13px">${nom}</div>
+                  <div style="font-size:11px;color:#8a8070;margin-top:1px">${p.email||''}</div>
+                  <div style="font-size:11px;color:#8a8070">${adresse}</div>
+                  <div style="font-size:11px;color:#a09070;font-family:monospace">PDL ${pdl}</div>
+                </td>
+                <td style="padding:7px 8px;text-align:right;font-weight:700;color:#1a1610">${(parseFloat(c.montant||0)*1.2).toFixed(0)} €</td>
+                <td style="padding:7px 8px;text-align:center">
+                  <span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;
+                    background:${c.statut==='paye'?'rgba(45,125,79,0.12)':'rgba(200,130,10,0.12)'};
+                    color:${c.statut==='paye'?'#2d7d4f':'#c8820a'}">${c.statut==='paye'?'✓ payé':'en attente'}</span>
+                </td>
+
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        ${comms.length > 200 ? `<p style="text-align:center;font-size:12px;color:#8a8070;padding:8px">... et ${comms.length-200} autres</p>` : ''}
+      </div>`;
+  } catch(e) {
+    document.getElementById('payment-body').innerHTML = '<div style="color:red;padding:20px">Erreur de chargement</div>';
+  }
+}
+
+function closePaymentManager() {
+  document.getElementById('payment-overlay').style.display = 'none';
+}
+
+function showClientDetail(idx) {
+  const full = allClients[idx] || {};
+  const p = full.personnes || {};
+  const adresse = full._adresse || {};
+
+  const name = [p.civilite, p.prenom, p.nom].filter(Boolean).join(' ') || p.email || '—';
+  const adresseStr = [adresse.rue, adresse.complement, [adresse.code_postal, adresse.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+
+  // IBAN masqué
+  const iban = full.iban || '';
+  const ibanMasked = iban.length > 4 ? '•••• •••• •••• ' + iban.slice(-4) : (iban || '—');
+
+  document.getElementById('modal-title').textContent = [p.prenom, p.nom].filter(Boolean).join(' ') || p.email || '—';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:grid;gap:0">
+      ${mrow('Civilité', p.civilite || '—')}
+      ${mrow('Prénom / Nom', [p.prenom, p.nom].filter(Boolean).join(' ') || '—')}
+      ${mrow('Email', p.email || '—')}
+      ${mrow('Téléphone', p.telephone || '—')}
+      ${mrow('WeChat', p.wechat || '—')}
+      <div style="height:1px;background:#f0ede6;margin:8px 0"></div>
+      ${mrow('ID Service', full.id_service || '—')}
+      ${mrow('ID Fournisseur', full.id_fournisseur ? String(full.id_fournisseur) : '—')}
+      ${mrow('Fournisseur', full.fournisseur || '—')}
+      ${mrow('Formule', full.formule || '—')}
+      ${mrow('Option tarifaire', full.option_tarifaire || '—')}
+      ${mrow('Type énergie', full.energie_type || '—')}
+      ${mrow('CAR (kWh/an)', full.elec_car || '—')}
+      <div style="height:1px;background:#f0ede6;margin:8px 0"></div>
+      ${mrow('Adresse', adresseStr)}
+      ${mrow('PDL', adresse.pdl || '—')}
+      ${mrow('PCE', adresse.pce || '—')}
+      ${mrow('Puissance', adresse.puissance || '—')}
+      ${mrow('Type logement', adresse.type_logement || '—')}
+      <div style="height:1px;background:#f0ede6;margin:8px 0"></div>
+      ${mrow('Statut contrat', full.contrat_status || '—')}
+      ${mrow('Date', (full.date_debut || full.created_at) ? new Date(full.date_debut || full.created_at).toLocaleDateString('fr-FR') : '—')}
+      ${mrow('IBAN', `<span style="font-family:monospace;letter-spacing:1px">${ibanMasked}</span>`)}
+    </div>`;
+
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function mrow(label, value) {
+  return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0ede6">
+    <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#8a8070">${label}</span>
+    <span style="font-size:14px;color:#1a1610;text-align:right;max-width:280px">${value}</span>
+  </div>`;
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+
+function clearEmail() {
+  document.getElementById('filter-email').value = '';
+  document.getElementById('clear-email').style.display = 'none';
+  loadClients();
+}
+</script>
+<!-- INSCRIPTION JS -->
+<script>
+// ===== INSCRIPTION =====
+const INS_URL = SUPABASE_URL;
+const INS_KEY = SUPABASE_ANON_KEY;
+const INS_H = fuwuHA();
+
+let insSelectedService='energie', insSelectedTypeClient='particulier', insSelectedCiv=null;
+let insSelectedEnergie='elec', insSelectedSouscription='mise_en_service', insSelectedOptionTarifaire='BASE';
+let insExistingPersonne=null, insForceNewClient=false, insDupCheckTimer=null;
+let insPdlAdresse=null, insPceAdresse=null;
+let _insIntermTimer=null; window._insIntermValid=false;
+
+function showInscription(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('inscription-screen').style.display='block';
+  // init date naissance
+  const today=new Date();
+  const el=document.getElementById('ins-f-naissance');
+  if(el){el.max=today.toISOString().split('T')[0];el.min=new Date(today.getFullYear()-100,today.getMonth(),today.getDate()).toISOString().split('T')[0];}
+}
+
+function showInscriptionFromDashboard(){
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('inscription-screen').style.display='block';
+  const backBtn=document.getElementById('ins-back-btn');
+  if(backBtn){backBtn.textContent='← Retour dashboard';backBtn.onclick=hideInscriptionToDashboard;}
+  const successBtn=document.getElementById('ins-success-back-btn');
+  if(successBtn){successBtn.textContent='Retour au dashboard';successBtn.onclick=hideInscriptionToDashboard;}
+  const today=new Date();
+  const el=document.getElementById('ins-f-naissance');
+  if(el){el.max=today.toISOString().split('T')[0];el.min=new Date(today.getFullYear()-100,today.getMonth(),today.getDate()).toISOString().split('T')[0];}
+}
+
+function hideInscriptionToDashboard(){
+  document.getElementById('inscription-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  insResetForm();
+  // Refresh data
+  loadAllData().then(()=>{ loadClients(); });
+}
+
+function hideInscription(){
+  document.getElementById('inscription-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  insResetForm();
+}
+
+function insResetForm(){
+  insSelectedCiv=null; insExistingPersonne=null; insForceNewClient=false;
+  insGoToRaw(1);
+  document.getElementById('ins-success').style.display='none';
+  document.getElementById('ins-steps').style.display='flex';
+  ['ins-page-1','ins-page-2','ins-page-3','ins-page-4','ins-page-5'].forEach((id,i)=>{
+    const el=document.getElementById(id); if(el){el.classList.toggle('ins-active',i===0);}
+  });
+  // reset all inputs
+  document.querySelectorAll('#inscription-screen input,#inscription-screen select,#inscription-screen textarea').forEach(el=>{
+    if(el.type==='select-one')el.selectedIndex=0; else if(el.id!=='ins-f-naissance')el.value='';
+  });
+  document.querySelectorAll('.ins-toggle').forEach(b=>b.classList.remove('ins-selected'));
+  const defaults=['ins-tc-particulier','ins-egy-elec','ins-opt-base','ins-sous-mise'];
+  defaults.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('ins-selected');});
+  document.getElementById('ins-svc-energie').classList.add('ins-selected');
+  document.getElementById('ins-fg-pdl').style.display='block';
+  document.getElementById('ins-fg-pce').style.display='none';
+  document.getElementById('ins-fg-siret').style.display='none';
+  const iw=document.getElementById('ins-dup-warning');if(iw)iw.classList.remove('ins-show');
+  document.querySelectorAll('.ins-alert').forEach(el=>el.classList.remove('ins-show'));
+}
+
+function insGoToRaw(n){
+  for(let i=1;i<=5;i++){
+    const pg=document.getElementById(`ins-page-${i}`); if(pg) pg.classList.toggle('ins-active',i===n);
+    const st=document.getElementById(`ins-step-${i}`); if(st){st.classList.remove('ins-active','ins-done');if(i<n)st.classList.add('ins-done');else if(i===n)st.classList.add('ins-active');}
+    if(i<5){const ln=document.getElementById(`ins-line-${i}`);if(ln)ln.classList.toggle('ins-done',i<n);}
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function insGoTo(n){
+  if(n>1&&!insValidatePage(n-1))return;
+  if(n===5)insBuildRecap();
+  insGoToRaw(n);
+}
+
+function insValidatePage(n){
+  const show=(id,msg)=>{const el=document.getElementById(id);if(el){el.textContent=msg;el.classList.add('ins-show');}};
+  const hide=(id)=>{const el=document.getElementById(id);if(el)el.classList.remove('ins-show');};
+  const v=(id)=>document.getElementById(id)?.value?.trim()||'';
+  const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if(n===2){
+    if(!insSelectedCiv){show('ins-err-identity','Veuillez sélectionner une civilité.');return false;}
+    if(!v('ins-f-prenom')||!v('ins-f-nom')){show('ins-err-identity','Prénom et nom obligatoires.');return false;}
+    if(!v('ins-f-email')){show('ins-err-identity','L\'email est obligatoire.');return false;}
+    if(!emailRe.test(v('ins-f-email'))){show('ins-err-identity','Email invalide.');return false;}
+    hide('ins-err-identity');return true;
+  }
+  if(n===3){
+    if(!v('ins-f-rue')||!v('ins-f-cp')||!v('ins-f-ville')){show('ins-err-service-detail','Adresse incomplète.');return false;}
+    if(v('ins-f-cp').length!==5){show('ins-err-service-detail','Code postal invalide.');return false;}
+    hide('ins-err-service-detail');return true;
+  }
+  if(n===4){
+    if(!v('ins-f-interm')){show('ins-err-finance','Code intermédiaire obligatoire.');return false;}
+    if(!window._insIntermValid){show('ins-err-finance','Code intermédiaire non reconnu.');return false;}
+    hide('ins-err-finance');return true;
+  }
+  return true;
+}
+
+// Selections
+function insSelectService(s){insSelectedService=s;document.querySelectorAll('.ins-svc-btn:not(.ins-disabled)').forEach(b=>b.classList.remove('ins-selected'));document.getElementById(`ins-svc-${s}`).classList.add('ins-selected');}
+function insSelectTypeClient(t){insSelectedTypeClient=t;['particulier','professionnel'].forEach(k=>document.getElementById(`ins-tc-${k}`).classList.remove('ins-selected'));document.getElementById(`ins-tc-${t}`).classList.add('ins-selected');}
+function insSelectCiv(c){insSelectedCiv=c;document.querySelectorAll('[id^="ins-civ-"]').forEach(b=>b.classList.remove('ins-selected'));const map={'M.':'m','Mme':'mme','M. & Mme':'mrmme','Société':'societe'};const el=document.getElementById(`ins-civ-${map[c]}`);if(el)el.classList.add('ins-selected');const fg=document.getElementById('ins-fg-siret');if(fg)fg.style.display=c==='Société'?'block':'none';}
+function insSelectEnergie(e){insSelectedEnergie=e;['elec','gaz','both'].forEach(k=>document.getElementById(`ins-egy-${k}`).classList.remove('ins-selected'));document.getElementById(`ins-egy-${e==='elec+gaz'?'both':e}`).classList.add('ins-selected');document.getElementById('ins-fg-pdl').style.display=e==='gaz'?'none':'block';document.getElementById('ins-fg-pce').style.display=e==='elec'?'none':'block';}
+function insSelectOptionTarifaire(v){insSelectedOptionTarifaire=v;const b=document.getElementById('ins-opt-base');if(b)b.classList.toggle('ins-selected',v==='BASE');const h=document.getElementById('ins-opt-hphc');if(h)h.classList.toggle('ins-selected',v==='HPHC');}
+function insSelectSouscription(s){insSelectedSouscription=s;document.getElementById('ins-sous-mise').classList.toggle('ins-selected',s==='mise_en_service');document.getElementById('ins-sous-change').classList.toggle('ins-selected',s==='en_service');}
+
+// Helpers
+function insToUpper(el){const pos=el.selectionStart;el.value=el.value.toUpperCase();el.setSelectionRange(pos,pos);}
+function insOnlyDigits(el){el.value=el.value.replace(/\D/g,'');}
+function insFormatIban(el){let val=el.value.replace(/\s/g,'').toUpperCase();el.value=val.match(/.{1,4}/g)?.join(' ')||val;}
+function insV(id){return document.getElementById(id)?.value?.trim()||'';}
+
+// Duplicate check
+function insCheckDuplicate(){
+  clearTimeout(insDupCheckTimer);
+  insDupCheckTimer=setTimeout(async()=>{
+    if(insForceNewClient)return;
+    const email=insV('ins-f-email').toLowerCase();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){insDismissDuplicate();return;}
+    try{
+      const r=await fetch(`${INS_URL}/rest/v1/personnes?email=ilike.${encodeURIComponent(email)}&select=id,civilite,prenom,nom,email,telephone,wechat,date_naissance,siret&limit=1`,{headers:INS_H});
+      const data=await r.json();
+      const match=Array.isArray(data)&&data.length>0?data[0]:null;
+      if(match){
+        insExistingPersonne=match;
+        const rc=await fetch(`${INS_URL}/rest/v1/contrats?personne_id=eq.${match.id}&select=iban&order=created_at.desc&limit=1`,{headers:INS_H});
+        const cd=await rc.json();
+        insExistingPersonne._iban=Array.isArray(cd)&&cd[0]?.iban?cd[0].iban:null;
+        const name=[match.prenom,match.nom].filter(Boolean).join(' ');
+        document.getElementById('ins-dup-info').innerHTML=`<strong>${name}</strong><br><span style="color:#7a8099;font-size:12px">${match.email||''}</span>`;
+        document.getElementById('ins-dup-warning').classList.add('ins-show');
+      }else{insExistingPersonne=null;document.getElementById('ins-dup-warning').classList.remove('ins-show');}
+    }catch(e){console.error(e);}
+  },300);
+}
+function insUseExistingClient(){
+  const p=insExistingPersonne;if(!p)return;
+  if(p.civilite)insSelectCiv(p.civilite);
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
+  set('ins-f-prenom',p.prenom);set('ins-f-nom',p.nom);set('ins-f-email',p.email);set('ins-f-telephone',p.telephone);set('ins-f-wechat',p.wechat);set('ins-f-siret',p.siret);
+  if(p.date_naissance)set('ins-f-naissance',p.date_naissance);
+  if(p._iban){const el=document.getElementById('ins-f-iban');if(el){const raw=p._iban.replace(/\s/g,'').toUpperCase();el.value=raw.match(/.{1,4}/g)?.join(' ')||raw;}}
+  insForceNewClient=false;
+  document.getElementById('ins-dup-warning').classList.remove('ins-show');
+}
+function insDismissDuplicate(){insExistingPersonne=null;insForceNewClient=true;document.getElementById('ins-dup-warning').classList.remove('ins-show');}
+
+// PDL/PCE check
+async function insCheckPDL(val){
+  if(!val||val.length<10){insPdlAdresse=null;document.getElementById('ins-pdl-suggest').style.display='none';return;}
+  try{
+    const r=await fetch(`${INS_URL}/rest/v1/adresses?pdl=eq.${val.padStart(14,'0')}&select=id,rue,complement,code_postal,ville,pdl,pce,puissance,type_logement&limit=1`,{headers:INS_H});
+    const data=await r.json();const ad=Array.isArray(data)&&data[0]?data[0]:null;
+    if(ad){insPdlAdresse=ad;document.getElementById('ins-pdl-suggest-info').textContent=[ad.rue,ad.complement,ad.code_postal+' '+ad.ville].filter(Boolean).join(', ');document.getElementById('ins-pdl-suggest').style.display='block';}
+    else{insPdlAdresse=null;document.getElementById('ins-pdl-suggest').style.display='none';}
+  }catch(e){insPdlAdresse=null;document.getElementById('ins-pdl-suggest').style.display='none';}
+}
+function insFillFromPDL(){
+  const ad=insPdlAdresse;if(!ad)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
+  set('ins-f-rue',ad.rue);set('ins-f-complement',ad.complement);set('ins-f-cp',ad.code_postal);set('ins-f-ville',ad.ville);set('ins-f-pce',ad.pce);
+  insResetDefaults(ad.puissance,ad.type_logement);
+  insPdlAdresse=null;document.getElementById('ins-pdl-suggest').style.display='none';
+}
+async function insCheckPCE(val){
+  if(!val||val.length<10){insPceAdresse=null;document.getElementById('ins-pce-suggest').style.display='none';return;}
+  try{
+    const r=await fetch(`${INS_URL}/rest/v1/adresses?pce=eq.${val.padStart(14,'0')}&select=id,rue,complement,code_postal,ville,pdl,pce,puissance,type_logement&limit=1`,{headers:INS_H});
+    const data=await r.json();const ad=Array.isArray(data)&&data[0]?data[0]:null;
+    if(ad){insPceAdresse=ad;document.getElementById('ins-pce-suggest-info').textContent=[ad.rue,ad.complement,ad.code_postal+' '+ad.ville].filter(Boolean).join(', ');document.getElementById('ins-pce-suggest').style.display='block';}
+    else{insPceAdresse=null;document.getElementById('ins-pce-suggest').style.display='none';}
+  }catch(e){insPceAdresse=null;document.getElementById('ins-pce-suggest').style.display='none';}
+}
+function insFillFromPCE(){
+  const ad=insPceAdresse;if(!ad)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
+  set('ins-f-rue',ad.rue);set('ins-f-complement',ad.complement);set('ins-f-cp',ad.code_postal);set('ins-f-ville',ad.ville);set('ins-f-pdl',ad.pdl);
+  insResetDefaults(ad.puissance,ad.type_logement);
+  insPceAdresse=null;document.getElementById('ins-pce-suggest').style.display='none';
+}
+function insResetDefaults(puissance,logement){
+  const ep=document.getElementById('ins-f-puissance');
+  if(ep){const pval=puissance?String(puissance).replace(/[^0-9]/g,''):'6';const hasOpt=[...ep.options].some(o=>o.value===pval);ep.value=hasOpt?pval:'6';}
+  const el=document.getElementById('ins-f-logement');
+  if(el){const lval=logement?String(logement).toLowerCase().trim():'appartement';const hasOpt=[...el.options].some(o=>o.value===lval);el.value=hasOpt?lval:'appartement';}
+}
+
+// Intermediaire check
+async function insCheckInterm(val){
+  clearTimeout(_insIntermTimer);
+  const status=document.getElementById('ins-interm-status');
+  if(!val){window._insIntermValid=false;if(status)status.style.display='none';return;}
+  _insIntermTimer=setTimeout(async()=>{
+    try{
+      const email=val+'@aaaww.top';
+      const r=await fetch(`${INS_URL}/rest/v1/personnes?email=eq.${encodeURIComponent(email)}&est_intermediaire=eq.true&select=id&limit=1`,{headers:INS_H});
+      const data=await r.json();
+      const found=Array.isArray(data)&&data.length>0;
+      window._insIntermValid=found;
+      if(status){status.textContent=found?'✓':'✗';status.style.display='block';status.style.color=found?'#4caf82':'#e05c5c';}
+    }catch(e){window._insIntermValid=false;}
+  },400);
+}
+
+// Récap
+function insBuildRecap(){
+  const iban=insV('ins-f-iban').replace(/\s/g,'');
+  const interm=insV('ins-f-interm')+'@aaaww.top';
+  const rows=[
+    ['Service','⚡ Énergie'],['Type client',insSelectedTypeClient==='particulier'?'👤 Particulier':'🏢 Professionnel'],
+    ['Civilité',insSelectedCiv||'—'],['Prénom',insV('ins-f-prenom')||'—'],['Nom',insV('ins-f-nom')||'—'],
+    ['Date de naissance',insV('ins-f-naissance')||'—'],
+    ...(insV('ins-f-siret')?[['SIRET',insV('ins-f-siret')]]:[] ),
+    ...(insV('ins-f-coloc-prenom')||insV('ins-f-coloc-nom')?[['Colocataire',[insV('ins-f-coloc-prenom'),insV('ins-f-coloc-nom')].filter(Boolean).join(' ')]]:[] ),
+    null,
+    ['Email 1',insV('ins-f-email')||'—'],...(insV('ins-f-email2')?[['Email 2',insV('ins-f-email2')]]:[] ),
+    ['Téléphone',insV('ins-f-telephone')||'—'],...(insV('ins-f-wechat')?[['WeChat/WA/IG',insV('ins-f-wechat')]]:[] ),
+    null,
+    ['Adresse',[insV('ins-f-rue'),insV('ins-f-complement'),insV('ins-f-cp')+' '+insV('ins-f-ville')].filter(Boolean).join(', ')],
+    ['Énergie',insSelectedEnergie||'—'],['Fournisseur',insV('ins-f-fournisseur')||'—'],
+    ...(insSelectedEnergie!=='gaz'?[['PDL',insV('ins-f-pdl')||'—']]:[] ),
+    ...(insSelectedEnergie!=='elec'?[['PCE',insV('ins-f-pce')||'—']]:[] ),
+    ['Puissance',insV('ins-f-puissance')?insV('ins-f-puissance')+' kVA':'—'],
+    ['Logement',insV('ins-f-logement')||'—'],
+    ['Type souscription',insSelectedSouscription==='mise_en_service'?'🔌 Mise en service':'🔄 Changement fournisseur'],
+    ['Option tarifaire',insSelectedOptionTarifaire||'BASE'],
+    ...(insV('ins-f-note')?[['Notes',insV('ins-f-note')]]:[] ),
+    null,
+    ['IBAN',iban?'•••• •••• •••• '+iban.slice(-4):'—'],
+    ['Intermédiaire',insV('ins-f-interm')?interm:'—'],
+  ];
+  document.getElementById('ins-recap-body').innerHTML=rows.map(r=>
+    r===null?`<hr style="border:none;border-top:1px solid rgba(201,168,76,0.12);margin:12px 0">`:
+    `<div class="ins-recap-row"><span class="ins-recap-key">${r[0]}</span><span class="ins-recap-val">${r[1]}</span></div>`
+  ).join('');
+}
+
+// Soumission
+async function insSubmitForm(){
+  const btn=document.getElementById('ins-btn-submit');
+  btn.disabled=true;btn.innerHTML='<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#0a0c10;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px"></span>Enregistrement...';
+  const errEl=document.getElementById('ins-err-submit');errEl.classList.remove('ins-show');
+  const showErr=(msg)=>{errEl.textContent=msg;errEl.classList.add('ins-show');btn.disabled=false;btn.textContent="Confirmer l'inscription";};
+  try{
+    let personneId;
+    if(insExistingPersonne&&!insForceNewClient){
+      personneId=insExistingPersonne.id;
+    }else{
+      const pData={civilite:insSelectedCiv,type_client:insSelectedTypeClient,prenom:insV('ins-f-prenom'),nom:insV('ins-f-nom'),email:insV('ins-f-email')||null,telephone:insV('ins-f-telephone')||null,wechat:insV('ins-f-wechat')||null,whatsapp:insV('ins-f-wechat2')||null,date_naissance:insV('ins-f-naissance')||null,siret:insV('ins-f-siret')||null,colocataire_prenom:insV('ins-f-coloc-prenom')||null,colocataire_nom:insV('ins-f-coloc-nom')||null,est_client:true,est_intermediaire:false};
+      const rP=await fetch(`${INS_URL}/rest/v1/personnes`,{method:'POST',headers:INS_H,body:JSON.stringify(pData)});
+      if(!rP.ok){const e=await rP.json();throw new Error(JSON.stringify(e));}
+      const[newP]=await rP.json();personneId=newP.id;
+    }
+    const aData={rue:insV('ins-f-rue'),complement:insV('ins-f-complement')||null,code_postal:insV('ins-f-cp'),ville:insV('ins-f-ville'),pdl:insV('ins-f-pdl')||null,pce:insV('ins-f-pce')||null,puissance:insV('ins-f-puissance')||null,type_logement:insV('ins-f-logement')||null};
+    const rA=await fetch(`${INS_URL}/rest/v1/adresses`,{method:'POST',headers:INS_H,body:JSON.stringify(aData)});
+    if(!rA.ok){const e=await rA.json();throw new Error(JSON.stringify(e));}
+    const[newA]=await rA.json();
+    const intermEmail=insV('ins-f-interm')+'@aaaww.top';
+    const cData={personne_id:personneId,adresse_id:newA.id,energie_type:insSelectedEnergie||null,fournisseur:insV('ins-f-fournisseur')||null,option_tarifaire:insSelectedOptionTarifaire||null,contrat_status:'en_attente',date_debut:new Date().toISOString().slice(0,10),source:intermEmail,iban:insV('ins-f-iban').replace(/\s/g,'')||null};
+    const rC=await fetch(`${INS_URL}/rest/v1/contrats`,{method:'POST',headers:INS_H,body:JSON.stringify(cData)});
+    if(!rC.ok){const e=await rC.json();throw new Error(JSON.stringify(e));}
+    const[newC]=await rC.json();
+    // Succès
+    document.querySelectorAll('.ins-page').forEach(p=>p.classList.remove('ins-active'));
+    document.getElementById('ins-steps').style.display='none';
+    document.getElementById('ins-success').style.display='block';
+    document.getElementById('ins-success-id').textContent=newC.id_service?`ID Fuwu : ${newC.id_service.replace(/^F/,'#')}`:`Référence : ${newC.id}`;
+  }catch(e){showErr(`Erreur : ${e.message}`);}
+}
+</script>
+
+<!-- PAYMENT MANAGER MODAL -->
+<div id="payment-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1001;align-items:center;justify-content:center" onclick="if(event.target===this)closePaymentManager()">
+  <div style="background:#fff;border-radius:20px;padding:36px;width:100%;max-width:560px;position:relative;max-height:85vh;overflow-y:auto">
+    <button onclick="closePaymentManager()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:20px;color:#1a1610">Mes commissions</div>
+    <div id="payment-body"></div>
+  </div>
+</div>
+</body>
+</html>
