@@ -16,14 +16,13 @@ function fuwuGetToken() { return _fuwuAccessToken; }
 function fuwuSetToken(t) { _fuwuAccessToken = t; }
 
 // ── Headers ──────────────────────────────────────────────────
-// H  = minimal (for PATCH/DELETE)
-// HR = return=representation (for POST/PATCH needing response)
-// HA = anon-only (no auth token, for public endpoints like inscription)
+// REST API always uses JWT anon key as apikey
+// Auth API uses _fuwuApiKey (may be publishable key or anon key)
 
 function fuwuHeaders(prefer) {
   const token = _fuwuAccessToken || SUPABASE_ANON_KEY;
   return {
-    'apikey': _fuwuApiKey,
+    'apikey': SUPABASE_ANON_KEY,
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
     'Prefer': prefer || 'return=minimal'
@@ -33,7 +32,7 @@ function fuwuH()  { return fuwuHeaders('return=minimal'); }
 function fuwuHR() { return fuwuHeaders('return=representation'); }
 function fuwuHA() {
   return {
-    'apikey': _fuwuApiKey,
+    'apikey': SUPABASE_ANON_KEY,
     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
