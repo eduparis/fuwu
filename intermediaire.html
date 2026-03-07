@@ -950,7 +950,7 @@ function showError(msg) {
   const el = document.getElementById('login-error'); el.textContent = msg; el.style.display = 'block';
 }
 
-function logout() {
+async function logout() {
   await fuwuAuthLogout();
   fuwuClearSession('fuwu_interm_session');
   currentUser = null; accessToken = null; allClients = [];
