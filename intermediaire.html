@@ -890,7 +890,7 @@ async function login() {
         fuwuSaveSession('fuwu_interm_session', {
           access_token: data.access_token, refresh_token: data.refresh_token,
           expires_at: Date.now() + data.expires_in * 1000, user_id: data.user.id
-        }));
+        });
       }
     } catch(e) {}
 
