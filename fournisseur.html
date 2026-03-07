@@ -347,29 +347,42 @@ async function loadContrats() {
   tbody.innerHTML = '<tr><td colspan="7" style="padding:40px;text-align:center;color:var(--muted)"><span class="spinner"></span> Chargement…</td></tr>';
 
   try {
-    // Fetch contrats matching this fournisseur (by nom)
+    // Fetch contrats matching this fournisseur (by nom), paginated
     const fname = encodeURIComponent(currentFournisseur.nom);
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/contrats?fournisseur=ilike.${fname}&select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,source&order=created_at.desc`,
-      { headers: fuwuHA() }
-    );
-    allContrats = await r.json();
-    if (!Array.isArray(allContrats)) allContrats = [];
-
-    // Batch-load personnes
-    const pIds = [...new Set(allContrats.map(c => c.personne_id).filter(Boolean))];
-    if (pIds.length) {
-      const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=in.(${pIds.join(',')})&select=id,civilite,prenom,nom,email,telephone`, { headers: fuwuHA() });
-      const pd = await rp.json();
-      if (Array.isArray(pd)) pd.forEach(p => personnesMap[p.id] = p);
+    allContrats = [];
+    let offset = 0;
+    while (true) {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/contrats?fournisseur=ilike.${fname}&select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,source,bs_fournisseur&order=created_at.desc&limit=1000&offset=${offset}`,
+        { headers: fuwuHA() }
+      );
+      const batch = await r.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      allContrats = allContrats.concat(batch);
+      if (batch.length < 1000) break;
+      offset += 1000;
     }
 
-    // Batch-load adresses
+    // Batch-load personnes (in chunks of 200)
+    const pIds = [...new Set(allContrats.map(c => c.personne_id).filter(Boolean))];
+    for (let i = 0; i < pIds.length; i += 200) {
+      const batch = pIds.slice(i, i + 200);
+      try {
+        const rp = await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,civilite,prenom,nom,email,telephone`, { headers: fuwuHA() });
+        const pd = await rp.json();
+        if (Array.isArray(pd)) pd.forEach(p => personnesMap[p.id] = p);
+      } catch(e) {}
+    }
+
+    // Batch-load adresses (in chunks of 200)
     const aIds = [...new Set(allContrats.map(c => c.adresse_id).filter(Boolean))];
-    if (aIds.length) {
-      const ra = await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=in.(${aIds.join(',')})&select=id,rue,ville,code_postal,pdl,pce`, { headers: fuwuHA() });
-      const ad = await ra.json();
-      if (Array.isArray(ad)) ad.forEach(a => adressesMap[a.id] = a);
+    for (let i = 0; i < aIds.length; i += 200) {
+      const batch = aIds.slice(i, i + 200);
+      try {
+        const ra = await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=in.(${batch.join(',')})&select=id,rue,ville,code_postal,pdl,pce`, { headers: fuwuHA() });
+        const ad = await ra.json();
+        if (Array.isArray(ad)) ad.forEach(a => adressesMap[a.id] = a);
+      } catch(e) {}
     }
 
     applyFilters();
