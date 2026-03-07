@@ -754,7 +754,7 @@ async function login() {
     const data=res.data;
     // Check role = admin
     const meta=data.user?.app_metadata||{};
-    if(meta.fuwu_role!=='admin'){
+    if(meta.fuwu_role!=='admin' && meta.role!=='admin'){
       showErr('Accès réservé aux administrateurs.');
       btn.textContent='Accéder';btn.disabled=false;return;
     }
