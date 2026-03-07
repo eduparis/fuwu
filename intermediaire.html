@@ -842,7 +842,9 @@ tr:hover td { background: var(--surface2); }
 <script src="common.js"></script>
 <script>
 // Config from common.js
-const SUPABASE_KEY = SUPABASE_ANON_KEY;
+// Intermediaire uses publishable key for Supabase Auth
+_fuwuApiKey = SUPABASE_PUB_KEY;
+const SUPABASE_KEY = SUPABASE_PUB_KEY;
 
 let currentUser = null;
 let accessToken = null;

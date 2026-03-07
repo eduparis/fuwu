@@ -715,9 +715,11 @@ select.field-edit:focus{border-color:var(--accent);}
 <script src="common.js"></script>
 <script>
 // Config from common.js: SUPABASE_URL, SUPABASE_ANON_KEY, fuwu*()
+// Admin uses publishable key for Supabase Auth
+_fuwuApiKey = SUPABASE_PUB_KEY;
 const PAGE = 25;
 // Headers: use H/HR as getters backed by common.js
-const SUPABASE_KEY = SUPABASE_ANON_KEY; // backward compat alias
+const SUPABASE_KEY = SUPABASE_PUB_KEY; // backward compat alias
 let accessToken = null;
 Object.defineProperty(window, 'H',  { get: () => fuwuH()  });
 Object.defineProperty(window, 'HR', { get: () => fuwuHR() });

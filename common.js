@@ -5,6 +5,9 @@
 
 const SUPABASE_URL = 'https://xwcnbgapjkgbtpgfyjeb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3Y25iZ2FwamtnYnRwZ2Z5amViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDkyMjQsImV4cCI6MjA4Nzk4NTIyNH0.5H9i2BsTFH3UmDFdOnHRnAkF4eVwDExAaXHait4RFbI';
+const SUPABASE_PUB_KEY = 'sb_publishable_Ha0c3gxGVjG-_dLv6qehlw_y69_oN9B';
+// _fuwuApiKey: which key to use for apikey header (pages can override before calling auth)
+let _fuwuApiKey = SUPABASE_ANON_KEY;
 
 // ── Token state ──────────────────────────────────────────────
 let _fuwuAccessToken = null;
@@ -20,7 +23,7 @@ function fuwuSetToken(t) { _fuwuAccessToken = t; }
 function fuwuHeaders(prefer) {
   const token = _fuwuAccessToken || SUPABASE_ANON_KEY;
   return {
-    'apikey': SUPABASE_ANON_KEY,
+    'apikey': _fuwuApiKey,
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
     'Prefer': prefer || 'return=minimal'
@@ -30,7 +33,7 @@ function fuwuH()  { return fuwuHeaders('return=minimal'); }
 function fuwuHR() { return fuwuHeaders('return=representation'); }
 function fuwuHA() {
   return {
-    'apikey': SUPABASE_ANON_KEY,
+    'apikey': _fuwuApiKey,
     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
@@ -41,7 +44,7 @@ function fuwuHA() {
 async function fuwuAuthLogin(email, password) {
   const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
-    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    headers: { 'apikey': _fuwuApiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
   });
   const data = await r.json();
@@ -56,7 +59,7 @@ async function fuwuAuthLogin(email, password) {
 async function fuwuAuthRefresh(refreshToken) {
   const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
     method: 'POST',
-    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    headers: { 'apikey': _fuwuApiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh_token: refreshToken })
   });
   const data = await r.json();
@@ -73,7 +76,7 @@ async function fuwuAuthLogout() {
     try {
       await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
         method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${_fuwuAccessToken}` }
+        headers: { 'apikey': _fuwuApiKey, 'Authorization': `Bearer ${_fuwuAccessToken}` }
       });
     } catch (e) { /* ignore */ }
   }
