@@ -284,7 +284,7 @@ function doLogout(){location.reload();}
 async function loadTasks(){
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
-    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par&order=created_at.desc&limit=500`,{headers:fuwuH()});
     if(!r.ok)throw new Error(await r.text());
     allTasks=await r.json();
 
@@ -292,13 +292,13 @@ async function loadTasks(){
     const pids=[...new Set(allTasks.map(t=>t.personne_id).filter(Boolean))];
     for(let i=0;i<pids.length;i+=200){
       const batch=pids.slice(i,i+200);
-      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,prenom,nom,email,telephone`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
+      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,prenom,nom,email,telephone,wechat,colocataire_prenom,colocataire_nom`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
     }
     // Batch load adresses
     const aids=[...new Set(allTasks.map(t=>t.adresse_id).filter(Boolean))];
     for(let i=0;i<aids.length;i+=200){
       const batch=aids.slice(i,i+200);
-      try{const ra=await fetch(`${SB}/rest/v1/adresses?id=in.(${batch.join(',')})&select=id,rue,code_postal,ville,pdl,pce`,{headers:fuwuH()});const d=await ra.json();if(Array.isArray(d))d.forEach(a=>adressesMap[a.id]=a);}catch(e){}
+      try{const ra=await fetch(`${SB}/rest/v1/adresses?id=in.(${batch.join(',')})&select=id,rue,complement,code_postal,ville,pdl,pce,puissance`,{headers:fuwuH()});const d=await ra.json();if(Array.isArray(d))d.forEach(a=>adressesMap[a.id]=a);}catch(e){}
     }
 
     renderStats();
@@ -443,10 +443,8 @@ function openTask(id){
   document.getElementById('dw-sub').textContent=`${name} · ${ts.label}`;
 
   let html='';
-
   // Instruction
   html+=`<div class="dinstr">${tt.instruction}</div>`;
-  html+='<div class="fmodal-grid"><div class="fmodal-col">';
 
   // Pack info
   if(pack){
@@ -465,51 +463,107 @@ function openTask(id){
     html+='</div>';
   }
 
-  // Client info
+  html+='<div class="fmodal-grid"><div class="fmodal-col">';
+
+  // ── Client (editable) ──
   html+=`<div class="dsec">Client</div>`;
-  html+=dr('Nom',esc(name));
-  html+=dr('Téléphone',p.telephone?`<a href="tel:${p.telephone}" style="color:var(--accent)">${esc(p.telephone)}</a>`:'—');
-  html+=dr('Email',esc(p.email||'—'));
+  html+=ef('t-prenom','Prénom',p.prenom);
+  html+=ef('t-nom','Nom',p.nom);
+  html+=ef('t-email','Email',p.email,'email');
+  html+=ef('t-tel','Téléphone',p.telephone,'tel');
+  html+=ef('t-tel2','Téléphone 2',p.telephone2||'','tel');
+  html+=ef('t-wechat','WeChat',p.wechat);
+  html+=ef('t-coloc-prenom','Colocataire prénom',p.colocataire_prenom);
+  html+=ef('t-coloc-nom','Colocataire nom',p.colocataire_nom);
 
-  // Address
+  // ── Adresse (editable) ──
   html+=`<div class="dsec">Adresse</div>`;
-  html+=dr('Rue',esc(a.rue||'—'));
-  html+=dr('CP / Ville',esc([a.code_postal,a.ville].filter(Boolean).join(' ')||'—'));
-  html+=dr('PDL',a.pdl||'—');
-  html+=dr('PCE',a.pce||'—');
-
-  // Contrat
-  html+=`<div class="dsec">Contrat</div>`;
-  html+=dr('Fournisseur',esc(t.fournisseur||'—'));
-  html+=dr('Énergie',t.energie_type||'—');
-  html+=dr('Date début',fmtDate(t.date_debut));
-  html+=dr('Statut',`<span class="tcard-tag ${ts.cls}">${ts.label}</span>`);
-  html+=dr('Info',esc(t.option_tarifaire||'—'));
+  html+=ef('t-rue','Rue',a.rue);
+  html+=ef('t-complement','Complément',a.complement);
+  html+=ef('t-cp','Code postal',a.code_postal);
+  html+=ef('t-ville','Ville',a.ville);
+  html+=ef('t-pdl','PDL',a.pdl);
+  html+=ef('t-pce','PCE',a.pce);
+  html+=ef('t-puissance','Puissance',a.puissance);
 
   html+='</div><div class="fmodal-col">';
 
-  // Note section
-  html+=`<div class="dsec">Note</div>`;
+  // ── Contrat (editable) ──
+  html+=`<div class="dsec">Contrat</div>`;
+  html+=ef('t-id-service','ID Service (Fuwu)',t.id_service);
+  html+=ef('t-id-fournisseur','ID Fournisseur',t.id_fournisseur);
+  html+=ef('t-bs-fournisseur','BS Fournisseur',t.bs_fournisseur);
+  html+=efSel('t-status','Statut',t.contrat_status,'en_attente|en_traitement|actif|annule|refuse');
+  html+=ef('t-fournisseur','Fournisseur',t.fournisseur);
+  html+=efSel('t-energie','Énergie',t.energie_type,'elec|gaz|elec+gaz');
+  html+=efSel('t-formule','Type tâche',t.formule,'|resiliation|mise_en_service|changement_fournisseur|box_internet|ouverture_banque');
+  html+=ef('t-date','Date début',t.date_debut,'date');
+  html+=ef('t-option','Description / Info',t.option_tarifaire);
+  html+=ef('t-source','Source',t.source);
+
+  // ── Note ──
+  html+=`<div class="dsec">Note agent</div>`;
   html+=`<textarea class="note-input" id="task-note" placeholder="Ajouter une note…"></textarea>`;
-  html+=`<button class="abtn" style="margin-top:6px;font-size:10px;" onclick="saveNote('${id}')">💾 Sauver note</button>`;
+
   html+='</div></div>'; // close grid
 
   document.getElementById('dw-body').innerHTML=html;
 
   // Actions
+  let actHtml='';
+  actHtml+=`<button class="abtn g" onclick="saveTaskFull('${id}','${t.personne_id}','${t.adresse_id||''}')">💾 Sauvegarder tout</button>`;
   const isAttente=t.contrat_status==='en_attente';
   const isEnCours=t.contrat_status==='en_traitement';
-  let actHtml='';
   if(isAttente) actHtml+=`<button class="abtn primary" onclick="changeStatus('${id}','en_traitement')">▶ Commencer</button>`;
   if(isEnCours){
     actHtml+=`<button class="abtn g" onclick="changeStatus('${id}','actif')">✅ Terminé</button>`;
-    actHtml+=`<button class="abtn w" onclick="changeStatus('${id}','en_attente')">⏳ Attente client</button>`;
+    actHtml+=`<button class="abtn w" onclick="changeStatus('${id}','en_attente')">⏳ Attente</button>`;
     actHtml+=`<button class="abtn r" onclick="changeStatus('${id}','annule')">🚫 Annuler</button>`;
   }
   if(p.telephone) actHtml+=`<a class="abtn" href="tel:${p.telephone}">📞 Appeler</a>`;
   actHtml+=`<button class="abtn" onclick="copyText('${a.pdl||a.pce||t.id}')">📋 Copier PDL</button>`;
-
   document.getElementById('dw-actions').innerHTML=actHtml;
+}
+
+// Edit field helpers
+function ef(id,label,val,type){
+  type=type||'text';
+  return `<div style="margin-bottom:6px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><input type="${type}" id="${id}" value="${esc(val||'')}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);outline:none;font-family:inherit;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>`;
+}
+function efSel(id,label,val,opts){
+  const options=(opts||'').split('|').map(o=>`<option value="${o}" ${o===(val||'')?'selected':''}>${o||'—'}</option>`).join('');
+  return `<div style="margin-bottom:6px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><select id="${id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);outline:none;font-family:inherit;cursor:pointer;">${options}</select></div>`;
+}
+function gv(id){const el=document.getElementById(id);return el?el.value.trim()||null:null;}
+
+// Save everything in one click
+async function saveTaskFull(contratId,personneId,adresseId){
+  try{
+    // Save contrat fields
+    const cb={contrat_status:gv('t-status'),fournisseur:gv('t-fournisseur'),id_fournisseur:gv('t-id-fournisseur'),bs_fournisseur:gv('t-bs-fournisseur'),id_service:gv('t-id-service'),energie_type:gv('t-energie'),formule:gv('t-formule'),option_tarifaire:gv('t-option'),date_debut:gv('t-date'),source:gv('t-source')};
+    // Append note if filled
+    const note=document.getElementById('task-note')?.value?.trim();
+    if(note) cb.option_tarifaire=(cb.option_tarifaire||'')+' [Note: '+note+']';
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(cb)});
+    const ct=allTasks.find(x=>x.id===contratId);if(ct)Object.assign(ct,cb);
+
+    // Save client fields
+    if(personneId){
+      const pb={prenom:gv('t-prenom'),nom:gv('t-nom'),email:gv('t-email'),telephone:gv('t-tel'),wechat:gv('t-wechat'),colocataire_prenom:gv('t-coloc-prenom'),colocataire_nom:gv('t-coloc-nom')};
+      await fetch(`${SB}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(pb)});
+      if(personnesMap[personneId])Object.assign(personnesMap[personneId],pb);
+    }
+
+    // Save adresse fields
+    if(adresseId){
+      const ab={rue:gv('t-rue'),complement:gv('t-complement'),code_postal:gv('t-cp'),ville:gv('t-ville'),pdl:gv('t-pdl'),pce:gv('t-pce'),puissance:gv('t-puissance')};
+      await fetch(`${SB}/rest/v1/adresses?id=eq.${adresseId}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(ab)});
+      if(adressesMap[adresseId])Object.assign(adressesMap[adresseId],ab);
+    }
+
+    renderStats();renderTasks();
+    showToast('Tout sauvegardé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
 async function changeStatus(id,newStatus){
@@ -523,18 +577,7 @@ async function changeStatus(id,newStatus){
   }catch(e){showToast('Erreur',true);}
 }
 
-async function saveNote(id){
-  const note=document.getElementById('task-note')?.value?.trim();
-  if(!note)return;
-  // Save as option_tarifaire (append note)
-  const t=allTasks.find(x=>x.id===id);if(!t)return;
-  const newOpt=(t.option_tarifaire||'')+' [Note: '+note+']';
-  try{
-    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({option_tarifaire:newOpt})});
-    t.option_tarifaire=newOpt;
-    showToast('Note sauvée');
-  }catch(e){showToast('Erreur',true);}
-}
+// saveNote is now part of saveTaskFull
 
 // ══════════════════════════════════════
 // CLIENTS / CONTRATS SEARCH
