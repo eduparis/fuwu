@@ -307,7 +307,7 @@ async function loadTasks(){
     const pids=[...new Set(allTasks.map(t=>t.personne_id).filter(Boolean))];
     for(let i=0;i<pids.length;i+=200){
       const batch=pids.slice(i,i+200);
-      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,prenom,nom,email,telephone,wechat,colocataire_prenom,colocataire_nom`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
+      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,civilite,prenom,nom,email,email_reel,telephone,whatsapp,wechat,colocataire_prenom,colocataire_nom,date_naissance,siret`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
     }
     // Batch load adresses
     const aids=[...new Set(allTasks.map(t=>t.adresse_id).filter(Boolean))];
@@ -475,23 +475,33 @@ function openTask(id){
     packHtml+='</div>';
   }
 
-  // Step 1: Client
+  // Step 1: Client (inscription-style layout)
   const s1=`<div class="step-page active" id="step-0">
     <div class="dinstr">${tt.instruction}</div>${packHtml}
+    ${efSel('t-civ','Civilité *',p.civilite||'','|Monsieur|Madame|M. & Mme')}
     <div class="fmodal-grid"><div class="fmodal-col">
-      ${ef('t-civ','Civilité',p.civilite)}
-      ${ef('t-prenom','Prénom',p.prenom)}
-      ${ef('t-nom','Nom',p.nom)}
-      ${ef('t-email','Email',p.email,'email')}
-      ${ef('t-tel','Téléphone',p.telephone,'tel')}
-      ${ef('t-wechat','WeChat / Tél 2',p.wechat)}
-    </div><div class="fmodal-col">
-      ${ef('t-coloc-prenom','Colocataire prénom',p.colocataire_prenom)}
-      ${ef('t-coloc-nom','Colocataire nom',p.colocataire_nom)}
-      ${ef('t-iban','IBAN',t.iban||'')}
-      ${ef('t-date-souscription','Date souscription',t.date_debut,'date')}
+      ${ef('t-prenom','Prénom *',p.prenom)}
+      ${ef('t-nom','Nom *',p.nom)}
       ${ef('t-naissance','Date de naissance',p.date_naissance,'date')}
-    </div></div></div>`;
+    </div><div class="fmodal-col">
+      ${ef('t-coloc-prenom','Colocataire — Prénom',p.colocataire_prenom)}
+      ${ef('t-coloc-nom','Colocataire — Nom',p.colocataire_nom)}
+      ${ef('t-siret','SIRET (pro)',p.siret||'')}
+    </div></div>
+    <div class="fmodal-grid" style="margin-top:4px;"><div class="fmodal-col">
+      ${ef('t-email','Email 1 *',p.email,'email')}
+      ${ef('t-email2','Email 2',p.email_reel||'','email')}
+    </div><div class="fmodal-col">
+      ${ef('t-tel','Téléphone 1 (fixe)',p.telephone,'tel')}
+      ${ef('t-tel2','Téléphone 2 (mobile)',p.whatsapp||'','tel')}
+    </div></div>
+    <div class="fmodal-grid" style="margin-top:4px;"><div class="fmodal-col">
+      ${ef('t-wechat','WeChat / WA / IG',p.wechat)}
+    </div><div class="fmodal-col">
+      ${ef('t-iban','IBAN',t.iban||'')}
+    </div></div>
+    ${ef('t-date-souscription','Date de souscription',t.date_debut,'date')}
+  </div>`;
 
   // Step 2: Adresse
   const s2=`<div class="step-page" id="step-1"><div class="fmodal-grid"><div class="fmodal-col">
@@ -605,7 +615,7 @@ async function saveAll(cid,pid,aid){
     const ct=allTasks.find(x=>x.id===cid);if(ct)Object.assign(ct,cb);
 
     if(pid){
-      const pb={civilite:gv('t-civ'),prenom:gv('t-prenom'),nom:gv('t-nom'),email:gv('t-email'),telephone:gv('t-tel'),wechat:gv('t-wechat'),colocataire_prenom:gv('t-coloc-prenom'),colocataire_nom:gv('t-coloc-nom'),date_naissance:gv('t-naissance')};
+      const pb={civilite:gv('t-civ'),prenom:gv('t-prenom'),nom:gv('t-nom'),email:gv('t-email'),email_reel:gv('t-email2'),telephone:gv('t-tel'),whatsapp:gv('t-tel2'),wechat:gv('t-wechat'),colocataire_prenom:gv('t-coloc-prenom'),colocataire_nom:gv('t-coloc-nom'),date_naissance:gv('t-naissance'),siret:gv('t-siret')};
       await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(pb)});
       if(personnesMap[pid])Object.assign(personnesMap[pid],pb);
     }
