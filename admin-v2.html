@@ -2120,6 +2120,10 @@ const FIELD_LIBRARY=[
     {id:'facturation',label:'Mode facturation',type:'select',options:'Mensualisation|Mensuel|Bimestriel',table:'contrats',col:'mode_facturation'},
     {id:'envoi_facture',label:'Envoi facture',type:'select',options:'email|Courrier',table:'contrats',col:'envoi_facture'},
     {id:'date_debut',label:'Date de souscription',type:'date',table:'contrats',col:'date_debut'},
+    {id:'prix_kwh_ht',label:'Prix kWh HT (€)',type:'text',table:'contrats',col:'prix_kwh_ht'},
+    {id:'prix_kwh_ttc',label:'Prix kWh TTC (€)',type:'text',table:'contrats',col:'prix_kwh_ttc'},
+    {id:'abonnement_ht',label:'Abonnement HT (€/mois)',type:'text',table:'contrats',col:'abonnement_ht'},
+    {id:'abonnement_ttc',label:'Abonnement TTC (€/mois)',type:'text',table:'contrats',col:'abonnement_ttc'},
   ]},
   {cat:'📄 Dossier',fields:[
     {id:'id_service',label:'ID Service (Fuwu)',type:'text',table:'contrats',col:'id_service'},
@@ -2135,8 +2139,7 @@ const FIELD_LIBRARY=[
 async function openFormEditor(configId){
   feConfigId=configId||'agent_task_steps';
   try{
-    const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json'};
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.${feConfigId}&select=config`,{headers});
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.${feConfigId}&select=config`,{headers:getH()});
     const d=await r.json();
     if(d&&d[0]&&d[0].config){
       feConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
@@ -2294,9 +2297,8 @@ function feAddCustomField(){
 
 async function saveFormConfig(){
   try{
-    const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'};
     const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.${feConfigId}`,{
-      method:'PATCH',headers,
+      method:'PATCH',headers:getH('return=minimal'),
       body:JSON.stringify({config:feConfig,updated_at:new Date().toISOString()})
     });
     if(!r.ok)throw new Error(await r.text());
