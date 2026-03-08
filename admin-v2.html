@@ -303,30 +303,47 @@ svg.lc circle{r:3;}
 .iedit-icon{font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;}
 .iedit-icon:hover{color:var(--accent);}
 
-/* ── FORM EDITOR ── */
-.fe-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);padding:20px;}
+/* ── FORM EDITOR (WYSIWYG) ── */
+.fe-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);padding:16px;}
 .fe-overlay.open{display:flex;align-items:stretch;justify-content:center;}
-.fe-box{background:var(--bg);border:1px solid var(--border);border-radius:14px;width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;}
-.fe-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface);flex-shrink:0;}
-.fe-header h2{font-size:16px;font-weight:700;flex:1;}
-.fe-body{flex:1;overflow-y:auto;padding:20px;display:flex;gap:16px;}
-.fe-steps{width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;}
-.fe-step-btn{padding:10px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);text-align:left;}
-.fe-step-btn:hover{border-color:var(--accent);}
-.fe-step-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
-.fe-fields{flex:1;min-height:200px;}
-.fe-field{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:grab;font-size:12px;transition:border-color 0.1s;}
-.fe-field:hover{border-color:var(--accent);}
-.fe-field.dragging{opacity:0.4;border-style:dashed;}
-.fe-field-drag{color:var(--muted);font-size:14px;cursor:grab;flex-shrink:0;}
-.fe-field-info{flex:1;min-width:0;}
-.fe-field-label{font-weight:600;}
-.fe-field-meta{font-size:10px;color:var(--muted);}
-.fe-field-actions{display:flex;gap:4px;flex-shrink:0;}
-.fe-field-actions button{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;color:var(--muted);}
-.fe-field-actions button:hover{background:var(--surface3);color:var(--text);}
-.fe-drop-zone{min-height:40px;border:2px dashed var(--border);border-radius:8px;margin-top:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);}
-.fe-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface);flex-shrink:0;}
+.fe-box{background:var(--bg);border:1px solid var(--border);border-radius:14px;width:100%;max-width:1200px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;}
+.fe-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface);flex-shrink:0;}
+.fe-header h2{font-size:15px;font-weight:700;flex:1;}
+.fe-main{flex:1;display:flex;overflow:hidden;}
+/* Left: step tabs */
+.fe-sidebar{width:140px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);padding:10px 8px;display:flex;flex-direction:column;gap:4px;}
+.fe-stab{padding:10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);text-align:center;border:1px solid transparent;}
+.fe-stab:hover{background:var(--surface2);}
+.fe-stab.active{background:var(--accent-bg);border-color:rgba(200,169,110,0.2);color:var(--accent);}
+.fe-stab-icon{font-size:16px;margin-bottom:2px;}
+.fe-stab-count{font-size:9px;color:var(--muted);}
+/* Center: WYSIWYG preview */
+.fe-preview{flex:1;overflow-y:auto;padding:20px;background:#1a1d28;}
+.fe-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;}
+.fe-item{padding:8px 10px;border:2px solid transparent;border-radius:8px;cursor:pointer;transition:all 0.1s;position:relative;}
+.fe-item:hover{border-color:var(--border2);background:var(--surface2);}
+.fe-item.selected{border-color:var(--accent);background:rgba(200,169,110,0.06);}
+.fe-item.full{grid-column:1/-1;}
+.fe-item-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;}
+.fe-item-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text2);pointer-events:none;width:100%;}
+.fe-item-badge{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#0c0e14;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;display:none;}
+.fe-item.selected .fe-item-badge{display:flex;}
+/* Right: toolbar */
+.fe-toolbar{width:200px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.fe-tool-section{padding:10px 12px;border-bottom:1px solid var(--border);}
+.fe-tool-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.fe-tool-btn{display:block;width:100%;padding:6px 10px;margin-bottom:4px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;text-align:left;}
+.fe-tool-btn:hover{border-color:var(--accent);color:var(--accent);}
+.fe-tool-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.fe-tool-btn.danger{color:var(--danger);border-color:rgba(239,68,68,0.2);}
+.fe-tool-btn.danger:hover{background:rgba(239,68,68,0.08);}
+/* Field library */
+.fe-lib{flex:1;overflow-y:auto;padding:10px 12px;}
+.fe-lib-item{padding:6px 8px;margin-bottom:3px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);display:flex;align-items:center;gap:6px;}
+.fe-lib-item:hover{border-color:var(--accent);color:var(--text);}
+.fe-lib-item .plus{color:var(--accent);font-weight:700;}
+.fe-footer{padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface);flex-shrink:0;align-items:center;}
+.fe-footer-status{font-size:11px;color:var(--muted);margin-left:auto;}
 
 /* ── RESPONSIVE ── */
 @media(max-width:1100px){:root{--drawer-w:340px;}}
@@ -581,23 +598,40 @@ svg.lc circle{r:3;}
   </div>
 </div>
 
-<!-- Form Editor -->
+<!-- Form Editor (WYSIWYG) -->
 <div class="fe-overlay" id="fe-overlay" onclick="if(event.target===this)closeFormEditor()">
   <div class="fe-box">
     <div class="fe-header">
       <h2>📝 Éditeur de formulaire Agent</h2>
-      <button class="abtn" onclick="addFieldToStep()">＋ Ajouter champ</button>
+      <span style="font-size:11px;color:var(--muted);">Cliquez sur un champ pour le sélectionner, puis utilisez les outils à droite</span>
       <button class="fmodal-close" onclick="closeFormEditor()">✕</button>
     </div>
-    <div class="fe-body">
-      <div class="fe-steps" id="fe-steps"></div>
-      <div class="fe-fields" id="fe-fields"></div>
+    <div class="fe-main">
+      <div class="fe-sidebar" id="fe-sidebar"></div>
+      <div class="fe-preview" id="fe-preview"></div>
+      <div class="fe-toolbar">
+        <div class="fe-tool-section">
+          <div class="fe-tool-title">Déplacer</div>
+          <button class="fe-tool-btn" id="fe-btn-up" onclick="feMoveField(-1)" disabled>⬆ Monter</button>
+          <button class="fe-tool-btn" id="fe-btn-down" onclick="feMoveField(1)" disabled>⬇ Descendre</button>
+          <button class="fe-tool-btn" id="fe-btn-width" onclick="feToggleWidth()" disabled>↔ Pleine / Demi largeur</button>
+        </div>
+        <div class="fe-tool-section">
+          <div class="fe-tool-title">Actions</div>
+          <button class="fe-tool-btn" id="fe-btn-edit" onclick="feEditField()" disabled>✏️ Modifier label</button>
+          <button class="fe-tool-btn" id="fe-btn-type" onclick="feChangeType()" disabled>🔧 Changer type</button>
+          <button class="fe-tool-btn danger" id="fe-btn-del" onclick="feDeleteField()" disabled>🗑 Supprimer</button>
+        </div>
+        <div class="fe-tool-section">
+          <div class="fe-tool-title">Ajouter un champ</div>
+        </div>
+        <div class="fe-lib" id="fe-lib"></div>
+      </div>
     </div>
     <div class="fe-footer">
       <button class="abtn g" onclick="saveFormConfig()">💾 Sauvegarder & Publier</button>
       <button class="abtn" onclick="closeFormEditor()">Annuler</button>
-      <div style="flex:1;"></div>
-      <span style="font-size:11px;color:var(--muted);" id="fe-status">—</span>
+      <div class="fe-footer-status" id="fe-status">—</div>
     </div>
   </div>
 </div>
@@ -2034,113 +2068,204 @@ async function saveContratEdit(id){
 }
 
 // ══════════════════════════════════════
-// FORM EDITOR
+// FORM EDITOR (WYSIWYG)
 // ══════════════════════════════════════
 let feConfig=null;
 let feCurrentStep=0;
+let feSelectedIdx=-1;
+
+// Known fields library (all available DB columns)
+const FIELD_LIBRARY=[
+  {cat:'👤 Client',fields:[
+    {id:'civilite',label:'Civilité',type:'select',options:'Monsieur|Madame|M. & Mme',table:'personnes',col:'civilite'},
+    {id:'prenom',label:'Prénom',type:'text',table:'personnes',col:'prenom'},
+    {id:'nom',label:'Nom',type:'text',table:'personnes',col:'nom'},
+    {id:'email',label:'Email 1',type:'email',table:'personnes',col:'email'},
+    {id:'email_reel',label:'Email 2',type:'email',table:'personnes',col:'email_reel'},
+    {id:'telephone',label:'Téléphone 1 (fixe)',type:'tel',table:'personnes',col:'telephone'},
+    {id:'whatsapp',label:'Téléphone 2 (mobile)',type:'tel',table:'personnes',col:'whatsapp'},
+    {id:'wechat',label:'WeChat / WA / IG',type:'text',table:'personnes',col:'wechat'},
+    {id:'date_naissance',label:'Date de naissance',type:'date',table:'personnes',col:'date_naissance'},
+    {id:'coloc_prenom',label:'Colocataire — Prénom',type:'text',table:'personnes',col:'colocataire_prenom'},
+    {id:'coloc_nom',label:'Colocataire — Nom',type:'text',table:'personnes',col:'colocataire_nom'},
+    {id:'siret',label:'SIRET (pro)',type:'text',table:'personnes',col:'siret'},
+    {id:'note',label:'Note client',type:'textarea',table:'personnes',col:'note'},
+  ]},
+  {cat:'📍 Adresse',fields:[
+    {id:'rue',label:'Rue',type:'text',table:'adresses',col:'rue'},
+    {id:'complement',label:'Complément',type:'text',table:'adresses',col:'complement'},
+    {id:'code_postal',label:'Code postal',type:'text',table:'adresses',col:'code_postal'},
+    {id:'ville',label:'Ville',type:'text',table:'adresses',col:'ville'},
+    {id:'pdl',label:'PDL (14 chiffres)',type:'text',table:'adresses',col:'pdl'},
+    {id:'pce',label:'PCE (14 chiffres)',type:'text',table:'adresses',col:'pce'},
+    {id:'puissance',label:'Puissance (kVA)',type:'puissance',table:'adresses',col:'puissance'},
+    {id:'type_logement',label:'Type logement',type:'select',options:'appartement|maison|commerce|autre',table:'adresses',col:'type_logement'},
+  ]},
+  {cat:'⚙️ Technique',fields:[
+    {id:'option_tarifaire',label:'Option tarifaire',type:'select',options:'BASE|HPHC|Autre',table:'contrats',col:'option_tarifaire'},
+    {id:'elec_car',label:'Élec CAR (kWh/an)',type:'text',table:'contrats',col:'elec_car'},
+    {id:'gaz_car',label:'Gaz CAR (kWh/an)',type:'text',table:'contrats',col:'gaz_car'},
+    {id:'offre',label:'Offre',type:'text',table:'contrats',col:'formule'},
+    {id:'fournisseur',label:'Fournisseur',type:'text',table:'contrats',col:'fournisseur'},
+    {id:'energie_type',label:'Énergie',type:'select',options:'elec|gaz|elec+gaz',table:'contrats',col:'energie_type'},
+    {id:'paiement',label:'Choix paiement',type:'select',options:'Prelevement|Carte|Autre',table:'contrats',col:'choix_paiement'},
+    {id:'facturation',label:'Mode facturation',type:'select',options:'Mensualisation|Mensuel|Bimestriel',table:'contrats',col:'mode_facturation'},
+    {id:'envoi_facture',label:'Envoi facture',type:'select',options:'email|Courrier',table:'contrats',col:'envoi_facture'},
+    {id:'iban',label:'IBAN',type:'text',table:'contrats',col:'iban'},
+    {id:'date_debut',label:'Date de souscription',type:'date',table:'contrats',col:'date_debut'},
+  ]},
+  {cat:'📄 Dossier',fields:[
+    {id:'id_service',label:'ID Service (Fuwu)',type:'text',table:'contrats',col:'id_service'},
+    {id:'id_fournisseur',label:'ID Fournisseur',type:'text',table:'contrats',col:'id_fournisseur'},
+    {id:'bs_fournisseur',label:'BS Fournisseur',type:'text',table:'contrats',col:'bs_fournisseur'},
+    {id:'contrat_status',label:'Statut Dossier',type:'select',options:'en_attente|en_traitement|actif|annule|refuse',table:'contrats',col:'contrat_status'},
+    {id:'source',label:'Source / Intermédiaire',type:'text',table:'contrats',col:'source'},
+    {id:'inscrit_par',label:'Inscrit par',type:'text',table:'contrats',col:'inscrit_par'},
+    {id:'note_agent',label:'Note agent',type:'textarea',table:'contrats',col:'note_agent'},
+  ]},
+];
 
 async function openFormEditor(){
-  // Load current config from DB (use anon key for REST)
   try{
     const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json'};
     const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers});
     const d=await r.json();
     if(d&&d[0]&&d[0].config){
       feConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
-      feConfig=JSON.parse(JSON.stringify(feConfig)); // deep clone
+      feConfig=JSON.parse(JSON.stringify(feConfig));
     }
-  }catch(e){showToast('Erreur chargement config: '+e.message,true);return;}
+  }catch(e){showToast('Erreur: '+e.message,true);return;}
   if(!feConfig||!feConfig.steps){showToast('Config invalide',true);return;}
   document.getElementById('fe-overlay').classList.add('open');
-  feCurrentStep=0;
-  renderFormEditor();
+  feCurrentStep=0;feSelectedIdx=-1;
+  renderFE();
 }
 function closeFormEditor(){document.getElementById('fe-overlay').classList.remove('open');}
 
-function renderFormEditor(){
-  // Step buttons
-  document.getElementById('fe-steps').innerHTML=feConfig.steps.map((s,i)=>
-    `<div class="fe-step-btn ${i===feCurrentStep?'active':''}" onclick="feCurrentStep=${i};renderFormEditor()">
-      <div style="font-size:14px;margin-bottom:2px;">${['👤','📍','⚙️','📄'][i]||'📋'}</div>
-      ${esc(s.title)}
-      <div style="font-size:10px;color:var(--muted);">${s.fields.length} champs</div>
+function renderFE(){
+  const icons=['👤','📍','⚙️','📄'];
+  // Sidebar step tabs
+  document.getElementById('fe-sidebar').innerHTML=feConfig.steps.map((s,i)=>
+    `<div class="fe-stab ${i===feCurrentStep?'active':''}" onclick="feCurrentStep=${i};feSelectedIdx=-1;renderFE()">
+      <div class="fe-stab-icon">${icons[i]||'📋'}</div>${esc(s.title)}
+      <div class="fe-stab-count">${s.fields.length} champs</div>
     </div>`
   ).join('');
 
-  // Fields for current step (draggable)
+  // WYSIWYG preview
   const step=feConfig.steps[feCurrentStep];
-  let html='';
+  let html='<div class="fe-grid">';
   step.fields.forEach((f,i)=>{
-    html+=`<div class="fe-field" draggable="true" ondragstart="feDragStart(event,${i})" ondragover="feDragOver(event)" ondrop="feDrop(event,${i})" ondragend="feDragEnd(event)">
-      <div class="fe-field-drag">⠿</div>
-      <div class="fe-field-info">
-        <div class="fe-field-label">${esc(f.label)}</div>
-        <div class="fe-field-meta">${f.type} · ${f.table}.${f.col} · ${f.width||'half'}${f.required?' · requis':''}${f.default?' · def:'+f.default:''}</div>
-      </div>
-      <div class="fe-field-actions">
-        <button onclick="feEditField(${i})" title="Modifier">✏️</button>
-        <button onclick="feMoveField(${i},-1)" title="Monter">⬆</button>
-        <button onclick="feMoveField(${i},1)" title="Descendre">⬇</button>
-        <button onclick="feDeleteField(${i})" title="Supprimer">🗑</button>
-      </div>
+    const isFull=f.width==='full';
+    const isSel=i===feSelectedIdx;
+    const typeIcon={text:'Aa',email:'@',tel:'📞',date:'📅',select:'▾',textarea:'¶',puissance:'⚡'}[f.type]||'·';
+    // Render a fake input that looks like the Agent form
+    let inputHtml;
+    if(f.type==='select'){
+      const firstOpt=(f.options||'').split('|')[0]||'—';
+      inputHtml=`<div class="fe-item-input">${esc(f.default||firstOpt)} ▾</div>`;
+    }else if(f.type==='textarea'){
+      inputHtml=`<div class="fe-item-input" style="min-height:40px;">${esc(f.default||'')}</div>`;
+    }else if(f.type==='puissance'){
+      inputHtml=`<div style="display:flex;gap:3px;margin-bottom:3px;"><span style="padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);font-size:10px;">3</span><span style="padding:2px 6px;border-radius:4px;background:var(--accent-bg);border:1px solid var(--accent);font-size:10px;color:var(--accent);">6</span><span style="padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);font-size:10px;">9</span><span style="padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);font-size:10px;">12</span></div><div class="fe-item-input">${esc(f.default||'6')}</div>`;
+    }else{
+      inputHtml=`<div class="fe-item-input">${esc(f.default||'')}</div>`;
+    }
+    html+=`<div class="fe-item ${isFull?'full':''} ${isSel?'selected':''}" onclick="feSelect(${i})">
+      <div class="fe-item-label">${esc(f.label)}${f.required?' *':''} <span style="font-size:8px;color:var(--muted);">${typeIcon}</span></div>
+      ${inputHtml}
+      <div class="fe-item-badge">${i+1}</div>
     </div>`;
   });
-  html+=`<div class="fe-drop-zone" ondragover="feDragOver(event)" ondrop="feDrop(event,${step.fields.length})">Glisser ici pour réordonner</div>`;
-  document.getElementById('fe-fields').innerHTML=html;
-  document.getElementById('fe-status').textContent=`${feConfig.steps.reduce((s,st)=>s+st.fields.length,0)} champs total`;
-}
+  html+='</div>';
+  document.getElementById('fe-preview').innerHTML=html;
 
-// Drag & drop
-let feDragIdx=null;
-function feDragStart(e,idx){feDragIdx=idx;e.target.classList.add('dragging');}
-function feDragOver(e){e.preventDefault();}
-function feDrop(e,targetIdx){
-  e.preventDefault();
-  if(feDragIdx===null||feDragIdx===targetIdx)return;
-  const step=feConfig.steps[feCurrentStep];
-  const [item]=step.fields.splice(feDragIdx,1);
-  const insertAt=targetIdx>feDragIdx?targetIdx-1:targetIdx;
-  step.fields.splice(insertAt,0,item);
-  feDragIdx=null;
-  renderFormEditor();
-}
-function feDragEnd(e){e.target.classList.remove('dragging');feDragIdx=null;}
+  // Update toolbar buttons
+  const hasSel=feSelectedIdx>=0;
+  document.getElementById('fe-btn-up').disabled=!hasSel||feSelectedIdx===0;
+  document.getElementById('fe-btn-down').disabled=!hasSel||feSelectedIdx>=step.fields.length-1;
+  document.getElementById('fe-btn-width').disabled=!hasSel;
+  document.getElementById('fe-btn-edit').disabled=!hasSel;
+  document.getElementById('fe-btn-type').disabled=!hasSel;
+  document.getElementById('fe-btn-del').disabled=!hasSel;
 
-function feMoveField(idx,dir){
-  const step=feConfig.steps[feCurrentStep];
-  const newIdx=idx+dir;
-  if(newIdx<0||newIdx>=step.fields.length)return;
-  [step.fields[idx],step.fields[newIdx]]=[step.fields[newIdx],step.fields[idx]];
-  renderFormEditor();
-}
-
-function feDeleteField(idx){
-  if(!confirm('Supprimer ce champ ?'))return;
-  feConfig.steps[feCurrentStep].fields.splice(idx,1);
-  renderFormEditor();
-}
-
-function feEditField(idx){
-  const f=feConfig.steps[feCurrentStep].fields[idx];
-  const newLabel=prompt('Label:',f.label);if(newLabel===null)return;f.label=newLabel;
-  const newType=prompt('Type (text/email/tel/date/select/textarea/puissance):',f.type);if(newType)f.type=newType;
-  if(newType==='select'){const opts=prompt('Options (séparées par |):',f.options||'');if(opts!==null)f.options=opts;}
-  const newDefault=prompt('Valeur par défaut:',f.default||'');f.default=newDefault||undefined;
-  const newWidth=prompt('Largeur (half/full):',f.width||'half');if(newWidth)f.width=newWidth;
-  renderFormEditor();
-}
-
-function addFieldToStep(){
-  const label=prompt('Label du nouveau champ:');if(!label)return;
-  const table=prompt('Table (personnes/contrats/adresses):','contrats');if(!table)return;
-  const col=prompt('Colonne DB:');if(!col)return;
-  const type=prompt('Type (text/email/tel/date/select/textarea):','text')||'text';
-  let options='';
-  if(type==='select')options=prompt('Options (séparées par |):','')||'';
-  feConfig.steps[feCurrentStep].fields.push({
-    id:col+'_'+Date.now(),label,type,table,col,width:'half',options:options||undefined
+  // Field library — show fields not already in current step
+  const usedCols=new Set(step.fields.map(f=>f.table+'.'+f.col));
+  let libHtml='';
+  FIELD_LIBRARY.forEach(cat=>{
+    const available=cat.fields.filter(f=>!usedCols.has(f.table+'.'+f.col));
+    if(!available.length)return;
+    libHtml+=`<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:8px 0 4px;">${cat.cat}</div>`;
+    available.forEach(f=>{
+      libHtml+=`<div class="fe-lib-item" onclick="feAddFromLib('${f.id}','${esc(f.label)}','${f.type}','${f.table}','${f.col}','${f.options||''}')"><span class="plus">＋</span>${esc(f.label)}</div>`;
+    });
   });
-  renderFormEditor();
+  document.getElementById('fe-lib').innerHTML=libHtml||'<div style="font-size:11px;color:var(--muted);padding:8px;">Tous les champs sont utilisés dans cette étape.</div>';
+  document.getElementById('fe-status').textContent=`Étape ${feCurrentStep+1}/${feConfig.steps.length} · ${step.fields.length} champs · ${feConfig.steps.reduce((s,st)=>s+st.fields.length,0)} total`;
+}
+
+function feSelect(idx){
+  feSelectedIdx=feSelectedIdx===idx?-1:idx;
+  renderFE();
+}
+
+function feMoveField(dir){
+  if(feSelectedIdx<0)return;
+  const step=feConfig.steps[feCurrentStep];
+  const ni=feSelectedIdx+dir;
+  if(ni<0||ni>=step.fields.length)return;
+  [step.fields[feSelectedIdx],step.fields[ni]]=[step.fields[ni],step.fields[feSelectedIdx]];
+  feSelectedIdx=ni;
+  renderFE();
+}
+
+function feToggleWidth(){
+  if(feSelectedIdx<0)return;
+  const f=feConfig.steps[feCurrentStep].fields[feSelectedIdx];
+  f.width=f.width==='full'?'half':'full';
+  renderFE();
+}
+
+function feEditField(){
+  if(feSelectedIdx<0)return;
+  const f=feConfig.steps[feCurrentStep].fields[feSelectedIdx];
+  const nl=prompt('Label:',f.label);
+  if(nl===null)return;
+  f.label=nl;
+  if(f.type==='select'){
+    const opts=prompt('Options (séparées par |):',f.options||'');
+    if(opts!==null)f.options=opts;
+  }
+  const nd=prompt('Valeur par défaut:',f.default||'');
+  f.default=nd||undefined;
+  renderFE();
+}
+
+function feChangeType(){
+  if(feSelectedIdx<0)return;
+  const f=feConfig.steps[feCurrentStep].fields[feSelectedIdx];
+  const nt=prompt('Type (text / email / tel / date / select / textarea / puissance):',f.type);
+  if(!nt)return;
+  f.type=nt;
+  if(nt==='select'&&!f.options)f.options=prompt('Options (séparées par |):','')||'';
+  renderFE();
+}
+
+function feDeleteField(){
+  if(feSelectedIdx<0)return;
+  if(!confirm('Supprimer ce champ ?'))return;
+  feConfig.steps[feCurrentStep].fields.splice(feSelectedIdx,1);
+  feSelectedIdx=-1;
+  renderFE();
+}
+
+function feAddFromLib(id,label,type,table,col,options){
+  feConfig.steps[feCurrentStep].fields.push({
+    id:id+'_'+Date.now(),label,type,table,col,width:'half',options:options||undefined
+  });
+  renderFE();
+  // Scroll preview to bottom
+  document.getElementById('fe-preview').scrollTop=99999;
 }
 
 async function saveFormConfig(){
@@ -2151,7 +2276,7 @@ async function saveFormConfig(){
       body:JSON.stringify({config:feConfig,updated_at:new Date().toISOString()})
     });
     if(!r.ok)throw new Error(await r.text());
-    showToast('✅ Configuration publiée — Agent mis à jour');
+    showToast('✅ Formulaire publié — Agent mis à jour automatiquement');
     closeFormEditor();
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
