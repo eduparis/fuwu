@@ -310,8 +310,11 @@ function doLogout(){location.reload();}
 // ══════════════════════════════════════
 // LOAD TASKS
 // ══════════════════════════════════════
+let taskTypesMap={};
 async function loadTasks(){
   if(!formConfig)await loadFormConfig();
+  // Load task types for commission defaults
+  try{const rt=await fetch(`${SB}/rest/v1/task_types?actif=eq.true&select=id,label,icon,commission_default,penalite_default,description`,{headers:fuwuH()});const d=await rt.json();if(Array.isArray(d))d.forEach(t=>{taskTypesMap[t.id]=t;if(t.label)TASK_TYPES[t.id]={icon:t.icon||'📋',label:t.label,instruction:t.description||'Traiter cette tâche.'};});}catch(e){}
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
     const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_penalite&order=created_at.desc&limit=500`,{headers:fuwuH()});
@@ -438,7 +441,8 @@ function renderTasks(){
     const isMyTask=t.agent_code===myAgentCode;
     const canClaim=!isClaimed&&t.contrat_status==='en_attente';
     const comm=commMap[t.id];
-    const commAmt=comm?parseFloat(comm.montant||0):0;
+    const ttDef=taskTypesMap[t.formule];
+    const commAmt=comm?parseFloat(comm.montant||0):(ttDef?parseFloat(ttDef.commission_default||0):0);
 
     // Agent badge
     let agentHtml='';
