@@ -376,13 +376,15 @@ function detectPacks(){
 // RENDER
 // ══════════════════════════════════════
 function renderStats(){
-  const aFaire=allTasks.filter(t=>t.contrat_status==='en_attente').length;
-  const enCours=allTasks.filter(t=>t.contrat_status==='en_traitement').length;
-  const demenag=allTasks.filter(t=>['resiliation','mise_en_service'].includes(t.formule)).length;
+  // Only count: unclaimed + my tasks
+  const visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
+  const aFaire=visible.filter(t=>t.contrat_status==='en_attente').length;
+  const enCours=visible.filter(t=>t.contrat_status==='en_traitement').length;
+  const demenag=visible.filter(t=>['resiliation','mise_en_service'].includes(t.formule)).length;
   document.getElementById('task-stats').innerHTML=`
     <div class="scard" onclick="setFilter('a_faire')"><div class="scard-val v-orange">${aFaire}</div><div class="scard-label">À faire</div></div>
     <div class="scard" onclick="setFilter('en_cours')"><div class="scard-val v-blue">${enCours}</div><div class="scard-label">En cours</div></div>
-    <div class="scard" onclick="setFilter('all')"><div class="scard-val">${allTasks.length}</div><div class="scard-label">Total</div></div>
+    <div class="scard" onclick="setFilter('all')"><div class="scard-val">${visible.length}</div><div class="scard-label">Total</div></div>
     <div class="scard" onclick="setFilter('demenagement')"><div class="scard-val v-gold">${demenag}</div><div class="scard-label">Déménagement</div></div>
   `;
   document.getElementById('tb-taches').textContent=aFaire;
@@ -408,14 +410,16 @@ function setFilter(f){currentFilter=f;renderChips();renderTasks();}
 
 function renderTasks(){
   const packMap=detectPacks();
-  let filtered=allTasks;
-  if(currentFilter==='a_faire')filtered=allTasks.filter(t=>t.contrat_status==='en_attente');
-  else if(currentFilter==='en_cours')filtered=allTasks.filter(t=>t.contrat_status==='en_traitement');
-  else if(currentFilter==='demenagement')filtered=allTasks.filter(t=>['resiliation','mise_en_service'].includes(t.formule));
-  else if(currentFilter==='resiliation')filtered=allTasks.filter(t=>t.formule==='resiliation');
-  else if(currentFilter==='mise_en_service')filtered=allTasks.filter(t=>t.formule==='mise_en_service');
-  else if(currentFilter==='box')filtered=allTasks.filter(t=>t.formule==='box_internet');
-  else if(currentFilter==='banque')filtered=allTasks.filter(t=>t.formule==='ouverture_banque');
+  // Only show: unclaimed tasks (agent_code is null) + my tasks
+  let visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
+  let filtered=visible;
+  if(currentFilter==='a_faire')filtered=visible.filter(t=>t.contrat_status==='en_attente');
+  else if(currentFilter==='en_cours')filtered=visible.filter(t=>t.contrat_status==='en_traitement');
+  else if(currentFilter==='demenagement')filtered=visible.filter(t=>['resiliation','mise_en_service'].includes(t.formule));
+  else if(currentFilter==='resiliation')filtered=visible.filter(t=>t.formule==='resiliation');
+  else if(currentFilter==='mise_en_service')filtered=visible.filter(t=>t.formule==='mise_en_service');
+  else if(currentFilter==='box')filtered=visible.filter(t=>t.formule==='box_internet');
+  else if(currentFilter==='banque')filtered=visible.filter(t=>t.formule==='ouverture_banque');
 
   if(!filtered.length){document.getElementById('task-list').innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;">Aucune tâche.</div>';return;}
 
@@ -695,8 +699,12 @@ async function saveAll(cid,pid,aid){
 
     steps.forEach(step=>{
       step.fields.forEach(f=>{
-        const val=gv('tf-'+f.id);
-        if(val===undefined)return;
+        // Skip readonly fields (they shouldn't overwrite)
+        if(f.readonly||f.col==='id_service'||f.col==='inscrit_par'||f.col==='agent_code'||f.col==='source')return;
+        const el=document.getElementById('tf-'+f.id);
+        if(!el)return;
+        const val=el.value.trim();
+        if(!val)return; // Don't send empty → prevents overwriting existing data with null
         if(f.table==='contrats')contratBody[f.col]=val;
         else if(f.table==='personnes')personneBody[f.col]=val;
         else if(f.table==='adresses')adresseBody[f.col]=val;
@@ -707,19 +715,22 @@ async function saveAll(cid,pid,aid){
     contratBody.modifie_par=myAgentCode;
 
     // Also grab note if exists
-    const note=gv('tf-note');
-    if(note&&!contratBody.note_agent)contratBody.note_agent=note;
+    const noteEl=document.getElementById('tf-note');
+    if(noteEl&&noteEl.value.trim())contratBody.note_agent=noteEl.value.trim();
 
     if(Object.keys(contratBody).length){
-      await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(contratBody)});
+      const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(contratBody)});
+      if(!r.ok){const t=await r.text();throw new Error('Contrat: '+t);}
       const ct=allTasks.find(x=>x.id===cid);if(ct)Object.assign(ct,contratBody);
     }
     if(pid&&Object.keys(personneBody).length){
-      await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(personneBody)});
+      const r=await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(personneBody)});
+      if(!r.ok){const t=await r.text();throw new Error('Personne: '+t);}
       if(personnesMap[pid])Object.assign(personnesMap[pid],personneBody);
     }
     if(aid&&Object.keys(adresseBody).length){
-      await fetch(`${SB}/rest/v1/adresses?id=eq.${aid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(adresseBody)});
+      const r=await fetch(`${SB}/rest/v1/adresses?id=eq.${aid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(adresseBody)});
+      if(!r.ok){const t=await r.text();throw new Error('Adresse: '+t);}
       if(adressesMap[aid])Object.assign(adressesMap[aid],adresseBody);
     }
 

@@ -472,6 +472,14 @@ async function submitForm(){
     if(!rpc.ok){const e=await rpc.json();throw new Error(JSON.stringify(e));}
     const result=await rpc.json();
     const newC=Array.isArray(result)?result[0]:result;
+
+    // Set formule (task type) on the new contrat based on souscription choice
+    if(newC&&(newC.out_contrat_id||newC.id)){
+      const contratId=newC.out_contrat_id||newC.id;
+      const souscription=v('f-souscription')||'mise_en_service';
+      const formule=souscription==='en_service'?'changement_fournisseur':'mise_en_service';
+      try{await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify({formule})});}catch(e){}
+    }
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelector('.steps').style.display='none';
     document.getElementById('success-screen').classList.add('show');
