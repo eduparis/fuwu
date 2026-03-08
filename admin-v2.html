@@ -345,6 +345,24 @@ svg.lc circle{r:3;}
 .fe-footer{padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface);flex-shrink:0;align-items:center;}
 .fe-footer-status{font-size:11px;color:var(--muted);margin-left:auto;}
 
+/* ── TASK TYPE CARDS ── */
+.tt-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all 0.12s;position:relative;}
+.tt-card:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.tt-card-icon{font-size:24px;margin-bottom:6px;}
+.tt-card-label{font-size:13px;font-weight:700;margin-bottom:2px;}
+.tt-card-desc{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.3;}
+.tt-card-meta{display:flex;gap:6px;flex-wrap:wrap;}
+.tt-card-tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:6px;}
+.tt-cat-agent{background:rgba(13,110,253,0.1);color:var(--info);}
+.tt-cat-fournisseur{background:rgba(184,146,42,0.1);color:var(--accent);}
+.tt-cat-client{background:rgba(25,135,84,0.1);color:var(--success);}
+.tt-cat-systeme{background:rgba(138,130,120,0.1);color:var(--muted);}
+.tt-card-inactive{opacity:0.4;}
+.tt-card-comm{font-size:11px;font-weight:600;color:var(--accent);}
+.tt-card-actions{position:absolute;top:8px;right:8px;display:flex;gap:2px;}
+.tt-card-actions button{background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);padding:2px 4px;border-radius:4px;}
+.tt-card-actions button:hover{background:var(--surface3);color:var(--text);}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1100px){:root{--drawer-w:340px;}}
 @media(max-width:900px){.qfilters{display:none;}}
@@ -406,6 +424,7 @@ svg.lc circle{r:3;}
     <!-- ── SIDEBAR (compact icons only) ── -->
     <div class="sidebar">
       <div class="snav active" onclick="showPage('accueil')" id="sn-accueil">🏠<span class="snav-tip">Accueil</span></div>
+      <div class="snav" onclick="showPage('taches')" id="sn-taches">📋<span class="snav-tip">Tâches</span><span class="snav-badge" id="sb-taches" style="display:none"></span></div>
       <div class="snav" onclick="showPage('crm')" id="sn-crm">👥<span class="snav-tip">CRM</span><span class="snav-badge" id="sb-crm" style="display:none"></span></div>
       <div class="snav" onclick="showPage('contrats')" id="sn-contrats">📄<span class="snav-tip">Contrats</span><span class="snav-badge" id="sb-contrats" style="display:none"></span></div>
       <div class="snav" onclick="showPage('finance')" id="sn-finance">💶<span class="snav-tip">Finance</span><span class="snav-badge" id="sb-finance" style="display:none"></span></div>
@@ -439,6 +458,30 @@ svg.lc circle{r:3;}
             <!-- Recent -->
             <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px;">Activité récente</div>
             <div id="acc-recent"></div>
+          </div>
+        </div>
+
+        <!-- ═══ PAGE: TÂCHES ═══ -->
+        <div class="page" id="pg-taches">
+          <div class="work-header">
+            <div class="work-title">📋 Gestion des tâches</div>
+            <div class="work-actions">
+              <button class="abtn" onclick="loadTaskPage()" id="task-refresh">↻ Actualiser</button>
+            </div>
+          </div>
+          <div class="work-body">
+            <!-- Task type config -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;">Types de tâches par service</div>
+              <button class="abtn" style="font-size:10px;margin-left:auto;" onclick="addServiceCat()">＋ Nouvelle catégorie</button>
+            </div>
+            <div id="task-types-grid"></div>
+
+            <!-- Active tasks overview -->
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Tâches en cours</div>
+            <div class="stats stats-4" id="task-stats"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;" id="task-filter-chips"></div>
+            <div id="task-active-list"></div>
           </div>
         </div>
 
@@ -783,6 +826,7 @@ function showPage(name){
   if(name==='contrats'&&!fContrats.length)filterContrats();
   if(name==='crm'&&!fCRM.length)filterCRM();
   if(name==='finance')renderFinance();
+  if(name==='taches')loadTaskPage();
 }
 
 // ══════════════════════════════════════
@@ -2126,6 +2170,217 @@ async function saveContratEdit(id){
     if(currentPage==='accueil')renderAccueil();
     showToast('Contrat mis à jour ✅');
   }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+// ══════════════════════════════════════
+// TÂCHES PAGE
+// ══════════════════════════════════════
+let allTaskTypes=[];
+let allServiceCats=[];
+let activeTaskFilter='all';
+
+async function loadTaskPage(){
+  try{
+    const [r1,r2]=await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/task_types?order=sort_order.asc`,{headers:H()}),
+      fetch(`${SUPABASE_URL}/rest/v1/service_categories?order=sort_order.asc`,{headers:H()})
+    ]);
+    if(r1.ok)allTaskTypes=await r1.json();
+    if(r2.ok)allServiceCats=await r2.json();
+  }catch(e){}
+  renderTaskTypes();
+  renderActiveTasksList();
+}
+
+function renderTaskTypes(){
+  const catLabels={agent:'🛡 Agent',fournisseur:'🏢 Fournisseur',client:'👤 Client',systeme:'🤖 Système'};
+  let html='';
+
+  // Group by service_category
+  allServiceCats.filter(c=>c.actif).forEach(cat=>{
+    const types=allTaskTypes.filter(t=>t.service_category===cat.id);
+    html+=`<div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:18px;">${esc(cat.icon)}</span>
+        <span style="font-size:13px;font-weight:700;">${esc(cat.label)}</span>
+        <span style="font-size:10px;color:var(--muted);">${types.length} type(s)</span>
+        <button class="abtn" style="font-size:10px;margin-left:auto;padding:3px 8px;" onclick="addTaskType('${cat.id}')">＋ Ajouter</button>
+        <button class="abtn" style="font-size:10px;padding:3px 8px;" onclick="editServiceCat('${cat.id}')">✏️</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+        ${types.map(tt=>`
+          <div class="tt-card ${tt.actif?'':'tt-card-inactive'}" onclick="editTaskType('${tt.id}')">
+            <div class="tt-card-actions">
+              <button onclick="event.stopPropagation();toggleTaskType('${tt.id}',${!tt.actif})" title="${tt.actif?'Désactiver':'Activer'}">${tt.actif?'🟢':'⚪'}</button>
+              <button onclick="event.stopPropagation();deleteTaskType('${tt.id}')" title="Supprimer">🗑</button>
+            </div>
+            <div class="tt-card-icon">${esc(tt.icon)}</div>
+            <div class="tt-card-label">${esc(tt.label)}</div>
+            <div class="tt-card-desc">${esc(tt.description||'')}</div>
+            <div class="tt-card-meta">
+              <span class="tt-card-tag tt-cat-${tt.category}">${catLabels[tt.category]||tt.category}</span>
+              <span class="tt-card-comm">💰 ${tt.commission_default||0}€</span>
+              ${tt.penalite_default>0?`<span style="font-size:9px;color:var(--danger);">⚠️ -${tt.penalite_default}€</span>`:''}
+              ${tt.auto_create_pack?`<span style="font-size:9px;color:var(--muted);">📦 Pack</span>`:''}
+            </div>
+          </div>
+        `).join('')}
+        ${!types.length?'<div style="color:var(--muted);font-size:11px;padding:10px;border:1px dashed var(--border);border-radius:8px;text-align:center;">Aucun type · cliquez ＋ pour ajouter</div>':''}
+      </div>
+    </div>`;
+  });
+
+  // Uncategorized
+  const uncategorized=allTaskTypes.filter(t=>!allServiceCats.some(c=>c.id===t.service_category));
+  if(uncategorized.length){
+    html+=`<div style="margin-bottom:20px;"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;">📋 Non classé</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">${uncategorized.map(tt=>`<div class="tt-card" onclick="editTaskType('${tt.id}')"><div class="tt-card-icon">${esc(tt.icon)}</div><div class="tt-card-label">${esc(tt.label)}</div></div>`).join('')}</div></div>`;
+  }
+
+  document.getElementById('task-types-grid').innerHTML=html;
+}
+
+function editTaskType(id){
+  const tt=allTaskTypes.find(t=>t.id===id);if(!tt)return;
+  openFModal();
+  document.getElementById('fm-title').innerHTML=`${tt.icon} Modifier — ${esc(tt.label)}`;
+  document.getElementById('fm-tabs').innerHTML='';
+  const catOpts='agent|fournisseur|client|systeme'.split('|').map(o=>`<option value="${o}" ${o===tt.category?'selected':''}>${o}</option>`).join('');
+  const svcOpts=allServiceCats.map(c=>`<option value="${c.id}" ${c.id===tt.service_category?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+  document.getElementById('fm-body').innerHTML=`
+    <div class="fmodal-grid">
+      <div class="fmodal-col">
+        <div class="fmodal-section">Identité</div>
+        ${fmField('tt-id','ID (technique)',tt.id)}
+        ${fmField('tt-label','Nom affiché',tt.label)}
+        ${fmField('tt-icon','Icône (emoji)',tt.icon)}
+        ${fmField('tt-desc','Description',tt.description,'textarea')}
+        <div class="fmodal-field"><label>Exécutant</label><select id="tt-category" class="finput">${catOpts}</select></div>
+        <div class="fmodal-field"><label>Service / Catégorie</label><select id="tt-svccat" class="finput">${svcOpts}</select></div>
+      </div>
+      <div class="fmodal-col">
+        <div class="fmodal-section">Commission & Pénalité</div>
+        ${fmField('tt-comm','Commission par défaut (€ HT)',String(tt.commission_default||0))}
+        ${fmField('tt-pen','Pénalité abandon (€)',String(tt.penalite_default||0))}
+        <div class="fmodal-section">Pack automatique</div>
+        ${fmField('tt-pack','Sous-tâches (séparées par virgule)',tt.auto_create_pack?tt.auto_create_pack.join(','):'')}
+        <div class="fmodal-section">Formulaire</div>
+        ${fmField('tt-steps','Config formulaire ID',tt.steps_config_id||'agent_task_steps')}
+        <div class="fmodal-field"><label>Actif</label><div style="padding:6px 0;">${tt.actif?'<span class="badge b-actif">Oui</span>':'<span class="badge b-annule">Non</span>'} <button class="abtn" style="font-size:10px;margin-left:8px;" onclick="toggleTaskType('${tt.id}',${!tt.actif});closeFModal();loadTaskPage();">${tt.actif?'Désactiver':'Activer'}</button></div></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('fm-actions').innerHTML=`
+    <button class="abtn g" onclick="saveTaskType('${tt.id}')">💾 Sauvegarder</button>
+    <button class="abtn" onclick="closeFModal()">Annuler</button>
+  `;
+}
+
+async function saveTaskType(id){
+  const body={
+    label:gv('tt-label'),icon:gv('tt-icon'),description:gv('tt-desc'),
+    category:document.getElementById('tt-category')?.value||'agent',
+    service_category:document.getElementById('tt-svccat')?.value||'energie',
+    commission_default:parseFloat(gv('tt-comm'))||0,
+    penalite_default:parseFloat(gv('tt-pen'))||0,
+    steps_config_id:gv('tt-steps')||'agent_task_steps',
+  };
+  const packVal=gv('tt-pack');
+  body.auto_create_pack=packVal?packVal.split(',').map(s=>s.trim()).filter(Boolean):null;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/task_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    closeFModal();await loadTaskPage();
+    showToast('✅ Type de tâche mis à jour');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function addTaskType(svcCat){
+  const id=prompt('ID technique (ex: releve_compteur):');if(!id)return;
+  const label=prompt('Nom affiché:');if(!label)return;
+  const icon=prompt('Icône emoji:','📋')||'📋';
+  const cat=prompt('Exécutant (agent/fournisseur/client/systeme):','agent')||'agent';
+  const comm=prompt('Commission par défaut (€):','0')||'0';
+  const desc=prompt('Description:','')||'';
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/task_types`,{method:'POST',headers:HR(),body:JSON.stringify({
+      id,label,icon,description:desc,category:cat,service_category:svcCat||'autre',commission_default:parseFloat(comm)||0,actif:true,sort_order:allTaskTypes.length+1
+    })});
+    await loadTaskPage();
+    showToast('✅ Type "'+label+'" créé');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function toggleTaskType(id,newState){
+  await fetch(`${SUPABASE_URL}/rest/v1/task_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({actif:newState})});
+  await loadTaskPage();
+  showToast(newState?'Activé':'Désactivé');
+}
+
+async function deleteTaskType(id){
+  if(!confirm('Supprimer ce type de tâche ?'))return;
+  await fetch(`${SUPABASE_URL}/rest/v1/task_types?id=eq.${id}`,{method:'DELETE',headers:H()});
+  await loadTaskPage();showToast('Supprimé');
+}
+
+async function addServiceCat(){
+  const id=prompt('ID (ex: immobilier):');if(!id)return;
+  const label=prompt('Nom affiché:');if(!label)return;
+  const icon=prompt('Icône emoji:','📋')||'📋';
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/service_categories`,{method:'POST',headers:HR(),body:JSON.stringify({id,label,icon,sort_order:allServiceCats.length+1,actif:true})});
+    await loadTaskPage();showToast('✅ Catégorie "'+label+'" créée');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+function editServiceCat(id){
+  const cat=allServiceCats.find(c=>c.id===id);if(!cat)return;
+  const nl=prompt('Nom:',cat.label);if(nl===null)return;
+  const ni=prompt('Icône:',cat.icon);
+  fetch(`${SUPABASE_URL}/rest/v1/service_categories?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:nl,icon:ni||cat.icon})}).then(()=>{loadTaskPage();showToast('✅ Catégorie mise à jour');});
+}
+
+// Active tasks list
+function renderActiveTasksList(){
+  const active=allContrats.filter(c=>c.contrat_status==='en_attente'||c.contrat_status==='en_traitement');
+  const byAgent=active.filter(c=>!!c.agent_code);
+  const noAgent=active.filter(c=>!c.agent_code);
+  const attente=active.filter(c=>c.contrat_status==='en_attente');
+
+  document.getElementById('task-stats').innerHTML=`
+    <div class="scard" onclick="activeTaskFilter='all';renderActiveTasksList()"><div class="scard-val v-orange">${active.length}</div><div class="scard-label">Total actives</div></div>
+    <div class="scard" onclick="activeTaskFilter='no_agent';renderActiveTasksList()"><div class="scard-val v-red">${noAgent.length}</div><div class="scard-label">Sans agent</div></div>
+    <div class="scard" onclick="activeTaskFilter='with_agent';renderActiveTasksList()"><div class="scard-val v-blue">${byAgent.length}</div><div class="scard-label">Agent assigné</div></div>
+    <div class="scard" onclick="activeTaskFilter='en_attente';renderActiveTasksList()"><div class="scard-val v-gold">${attente.length}</div><div class="scard-label">En attente</div></div>
+  `;
+
+  // Filter chips by task type
+  const types=[{id:'all',label:'Tous'}];
+  allTaskTypes.filter(t=>t.actif).forEach(t=>types.push({id:t.id,label:t.icon+' '+t.label}));
+  document.getElementById('task-filter-chips').innerHTML=types.map(f=>
+    `<div class="chip ${activeTaskFilter===f.id?'on':''}" onclick="activeTaskFilter='${f.id}';renderActiveTasksList()">${f.label}</div>`
+  ).join('');
+
+  let filtered=active;
+  if(activeTaskFilter==='no_agent')filtered=noAgent;
+  else if(activeTaskFilter==='with_agent')filtered=byAgent;
+  else if(activeTaskFilter==='en_attente')filtered=attente;
+  else if(activeTaskFilter!=='all')filtered=active.filter(c=>c.formule===activeTaskFilter);
+
+  document.getElementById('task-active-list').innerHTML=filtered.length?filtered.slice(0,50).map(c=>{
+    const p=personneMap[c.personne_id]||{};
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—';
+    const tt=allTaskTypes.find(t=>t.id===c.formule)||{icon:'📋',label:c.formule||'Tâche'};
+    return `<div class="todo" onclick="openEntity('contrat','${c.id}')">
+      <div class="todo-icon" style="font-size:16px;">${tt.icon}</div>
+      <div class="todo-info" style="flex:1;">
+        <div class="todo-title" style="font-size:12px;">${esc(tt.label)} — ${esc(name)}</div>
+        <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${esc(c.id_service||'')} · ${fmtDate(c.date_debut)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        ${tt.commission_default?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${tt.commission_default}€</div>`:''}
+        <div style="font-size:10px;color:var(--muted);">${esc(normFourn(c.fournisseur)||'')}</div>
+      </div>
+    </div>`;
+  }).join(''):'<div style="color:var(--muted);font-size:12px;padding:10px;">Aucune tâche active.</div>';
 }
 
 // ══════════════════════════════════════
