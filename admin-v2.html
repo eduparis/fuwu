@@ -572,7 +572,8 @@ svg.lc circle{r:3;}
             <div class="work-title">⚙️ Système</div>
             <div class="work-actions">
               <button class="abtn" onclick="runHealthCheck()">🩺 Diagnostic</button>
-              <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openFormEditor()">📝 Éditeur formulaire Agent</button>
+              <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openFormEditor('agent_task_steps')">📝 Formulaire Agent</button>
+              <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openFormEditor('inscription_steps')">📝 Formulaire Inscription</button>
             </div>
           </div>
           <div class="work-body" id="sys-body">
@@ -624,6 +625,7 @@ svg.lc circle{r:3;}
         </div>
         <div class="fe-tool-section">
           <div class="fe-tool-title">Ajouter un champ</div>
+          <button class="fe-tool-btn" onclick="feAddCustomField()" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.2);">＋ Créer champ personnalisé</button>
         </div>
         <div class="fe-lib" id="fe-lib"></div>
       </div>
@@ -2073,8 +2075,9 @@ async function saveContratEdit(id){
 let feConfig=null;
 let feCurrentStep=0;
 let feSelectedIdx=-1;
+let feConfigId='agent_task_steps';
 
-// Known fields library (all available DB columns)
+// Known fields library
 const FIELD_LIBRARY=[
   {cat:'👤 Client',fields:[
     {id:'civilite',label:'Civilité',type:'select',options:'Monsieur|Madame|M. & Mme',table:'personnes',col:'civilite'},
@@ -2089,6 +2092,8 @@ const FIELD_LIBRARY=[
     {id:'coloc_prenom',label:'Colocataire — Prénom',type:'text',table:'personnes',col:'colocataire_prenom'},
     {id:'coloc_nom',label:'Colocataire — Nom',type:'text',table:'personnes',col:'colocataire_nom'},
     {id:'siret',label:'SIRET (pro)',type:'text',table:'personnes',col:'siret'},
+    {id:'iban',label:'IBAN',type:'text',table:'personnes',col:'iban'},
+    {id:'type_client',label:'Type de client',type:'select',options:'particulier|professionnel',table:'personnes',col:'type_client'},
     {id:'note',label:'Note client',type:'textarea',table:'personnes',col:'note'},
   ]},
   {cat:'📍 Adresse',fields:[
@@ -2100,6 +2105,9 @@ const FIELD_LIBRARY=[
     {id:'pce',label:'PCE (14 chiffres)',type:'text',table:'adresses',col:'pce'},
     {id:'puissance',label:'Puissance (kVA)',type:'puissance',table:'adresses',col:'puissance'},
     {id:'type_logement',label:'Type logement',type:'select',options:'appartement|maison|commerce|autre',table:'adresses',col:'type_logement'},
+    {id:'surface',label:'Surface (m²)',type:'text',table:'adresses',col:'surface'},
+    {id:'mode_chauffage',label:'Mode chauffage',type:'select',options:'électrique|gaz|fioul|bois|pompe à chaleur|autre',table:'adresses',col:'mode_chauffage'},
+    {id:'eau_chaude',label:'Eau chaude',type:'select',options:'électrique|gaz|solaire|autre',table:'adresses',col:'eau_chaude'},
   ]},
   {cat:'⚙️ Technique',fields:[
     {id:'option_tarifaire',label:'Option tarifaire',type:'select',options:'BASE|HPHC|Autre',table:'contrats',col:'option_tarifaire'},
@@ -2111,7 +2119,6 @@ const FIELD_LIBRARY=[
     {id:'paiement',label:'Choix paiement',type:'select',options:'Prelevement|Carte|Autre',table:'contrats',col:'choix_paiement'},
     {id:'facturation',label:'Mode facturation',type:'select',options:'Mensualisation|Mensuel|Bimestriel',table:'contrats',col:'mode_facturation'},
     {id:'envoi_facture',label:'Envoi facture',type:'select',options:'email|Courrier',table:'contrats',col:'envoi_facture'},
-    {id:'iban',label:'IBAN',type:'text',table:'contrats',col:'iban'},
     {id:'date_debut',label:'Date de souscription',type:'date',table:'contrats',col:'date_debut'},
   ]},
   {cat:'📄 Dossier',fields:[
@@ -2125,10 +2132,11 @@ const FIELD_LIBRARY=[
   ]},
 ];
 
-async function openFormEditor(){
+async function openFormEditor(configId){
+  feConfigId=configId||'agent_task_steps';
   try{
     const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json'};
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers});
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.${feConfigId}&select=config`,{headers});
     const d=await r.json();
     if(d&&d[0]&&d[0].config){
       feConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
@@ -2143,7 +2151,9 @@ async function openFormEditor(){
 function closeFormEditor(){document.getElementById('fe-overlay').classList.remove('open');}
 
 function renderFE(){
-  const icons=['👤','📍','⚙️','📄'];
+  const icons=['👤','📍','⚙️','📄','📋'];
+  const configName=feConfigId==='inscription_steps'?'Inscription':'Agent';
+  document.querySelector('#fe-overlay .fe-header h2').textContent=`📝 Éditeur — Formulaire ${configName}`;
   // Sidebar step tabs
   document.getElementById('fe-sidebar').innerHTML=feConfig.steps.map((s,i)=>
     `<div class="fe-stab ${i===feCurrentStep?'active':''}" onclick="feCurrentStep=${i};feSelectedIdx=-1;renderFE()">
@@ -2264,19 +2274,34 @@ function feAddFromLib(id,label,type,table,col,options){
     id:id+'_'+Date.now(),label,type,table,col,width:'half',options:options||undefined
   });
   renderFE();
-  // Scroll preview to bottom
   document.getElementById('fe-preview').scrollTop=99999;
+}
+
+function feAddCustomField(){
+  const label=prompt('Nom du champ:');if(!label)return;
+  const table=prompt('Table (personnes / contrats / adresses):','contrats');if(!table)return;
+  const col=prompt('Nom de colonne DB (existante ou nouvelle):');if(!col)return;
+  const type=prompt('Type:\n- text\n- email\n- tel\n- date\n- select\n- textarea','text')||'text';
+  let options='';
+  if(type==='select'){options=prompt('Options séparées par | :','')||'';}
+  const def=prompt('Valeur par défaut (laisser vide si aucune):','');
+  feConfig.steps[feCurrentStep].fields.push({
+    id:col+'_'+Date.now(),label,type,table,col,width:'half',options:options||undefined,default:def||undefined
+  });
+  renderFE();
+  showToast('Champ "'+label+'" ajouté');
 }
 
 async function saveFormConfig(){
   try{
     const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'};
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps`,{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.${feConfigId}`,{
       method:'PATCH',headers,
       body:JSON.stringify({config:feConfig,updated_at:new Date().toISOString()})
     });
     if(!r.ok)throw new Error(await r.text());
-    showToast('✅ Formulaire publié — Agent mis à jour automatiquement');
+    const name=feConfigId==='inscription_steps'?'Inscription':'Agent';
+    showToast(`✅ Formulaire ${name} publié — mise à jour automatique`);
     closeFormEditor();
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
