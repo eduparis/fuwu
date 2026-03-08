@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscription — Fuwu.fr</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:#b8922a;--gold-light:#c9a84c;--gold-dim:rgba(184,146,42,0.12);
+    --bg:#ffffff;--surface:#ffffff;--surface2:#f7f5f0;
+    --border:rgba(184,146,42,0.25);--text:#1a1610;--muted:#6b6355;
+    --red:#d63b3b;--green:#2d7d4f;--radius:12px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#ffffff;color:var(--text);min-height:100vh;}
+  .wrap{max-width:640px;margin:0 auto;padding:40px 24px 60px;}
+  .header{text-align:center;margin-bottom:40px;}
+  .header-logo{font-family:'Noto Serif SC',serif;font-size:28px;color:var(--gold);letter-spacing:3px;margin-bottom:6px;}
+  .header-sub{font-size:13px;color:var(--muted);letter-spacing:1px;}
+  .steps{display:flex;align-items:center;justify-content:center;margin-bottom:36px;}
+  .step{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .step-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);background:var(--surface);transition:all 0.3s;}
+  .step.active .step-dot{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);box-shadow:0 0 0 4px rgba(201,168,76,0.1);}
+  .step.done .step-dot{border-color:var(--green);color:var(--green);background:rgba(76,175,130,0.1);}
+  .step-label{font-size:10px;color:var(--muted);white-space:nowrap;}
+  .step.active .step-label{color:var(--gold);}
+  .step.done .step-label{color:var(--green);}
+  .step-line{width:36px;height:1px;background:var(--border);margin-bottom:18px;transition:background 0.3s;}
+  .step-line.done{background:var(--green);}
+  .card{background:#ffffff;border:1px solid rgba(184,146,42,0.3);box-shadow:0 2px 12px rgba(0,0,0,0.06);border-radius:18px;padding:32px;margin-bottom:16px;}
+  .card-title{font-family:'Noto Serif SC',serif;font-size:16px;color:var(--gold);letter-spacing:1px;margin-bottom:24px;display:flex;align-items:center;gap:8px;}
+  .form-row{display:flex;gap:12px;margin-bottom:16px;}
+  .form-row .fg{flex:1;margin-bottom:0;}
+  .fg{margin-bottom:16px;}
+  label{display:block;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  label .req{color:var(--gold);margin-left:2px;}
+  input,select,textarea{width:100%;background:#f7f5f0;border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;appearance:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+  input::placeholder,textarea::placeholder{color:#b0a898;}
+  select option{background:#f7f5f0;color:#1a1610;}
+  .toggle-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .toggle-btn{flex:1;min-width:60px;background:#f0ede6;border:1.5px solid var(--border);border-radius:8px;padding:9px 8px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all 0.2s;user-select:none;}
+  .toggle-btn:hover{border-color:var(--gold);color:var(--text);}
+  .toggle-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .interm-wrap{position:relative;display:flex;align-items:center;}
+  .interm-wrap input{border-radius:9px 0 0 9px;border-right:none;}
+  .interm-suffix{background:var(--surface2);border:1.5px solid var(--border);border-left:none;border-radius:0 9px 9px 0;padding:11px 14px;font-size:13px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+  .interm-wrap input:focus + .interm-suffix{border-color:var(--gold);}
+  .divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+  .nav-btns{display:flex;gap:12px;margin-top:24px;}
+  .btn{flex:1;padding:14px;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .btn-primary{background:var(--gold);color:#0a0c10;}
+  .btn-primary:hover{background:var(--gold-light);transform:translateY(-1px);}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+  .btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border);flex:0 0 auto;padding:14px 20px;}
+  .btn-secondary:hover{color:var(--text);border-color:var(--gold);}
+  .alert{padding:12px 16px;border-radius:9px;font-size:13px;margin-bottom:16px;display:none;}
+  .alert.show{display:block;}
+  .alert-error{background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;}
+  .dup-warning{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:none;}
+  .dup-warning.show{display:block;}
+  .dup-title{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;}
+  .dup-btns{display:flex;gap:8px;}
+  .dup-btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .dup-btn-use{background:var(--gold);color:#0a0c10;}
+  .dup-btn-new{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+  .success-screen{text-align:center;padding:40px 20px;display:none;}
+  .success-screen.show{display:block;}
+  .success-icon{font-size:56px;margin-bottom:16px;}
+  .success-title{font-family:'Noto Serif SC',serif;font-size:22px;color:var(--gold);margin-bottom:8px;}
+  .success-sub{font-size:14px;color:var(--muted);line-height:1.6;}
+  .success-id{font-family:monospace;font-size:13px;color:var(--gold);background:var(--gold-dim);padding:8px 16px;border-radius:8px;margin:16px auto 0;display:inline-block;}
+  .page{display:none;}
+  .page.active{display:block;}
+  .spinner{width:18px;height:18px;border:2px solid rgba(10,12,16,0.3);border-top-color:#0a0c10;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .recap-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:16px;}
+  .recap-row:last-child{border-bottom:none;}
+  .recap-key{font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);flex-shrink:0;padding-top:2px;}
+  .recap-val{font-size:13px;color:var(--text);text-align:right;word-break:break-word;}
+  .pdl-suggest{display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer;}
+  @media(max-width:480px){
+    .wrap{padding:24px 16px 40px;}
+    .card{padding:20px 16px;}
+    .form-row{flex-direction:column;gap:0;}
+    .step-line{width:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-logo">服务 FUWU</div>
+    <div class="header-sub">Formulaire d'inscription</div>
+  </div>
+  <div class="steps" id="steps-bar"></div>
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Inscription enregistrée</div>
+    <div class="success-sub">Votre demande a bien été reçue.<br>Notre équipe vous contactera sous 24h.</div>
+    <div class="success-id" id="success-id"></div>
+  </div>
+  <div id="pages-container"></div>
+</div>
+
+<script>
+const SB='https://xwcnbgapjkgbtpgfyjeb.supabase.co';
+const AK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3Y25iZ2FwamtnYnRwZ2Z5amViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDkyMjQsImV4cCI6MjA4Nzk4NTIyNH0.5H9i2BsTFH3UmDFdOnHRnAkF4eVwDExAaXHait4RFbI';
+const H={'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json','Prefer':'return=representation'};
+let formConfig=null,totalSteps=0,currentStep=0;
+let existingPersonne=null,forceNewClient=false;
+
+// Load config and render
+async function init(){
+  try{
+    const r=await fetch(`${SB}/rest/v1/form_config?id=eq.inscription_steps&select=config`,{headers:{'apikey':AK}});
+    const d=await r.json();
+    if(d&&d[0])formConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
+  }catch(e){console.error(e);}
+  if(!formConfig||!formConfig.steps){document.getElementById('pages-container').innerHTML='<div class="card"><p>Erreur de chargement du formulaire.</p></div>';return;}
+  totalSteps=formConfig.steps.length;
+  renderStepsBar();
+  renderPages();
+  goTo(1);
+}
+
+function renderStepsBar(){
+  let html='';
+  formConfig.steps.forEach((s,i)=>{
+    if(i>0)html+=`<div class="step-line" id="line-${i}"></div>`;
+    html+=`<div class="step${i===0?' active':''}" id="step-${i+1}"><div class="step-dot">${i+1}</div><div class="step-label">${esc(s.title)}</div></div>`;
+  });
+  document.getElementById('steps-bar').innerHTML=html;
+}
+
+function renderPages(){
+  let html='';
+  formConfig.steps.forEach((step,si)=>{
+    html+=`<div class="page${si===0?' active':''}" id="page-${si+1}"><div class="card">`;
+    html+=`<div class="card-title"><span>${['⚡','👤','⚡','🏠','💳','📋'][si]||'📋'}</span> ${esc(step.title)}</div>`;
+
+    // Duplicate warning (on identity step)
+    if(step.fields.some(f=>f.col==='email')){
+      html+=`<div class="dup-warning" id="dup-warning"><div class="dup-title">👤 Client existant trouvé</div><div class="dup-client" id="dup-client-info"></div><div class="dup-btns"><button class="dup-btn dup-btn-use" onclick="useExistingClient()">Utiliser ce client</button><button class="dup-btn dup-btn-new" onclick="forceNewClient=true;document.getElementById('dup-warning').classList.remove('show')">Créer nouveau</button></div></div>`;
+    }
+
+    // Render fields in pairs (half+half = row, full = solo)
+    let i=0;
+    while(i<step.fields.length){
+      const f=step.fields[i];
+      if(f.width==='full'){
+        html+=`<div class="fg">${renderField(f)}</div>`;
+        i++;
+      }else{
+        // Try to pair with next half
+        const next=step.fields[i+1];
+        if(next&&next.width!=='full'){
+          html+=`<div class="form-row"><div class="fg">${renderField(f)}</div><div class="fg">${renderField(next)}</div></div>`;
+          i+=2;
+        }else{
+          html+=`<div class="fg">${renderField(f)}</div>`;
+          i++;
+        }
+      }
+    }
+
+    html+=`</div><div class="alert alert-error" id="err-${si+1}"></div>`;
+    html+=`<div class="nav-btns">`;
+    if(si>0)html+=`<button class="btn btn-secondary" onclick="goTo(${si})">←</button>`;
+    if(si<totalSteps-1)html+=`<button class="btn btn-primary" onclick="goTo(${si+2})">Continuer →</button>`;
+    else html+=`<button class="btn btn-primary" id="btn-submit" onclick="submitForm()">Confirmer l'inscription</button>`;
+    html+=`</div></div>`;
+  });
+  document.getElementById('pages-container').innerHTML=html;
+}
+
+function renderField(f){
+  const id='f-'+f.id;
+  const req=f.required?'<span class="req">*</span>':'';
+
+  // Special: civilite → toggle buttons
+  if(f.col==='civilite'){
+    const opts=(f.options||'Monsieur|Madame|M. & Mme').split('|');
+    return `<label>${esc(f.label)} ${req}</label><div class="toggle-group">${opts.map(o=>`<div class="toggle-btn" onclick="selectToggle('${id}','${esc(o)}',this)">${esc(o)}</div>`).join('')}</div><input type="hidden" id="${id}" value="">`;
+  }
+  // Special: type_client → toggle
+  if(f.col==='type_client'){
+    return `<label>${esc(f.label)}</label><div class="toggle-group"><div class="toggle-btn selected" onclick="selectToggle('${id}','particulier',this)">👤 Particulier</div><div class="toggle-btn" onclick="selectToggle('${id}','professionnel',this)">🏢 Professionnel</div></div><input type="hidden" id="${id}" value="particulier">`;
+  }
+  // Special: energie_type → toggle
+  if(f.col==='energie_type'){
+    return `<label>${esc(f.label)} ${req}</label><div class="toggle-group"><div class="toggle-btn selected" onclick="selectToggle('${id}','elec',this)">⚡ Élec</div><div class="toggle-btn" onclick="selectToggle('${id}','gaz',this)">🔥 Gaz</div><div class="toggle-btn" onclick="selectToggle('${id}','elec+gaz',this)">⚡🔥 Les deux</div></div><input type="hidden" id="${id}" value="elec">`;
+  }
+  // Special: PDL with lookup
+  if(f.col==='pdl'){
+    return `<label>${esc(f.label)}</label><input type="text" id="${id}" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\\D/g,'');checkPDL(this.value)"><div class="pdl-suggest" id="pdl-suggest" onclick="fillFromPDL()"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse trouvée</div><div id="pdl-suggest-info" style="font-size:13px;font-weight:600"></div></div>`;
+  }
+  // Special: PCE with lookup
+  if(f.col==='pce'){
+    return `<label>${esc(f.label)}</label><input type="text" id="${id}" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\\D/g,'');checkPCE(this.value)"><div class="pdl-suggest" id="pce-suggest" onclick="fillFromPCE()"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse trouvée</div><div id="pce-suggest-info" style="font-size:13px;font-weight:600"></div></div>`;
+  }
+  // Special: IBAN
+  if(f.col==='iban'){
+    return `<label>${esc(f.label)}</label><input type="text" id="${id}" placeholder="FR76 3000 6000 0112 3456 7890 189" oninput="formatIban(this)">`;
+  }
+  // Special: email with duplicate check
+  if(f.col==='email'&&f.required){
+    return `<label>${esc(f.label)} ${req}</label><input type="email" id="${id}" placeholder="email@example.com" oninput="checkDuplicate()">`;
+  }
+  // Special: source (intermediaire)
+  if(f.col==='source'){
+    return `<label>${esc(f.label)} ${req}</label><div class="interm-wrap"><input type="text" id="${id}" placeholder="fc305" oninput="this.value=this.value.replace(/\\s/g,'').toLowerCase();checkInterm(this.value)" autocomplete="off"><span id="interm-status" style="position:absolute;right:60px;font-size:16px;display:none"></span><span class="interm-suffix">@aaaww.top</span></div><p style="font-size:11px;color:var(--muted);margin-top:4px">Code de l'intermédiaire</p>`;
+  }
+  // Select
+  if(f.type==='select'){
+    const opts=(f.options||'').split('|').map(o=>`<option value="${o}"${o===(f.default||'')?'selected':''}>${esc(o)}</option>`).join('');
+    return `<label>${esc(f.label)} ${req}</label><select id="${id}">${opts}</select>`;
+  }
+  // Textarea
+  if(f.type==='textarea'){
+    return `<label>${esc(f.label)}</label><textarea id="${id}" rows="3" placeholder="${esc(f.label)}...">${esc(f.default||'')}</textarea>`;
+  }
+  // Puissance special
+  if(f.type==='puissance'){
+    return `<label>${esc(f.label)}</label><select id="${id}"><option value="3">3 kVA</option><option value="6" selected>6 kVA</option><option value="9">9 kVA</option><option value="12">12 kVA</option><option value="15">15 kVA</option><option value="18">18 kVA</option><option value="24">24 kVA</option></select>`;
+  }
+  // Default: text/email/tel/date
+  const ph=f.type==='date'?'':f.label;
+  const upper=f.col==='prenom'||f.col==='nom'||f.col==='rue'||f.col==='complement'||f.col==='ville';
+  const oninput=upper?'oninput="toUpper(this)"':(f.type==='tel'?'oninput="onlyDigits(this)"':'');
+  return `<label>${esc(f.label)} ${req}</label><input type="${f.type||'text'}" id="${id}" placeholder="${esc(ph)}" value="${esc(f.default||'')}" ${oninput}>`;
+}
+
+// ── Navigation ──
+function goTo(n){
+  if(n>1&&!validate(n-1))return;
+  for(let i=1;i<=totalSteps;i++){
+    document.getElementById('page-'+i)?.classList.toggle('active',i===n);
+    const s=document.getElementById('step-'+i);
+    if(s){s.classList.remove('active','done');if(i<n)s.classList.add('done');else if(i===n)s.classList.add('active');}
+    const ln=document.getElementById('line-'+i);
+    if(ln)ln.classList.toggle('done',i<n);
+  }
+  if(n===totalSteps)buildRecap();
+  currentStep=n;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function validate(n){
+  const step=formConfig.steps[n-1];if(!step)return true;
+  const errEl=document.getElementById('err-'+n);
+  for(const f of step.fields){
+    if(f.required){
+      const val=v('f-'+f.id);
+      if(!val){if(errEl){errEl.textContent=f.label+' est obligatoire.';errEl.classList.add('show');}return false;}
+    }
+    if(f.col==='email'&&f.required){
+      const email=v('f-'+f.id);
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){if(errEl){errEl.textContent='Email invalide.';errEl.classList.add('show');}return false;}
+    }
+  }
+  // Special: intermediaire validation
+  if(step.fields.some(f=>f.col==='source')){
+    if(!v('f-source')){if(errEl){errEl.textContent='Code intermédiaire obligatoire.';errEl.classList.add('show');}return false;}
+    if(!window._intermValid){if(errEl){errEl.textContent='Code intermédiaire non reconnu.';errEl.classList.add('show');}return false;}
+  }
+  if(errEl)errEl.classList.remove('show');
+  return true;
+}
+
+// ── Toggle selector ──
+function selectToggle(inputId,val,el){
+  document.getElementById(inputId).value=val;
+  el.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Duplicate check ──
+let dupTimer=null;
+function checkDuplicate(){
+  clearTimeout(dupTimer);
+  dupTimer=setTimeout(async()=>{
+    if(forceNewClient)return;
+    const email=v('f-email').toLowerCase().trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){hideDup();return;}
+    try{
+      const r=await fetch(`${SB}/rest/v1/rpc/inscription_check_duplicate`,{method:'POST',headers:H,body:JSON.stringify({p_email:email})});
+      const data=await r.json();
+      const match=Array.isArray(data)&&data.length>0?data[0]:null;
+      if(match){
+        existingPersonne=match;
+        document.getElementById('dup-client-info').innerHTML=`<strong>${[match.prenom,match.nom].filter(Boolean).join(' ')}</strong><br><span style="color:var(--muted);font-size:12px">${[match.telephone,match.email].filter(Boolean).join(' · ')}</span>`;
+        document.getElementById('dup-warning').classList.add('show');
+      }else hideDup();
+    }catch(e){hideDup();}
+  },300);
+}
+function hideDup(){existingPersonne=null;const el=document.getElementById('dup-warning');if(el)el.classList.remove('show');}
+
+function useExistingClient(){
+  const p=existingPersonne;if(!p)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-prenom',p.prenom);set('f-nom',p.nom);set('f-email',p.email);
+  set('f-email_reel',p.email_reel);set('f-telephone',p.telephone);set('f-wechat',p.wechat);
+  if(p.date_naissance)set('f-date_naissance',p.date_naissance);
+  document.getElementById('dup-warning').classList.remove('show');
+}
+
+// ── PDL/PCE lookup ──
+let pdlAddr=null,pceAddr=null;
+async function checkPDL(val){
+  if(!val||val.length<10){document.getElementById('pdl-suggest').style.display='none';return;}
+  try{const r=await fetch(`${SB}/rest/v1/rpc/inscription_lookup_pdl`,{method:'POST',headers:H,body:JSON.stringify({p_pdl:val.padStart(14,'0')})});const d=await r.json();const a=Array.isArray(d)&&d[0]?d[0]:null;if(a){pdlAddr=a;document.getElementById('pdl-suggest-info').textContent=[a.rue,a.code_postal+' '+a.ville].filter(Boolean).join(', ');document.getElementById('pdl-suggest').style.display='block';}else{document.getElementById('pdl-suggest').style.display='none';}}catch(e){}
+}
+function fillFromPDL(){
+  if(!pdlAddr)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-rue',pdlAddr.rue);set('f-complement',pdlAddr.complement);set('f-code_postal',pdlAddr.code_postal);set('f-ville',pdlAddr.ville);set('f-pce',pdlAddr.pce);
+  document.getElementById('pdl-suggest').style.display='none';
+}
+async function checkPCE(val){
+  if(!val||val.length<10){document.getElementById('pce-suggest').style.display='none';return;}
+  try{const r=await fetch(`${SB}/rest/v1/rpc/inscription_lookup_pce`,{method:'POST',headers:H,body:JSON.stringify({p_pce:val.padStart(14,'0')})});const d=await r.json();const a=Array.isArray(d)&&d[0]?d[0]:null;if(a){pceAddr=a;document.getElementById('pce-suggest-info').textContent=[a.rue,a.code_postal+' '+a.ville].filter(Boolean).join(', ');document.getElementById('pce-suggest').style.display='block';}else{document.getElementById('pce-suggest').style.display='none';}}catch(e){}
+}
+function fillFromPCE(){
+  if(!pceAddr)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-rue',pceAddr.rue);set('f-complement',pceAddr.complement);set('f-code_postal',pceAddr.code_postal);set('f-ville',pceAddr.ville);set('f-pdl',pceAddr.pdl);
+  document.getElementById('pce-suggest').style.display='none';
+}
+
+// ── Intermediaire check ──
+let _intermTimer=null;window._intermValid=false;
+async function checkInterm(val){
+  clearTimeout(_intermTimer);
+  const status=document.getElementById('interm-status');
+  if(!val){window._intermValid=false;if(status)status.style.display='none';return;}
+  _intermTimer=setTimeout(async()=>{
+    try{const r=await fetch(`${SB}/rest/v1/rpc/inscription_email_exists`,{method:'POST',headers:H,body:JSON.stringify({p_email:val+'@aaaww.top'})});const d=await r.json();const found=Array.isArray(d)&&d.length>0;window._intermValid=found;if(status){status.textContent=found?'✓':'✗';status.style.display='block';status.style.color=found?'var(--green)':'#e55';}}catch(e){window._intermValid=false;}
+  },400);
+}
+
+// ── Helpers ──
+function toUpper(el){const pos=el.selectionStart;el.value=el.value.toUpperCase();el.setSelectionRange(pos,pos);}
+function onlyDigits(el){el.value=el.value.replace(/\D/g,'');}
+function formatIban(el){let val=el.value.replace(/\s/g,'').toUpperCase();el.value=val.match(/.{1,4}/g)?.join(' ')||val;}
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+// ── Recap ──
+function buildRecap(){
+  let rows=[];
+  formConfig.steps.forEach(step=>{
+    step.fields.forEach(f=>{
+      let val=v('f-'+f.id);
+      if(!val)return;
+      if(f.col==='iban')val='•••• '+val.replace(/\s/g,'').slice(-4);
+      if(f.col==='source')val=val+'@aaaww.top';
+      rows.push([f.label,val]);
+    });
+  });
+  const lastPage=document.querySelector('.page:last-of-type .card');
+  if(!lastPage)return;
+  const recapEl=lastPage.querySelector('#recap-body')||document.createElement('div');
+  recapEl.id='recap-body';
+  if(!lastPage.querySelector('#recap-body'))lastPage.appendChild(recapEl);
+  recapEl.innerHTML=rows.map(r=>`<div class="recap-row"><span class="recap-key">${esc(r[0])}</span><span class="recap-val">${esc(r[1])}</span></div>`).join('');
+}
+
+// ── Submit ──
+async function submitForm(){
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Enregistrement...';
+  try{
+    // Collect all field values grouped by table
+    const personneData={},contratData={},adresseData={};
+    formConfig.steps.forEach(step=>{
+      step.fields.forEach(f=>{
+        let val=v('f-'+f.id);if(!val)return;
+        if(f.col==='iban')val=val.replace(/\s/g,'');
+        if(f.col==='source')val=val+'@aaaww.top';
+        if(f.table==='personnes')personneData[f.col]=val;
+        else if(f.table==='contrats')contratData[f.col]=val;
+        else if(f.table==='adresses')adresseData[f.col]=val;
+      });
+    });
+
+    // Use RPC if available, otherwise direct insert
+    const rpc=await fetch(`${SB}/rest/v1/rpc/inscription_submit`,{method:'POST',headers:H,body:JSON.stringify({
+      p_civilite:personneData.civilite||'',p_type_client:personneData.type_client||'particulier',
+      p_prenom:personneData.prenom||'',p_nom:personneData.nom||'',
+      p_email:personneData.email||'',p_telephone:personneData.telephone||'',
+      p_wechat:personneData.wechat||'',p_date_naissance:personneData.date_naissance||'',
+      p_siret:personneData.siret||'',p_colocataire_prenom:personneData.colocataire_prenom||'',
+      p_colocataire_nom:personneData.colocataire_nom||'',
+      p_existing_personne_id:(existingPersonne&&!forceNewClient)?existingPersonne.id:null,
+      p_rue:adresseData.rue||'',p_complement:adresseData.complement||'',
+      p_code_postal:adresseData.code_postal||'',p_ville:adresseData.ville||'',
+      p_pdl:adresseData.pdl||'',p_pce:adresseData.pce||'',
+      p_puissance:adresseData.puissance||'',p_type_logement:adresseData.type_logement||'',
+      p_energie_type:contratData.energie_type||'',p_fournisseur:contratData.fournisseur||'',
+      p_option_tarifaire:contratData.option_tarifaire||'',
+      p_source:contratData.source||'',p_iban:personneData.iban||''
+    })});
+    if(!rpc.ok){const e=await rpc.json();throw new Error(JSON.stringify(e));}
+    const result=await rpc.json();
+    const newC=Array.isArray(result)?result[0]:result;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelector('.steps').style.display='none';
+    document.getElementById('success-screen').classList.add('show');
+    document.getElementById('success-id').textContent=newC.out_id_service?`ID Fuwu : ${newC.out_id_service.replace(/^F/,'#')}`:`Référence : ${newC.out_contrat_id||'OK'}`;
+  }catch(e){
+    const errEl=document.getElementById('err-'+totalSteps);
+    if(errEl){errEl.textContent='Erreur : '+e.message;errEl.classList.add('show');}
+    btn.disabled=false;btn.innerHTML="Confirmer l'inscription";
+  }
+}
+
+// Init on load
+init();
+</script>
+</body>
+</html>
