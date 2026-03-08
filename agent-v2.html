@@ -658,14 +658,25 @@ async function changeStatus(id,newStatus){
 // ══════════════════════════════════════
 // CLIENTS / CONTRATS SEARCH
 // ══════════════════════════════════════
+let _clientTimer=null;
 async function searchClients(){
-  const q=(document.getElementById('client-search').value||'').trim().toLowerCase();
+  clearTimeout(_clientTimer);
+  const q=(document.getElementById('client-search').value||'').trim();
   const el=document.getElementById('client-results');
   if(q.length<2){el.innerHTML='<div style="color:var(--muted)">Tapez au moins 2 caractères.</div>';return;}
-  const results=Object.values(personnesMap).filter(p=>{
-    return [p.prenom,p.nom,p.email,p.telephone].join(' ').toLowerCase().includes(q);
-  }).slice(0,20);
-  el.innerHTML=results.length?results.map(p=>`<div class="tcard" onclick="showClientDetail('${p.id}')"><div class="tcard-icon">👤</div><div class="tcard-body"><div class="tcard-title">${esc([p.prenom,p.nom].filter(Boolean).join(' '))}</div><div class="tcard-sub">${esc(p.email||'')} · ${esc(p.telephone||'')}</div></div></div>`).join(''):'<div style="color:var(--muted)">Aucun résultat.</div>';
+  _clientTimer=setTimeout(async()=>{
+    el.innerHTML='<div style="color:var(--muted)"><span class="spinner"></span> Recherche…</div>';
+    try{
+      // Search by email, nom, prenom, telephone, wechat
+      const encoded=encodeURIComponent(q);
+      const r=await fetch(`${SB}/rest/v1/personnes?or=(email.ilike.*${encoded}*,nom.ilike.*${encoded}*,prenom.ilike.*${encoded}*,telephone.ilike.*${encoded}*,wechat.ilike.*${encoded}*)&select=id,civilite,prenom,nom,email,telephone,wechat&limit=20&order=nom.asc`,{headers:fuwuH()});
+      if(!r.ok)throw new Error(r.status);
+      const results=await r.json();
+      // Cache in personnesMap
+      results.forEach(p=>personnesMap[p.id]=p);
+      el.innerHTML=results.length?results.map(p=>`<div class="tcard" onclick="showClientDetail('${p.id}')"><div class="tcard-icon">👤</div><div class="tcard-body"><div class="tcard-title">${esc([p.civilite,p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}</div><div class="tcard-sub">${esc(p.email||'')} · ${esc(p.telephone||'')}${p.wechat?' · '+esc(p.wechat):''}</div></div></div>`).join(''):'<div style="color:var(--muted)">Aucun résultat.</div>';
+    }catch(e){el.innerHTML='<div style="color:var(--danger)">Erreur: '+e.message+'</div>';}
+  },300);
 }
 
 function searchContrats(){
