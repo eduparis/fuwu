@@ -297,6 +297,7 @@ function doLogout(){location.reload();}
 // LOAD TASKS
 // ══════════════════════════════════════
 async function loadTasks(){
+  if(!formConfig)await loadFormConfig();
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
     const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car&order=created_at.desc&limit=500`,{headers:fuwuH()});
@@ -441,6 +442,70 @@ function openDrawer(){document.getElementById('fmodal').classList.add('open');}
 function closeDrawer(){document.getElementById('fmodal').classList.remove('open');currentTaskId=null;}
 function closeFM(){closeDrawer();}
 
+// ══════════════════════════════════════
+// DYNAMIC FORM CONFIG
+// ══════════════════════════════════════
+let formConfig=null;
+async function loadFormConfig(){
+  try{
+    const r=await fetch(`${SB}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers:fuwuH()});
+    const d=await r.json();
+    if(d&&d[0]&&d[0].config)formConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
+  }catch(e){console.warn('Form config load failed',e);}
+}
+
+// Get field value from data objects based on table/col mapping
+function getFieldVal(f,contrat,personne,adresse){
+  if(f.table==='personnes')return personne[f.col]||'';
+  if(f.table==='adresses')return adresse[f.col]||'';
+  if(f.table==='contrats')return contrat[f.col]||'';
+  return '';
+}
+
+// Render a single field
+function renderField(f,val){
+  const id='tf-'+f.id;
+  const v=val||f.default||'';
+  const style='width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;';
+  const lbl=`<label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${f.label}${f.required?' *':''}</label>`;
+
+  if(f.type==='select'){
+    const opts=(f.options||'').split('|').map(o=>`<option value="${o}" ${o===v?'selected':''}>${o||'—'}</option>`).join('');
+    return `<div style="margin-bottom:8px;${f.width==='half'?'':'grid-column:1/-1;'}">${lbl}<select id="${id}" style="${style}cursor:pointer;">${opts}</select></div>`;
+  }
+  if(f.type==='textarea'){
+    return `<div style="margin-bottom:8px;grid-column:1/-1;">${lbl}<textarea id="${id}" style="${style}resize:vertical;min-height:50px;">${esc(v)}</textarea></div>`;
+  }
+  if(f.type==='puissance'){
+    return `<div style="margin-bottom:8px;">${lbl}<div style="display:flex;gap:4px;margin-bottom:4px;">
+      <button class="abtn" onclick="document.getElementById('${id}').value='3'" style="font-size:10px;">3</button>
+      <button class="abtn" onclick="document.getElementById('${id}').value='6'" style="font-size:10px;background:var(--accent-bg);border-color:var(--accent);color:var(--accent);">6</button>
+      <button class="abtn" onclick="document.getElementById('${id}').value='9'" style="font-size:10px;">9</button>
+      <button class="abtn" onclick="document.getElementById('${id}').value='12'" style="font-size:10px;">12</button>
+      <span style="font-size:10px;color:var(--muted);align-self:center;margin-left:2px;">kVA</span>
+    </div><input type="text" id="${id}" value="${esc(v)}" style="${style}"></div>`;
+  }
+  return `<div style="margin-bottom:8px;${f.width==='full'?'grid-column:1/-1;':''}">${lbl}<input type="${f.type||'text'}" id="${id}" value="${esc(v)}" style="${style}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>`;
+}
+
+// Render a full step page from config
+function renderStep(stepCfg,idx,contrat,personne,adresse,extraTop){
+  const hasGaz=contrat.energie_type==='gaz'||contrat.energie_type==='elec+gaz';
+  let html=`<div class="step-page${idx===0?' active':''}" id="step-${idx}">`;
+  if(extraTop)html+=extraTop;
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+  stepCfg.fields.forEach(f=>{
+    if(f.showIf==='hasGaz'&&!hasGaz)return;
+    const val=getFieldVal(f,contrat,personne,adresse);
+    html+=renderField(f,val);
+  });
+  html+='</div></div>';
+  return html;
+}
+
+// ══════════════════════════════════════
+// OPEN TASK (config-driven)
+// ══════════════════════════════════════
 function openTask(id){
   const t=allTasks.find(x=>x.id===id);if(!t)return;
   currentTaskId=id;
@@ -452,19 +517,23 @@ function openTask(id){
   const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
   const packMap=detectPacks();
   const pack=packMap[id];
-  const hasGaz=t.energie_type==='gaz'||t.energie_type==='elec+gaz';
 
   document.getElementById('dw-icon').textContent=tt.icon;
   document.getElementById('dw-title').textContent=tt.label;
   document.getElementById('dw-sub').textContent=`${name} · ${ts.label}`;
 
+  // Use config or fallback
+  const steps=formConfig?.steps||[
+    {id:'client',title:'Client',fields:[]},
+    {id:'adresse',title:'Adresse',fields:[]},
+    {id:'technique',title:'Technique',fields:[]},
+    {id:'dossier',title:'Dossier',fields:[]}
+  ];
+
   // Step tabs
-  document.getElementById('steps-bar').innerHTML=`
-    <div class="step-tab active" onclick="goStep(0)"><span class="step-num">1</span>Client</div>
-    <div class="step-tab" onclick="goStep(1)"><span class="step-num">2</span>Adresse</div>
-    <div class="step-tab" onclick="goStep(2)"><span class="step-num">3</span>Technique</div>
-    <div class="step-tab" onclick="goStep(3)"><span class="step-num">4</span>Dossier</div>
-  `;
+  document.getElementById('steps-bar').innerHTML=steps.map((s,i)=>
+    `<div class="step-tab${i===0?' active':''}" onclick="goStep(${i})"><span class="step-num">${i+1}</span>${s.title}</div>`
+  ).join('');
 
   // Pack bar
   let packHtml='';
@@ -475,88 +544,20 @@ function openTask(id){
     packHtml+='</div>';
   }
 
-  // Step 1: Client (inscription-style layout)
-  const s1=`<div class="step-page active" id="step-0">
-    <div class="dinstr">${tt.instruction}</div>${packHtml}
-    ${efSel('t-civ','Civilité *',p.civilite||'','|Monsieur|Madame|M. & Mme')}
-    <div class="fmodal-grid"><div class="fmodal-col">
-      ${ef('t-prenom','Prénom *',p.prenom)}
-      ${ef('t-nom','Nom *',p.nom)}
-      ${ef('t-naissance','Date de naissance',p.date_naissance,'date')}
-    </div><div class="fmodal-col">
-      ${ef('t-coloc-prenom','Colocataire — Prénom',p.colocataire_prenom)}
-      ${ef('t-coloc-nom','Colocataire — Nom',p.colocataire_nom)}
-      ${ef('t-siret','SIRET (pro)',p.siret||'')}
-    </div></div>
-    <div class="fmodal-grid" style="margin-top:4px;"><div class="fmodal-col">
-      ${ef('t-email','Email 1 *',p.email,'email')}
-      ${ef('t-email2','Email 2',p.email_reel||'','email')}
-    </div><div class="fmodal-col">
-      ${ef('t-tel','Téléphone 1 (fixe)',p.telephone,'tel')}
-      ${ef('t-tel2','Téléphone 2 (mobile)',p.whatsapp||'','tel')}
-    </div></div>
-    <div class="fmodal-grid" style="margin-top:4px;"><div class="fmodal-col">
-      ${ef('t-wechat','WeChat / WA / IG',p.wechat)}
-    </div><div class="fmodal-col">
-      ${ef('t-iban','IBAN',t.iban||'')}
-    </div></div>
-    ${ef('t-date-souscription','Date de souscription',t.date_debut,'date')}
-  </div>`;
+  // Render all steps
+  const extraTop=`<div class="dinstr">${tt.instruction}</div>${packHtml}`;
+  let bodyHtml='';
+  steps.forEach((s,i)=>{
+    bodyHtml+=renderStep(s,i,t,p,a,i===0?extraTop:'');
+  });
 
-  // Step 2: Adresse
-  const s2=`<div class="step-page" id="step-1"><div class="fmodal-grid"><div class="fmodal-col">
-      ${ef('t-rue','Rue',a.rue)}
-      ${ef('t-complement','Complément',a.complement)}
-      ${ef('t-cp','Code postal',a.code_postal)}
-      ${ef('t-ville','Ville',a.ville)}
-    </div><div class="fmodal-col">
-      ${ef('t-pdl','PDL (14 chiffres)',a.pdl)}
-      ${ef('t-pce','PCE (14 chiffres)',a.pce)}
-      ${efSel('t-logement','Type logement',a.type_logement||'','|appartement|maison|commerce|autre')}
-    </div></div></div>`;
-
-  // Step 3: Technique
-  const s3=`<div class="step-page" id="step-2"><div class="fmodal-grid"><div class="fmodal-col">
-      <div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Puissance</label>
-        <div style="display:flex;gap:4px;margin-bottom:4px;">
-          <button class="abtn" onclick="document.getElementById('t-puissance').value='3'" style="font-size:10px;">3</button>
-          <button class="abtn" onclick="document.getElementById('t-puissance').value='6'" style="font-size:10px;background:var(--accent-bg);border-color:var(--accent);color:var(--accent);">6</button>
-          <button class="abtn" onclick="document.getElementById('t-puissance').value='9'" style="font-size:10px;">9</button>
-          <button class="abtn" onclick="document.getElementById('t-puissance').value='12'" style="font-size:10px;">12</button>
-          <span style="font-size:10px;color:var(--muted);align-self:center;margin-left:4px;">kVA</span>
-        </div>
-        <input type="text" id="t-puissance" value="${esc(a.puissance||'6')}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;">
-      </div>
-      ${efSel('t-option-tarif','Option tarifaire',t.option_tarifaire||'HPHC','BASE|HPHC|Autre')}
-      ${ef('t-elec-car','Élec CAR (kWh/an)',t.elec_car||'5000')}
-      ${hasGaz?ef('t-gaz-car','Gaz CAR (kWh/an)',''):''}
-      ${ef('t-offre','Offre',t.formule_offre||'ECO')}
-    </div><div class="fmodal-col">
-      ${efSel('t-paiement','Choix paiement','Prelevement','Prelevement|Carte|Autre')}
-      ${efSel('t-facturation','Mode de facturation','Mensualisation','Mensualisation|Mensuel|Bimestriel')}
-      ${efSel('t-envoi-facture','Envoi facture','email','email|Courrier')}
-      ${ef('t-fournisseur','Fournisseur',t.fournisseur)}
-      ${efSel('t-energie','Énergie',t.energie_type,'elec|gaz|elec+gaz')}
-    </div></div></div>`;
-
-  // Step 4: Dossier
-  const s4=`<div class="step-page" id="step-3"><div class="fmodal-grid"><div class="fmodal-col">
-      ${ef('t-id-service','ID Service (Fuwu)',t.id_service)}
-      ${ef('t-id-fournisseur','ID Fournisseur',t.id_fournisseur)}
-      ${ef('t-bs-fournisseur','BS Fournisseur',t.bs_fournisseur)}
-      ${efSel('t-status','Statut Dossier',t.contrat_status,'en_attente|en_traitement|actif|annule|refuse')}
-    </div><div class="fmodal-col">
-      ${ef('t-source','Source / Intermédiaire',t.source)}
-      ${ef('t-inscrit','Inscrit par',t.inscrit_par)}
-      <div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px;">Note agent</label><textarea class="note-input" id="task-note" placeholder="Note…"></textarea></div>
-    </div></div></div>`;
-
-  document.getElementById('dw-body').innerHTML=s1+s2+s3+s4;
+  document.getElementById('dw-body').innerHTML=bodyHtml;
   window._step=0;
+  window._totalSteps=steps.length;
   updateNav(id,t);
 }
 
-let _step=0;
+let _step=0,_totalSteps=4;
 function goStep(n){
   _step=n;
   document.querySelectorAll('.step-page').forEach((p,i)=>p.classList.toggle('active',i===n));
@@ -571,8 +572,8 @@ function updateNav(id,t){
   if(_step>0)h+=`<button class="abtn" onclick="goStep(${_step-1})">← Précédent</button>`;
   h+='<div style="flex:1;"></div>';
   if(t.contrat_status==='en_attente'&&_step===0)h+=`<button class="abtn primary" onclick="quickStart('${id}');goStep(1);">▶ Commencer</button>`;
-  if(_step<3)h+=`<button class="abtn primary" onclick="goStep(${_step+1})">Suivant →</button>`;
-  if(_step===3){
+  if(_step<_totalSteps-1)h+=`<button class="abtn primary" onclick="goStep(${_step+1})">Suivant →</button>`;
+  if(_step===_totalSteps-1){
     h+=`<button class="abtn g" onclick="saveAll('${id}','${pid}','${aid}')">💾 Sauvegarder</button>`;
     if(t.contrat_status==='en_traitement')h+=`<button class="abtn g" onclick="saveAndDone('${id}','${pid}','${aid}')">✅ Sauver & Terminer</button>`;
   }
@@ -604,26 +605,39 @@ function efSel(id,label,val,opts){
 }
 function gv(id){const el=document.getElementById(id);return el?el.value.trim()||null:null;}
 
-// Save all 3 tables
+// Dynamic save: reads config to know which fields → which table
 async function saveAll(cid,pid,aid){
   try{
-    const cb={contrat_status:gv('t-status'),fournisseur:gv('t-fournisseur'),id_fournisseur:gv('t-id-fournisseur'),bs_fournisseur:gv('t-bs-fournisseur'),id_service:gv('t-id-service'),energie_type:gv('t-energie'),option_tarifaire:gv('t-option-tarif'),date_debut:gv('t-date-souscription'),source:gv('t-source'),inscrit_par:gv('t-inscrit'),iban:gv('t-iban'),elec_car:gv('t-elec-car')};
-    const note=document.getElementById('task-note')?.value?.trim();
-    if(note)cb.option_tarifaire=(cb.option_tarifaire||'')+' [Note:'+note+']';
-    Object.keys(cb).forEach(k=>{if(cb[k]===undefined)delete cb[k];});
-    await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(cb)});
-    const ct=allTasks.find(x=>x.id===cid);if(ct)Object.assign(ct,cb);
+    const steps=formConfig?.steps||[];
+    const contratBody={},personneBody={},adresseBody={};
 
-    if(pid){
-      const pb={civilite:gv('t-civ'),prenom:gv('t-prenom'),nom:gv('t-nom'),email:gv('t-email'),email_reel:gv('t-email2'),telephone:gv('t-tel'),whatsapp:gv('t-tel2'),wechat:gv('t-wechat'),colocataire_prenom:gv('t-coloc-prenom'),colocataire_nom:gv('t-coloc-nom'),date_naissance:gv('t-naissance'),siret:gv('t-siret')};
-      await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(pb)});
-      if(personnesMap[pid])Object.assign(personnesMap[pid],pb);
+    steps.forEach(step=>{
+      step.fields.forEach(f=>{
+        const val=gv('tf-'+f.id);
+        if(val===undefined)return;
+        if(f.table==='contrats')contratBody[f.col]=val;
+        else if(f.table==='personnes')personneBody[f.col]=val;
+        else if(f.table==='adresses')adresseBody[f.col]=val;
+      });
+    });
+
+    // Also grab note if exists
+    const note=gv('tf-note');
+    if(note&&!contratBody.note_agent)contratBody.note_agent=note;
+
+    if(Object.keys(contratBody).length){
+      await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(contratBody)});
+      const ct=allTasks.find(x=>x.id===cid);if(ct)Object.assign(ct,contratBody);
     }
-    if(aid){
-      const ab={rue:gv('t-rue'),complement:gv('t-complement'),code_postal:gv('t-cp'),ville:gv('t-ville'),pdl:gv('t-pdl'),pce:gv('t-pce'),puissance:gv('t-puissance'),type_logement:gv('t-logement')};
-      await fetch(`${SB}/rest/v1/adresses?id=eq.${aid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(ab)});
-      if(adressesMap[aid])Object.assign(adressesMap[aid],ab);
+    if(pid&&Object.keys(personneBody).length){
+      await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(personneBody)});
+      if(personnesMap[pid])Object.assign(personnesMap[pid],personneBody);
     }
+    if(aid&&Object.keys(adresseBody).length){
+      await fetch(`${SB}/rest/v1/adresses?id=eq.${aid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(adresseBody)});
+      if(adressesMap[aid])Object.assign(adressesMap[aid],adresseBody);
+    }
+
     renderStats();renderTasks();showToast('💾 Sauvegardé ✅');
   }catch(e){showToast('Erreur: '+e.message,true);}
 }

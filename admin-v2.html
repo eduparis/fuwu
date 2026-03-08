@@ -303,6 +303,31 @@ svg.lc circle{r:3;}
 .iedit-icon{font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;}
 .iedit-icon:hover{color:var(--accent);}
 
+/* ── FORM EDITOR ── */
+.fe-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);padding:20px;}
+.fe-overlay.open{display:flex;align-items:stretch;justify-content:center;}
+.fe-box{background:var(--bg);border:1px solid var(--border);border-radius:14px;width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;}
+.fe-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface);flex-shrink:0;}
+.fe-header h2{font-size:16px;font-weight:700;flex:1;}
+.fe-body{flex:1;overflow-y:auto;padding:20px;display:flex;gap:16px;}
+.fe-steps{width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;}
+.fe-step-btn{padding:10px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);text-align:left;}
+.fe-step-btn:hover{border-color:var(--accent);}
+.fe-step-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+.fe-fields{flex:1;min-height:200px;}
+.fe-field{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:grab;font-size:12px;transition:border-color 0.1s;}
+.fe-field:hover{border-color:var(--accent);}
+.fe-field.dragging{opacity:0.4;border-style:dashed;}
+.fe-field-drag{color:var(--muted);font-size:14px;cursor:grab;flex-shrink:0;}
+.fe-field-info{flex:1;min-width:0;}
+.fe-field-label{font-weight:600;}
+.fe-field-meta{font-size:10px;color:var(--muted);}
+.fe-field-actions{display:flex;gap:4px;flex-shrink:0;}
+.fe-field-actions button{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;color:var(--muted);}
+.fe-field-actions button:hover{background:var(--surface3);color:var(--text);}
+.fe-drop-zone{min-height:40px;border:2px dashed var(--border);border-radius:8px;margin-top:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);}
+.fe-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface);flex-shrink:0;}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1100px){:root{--drawer-w:340px;}}
 @media(max-width:900px){.qfilters{display:none;}}
@@ -530,6 +555,7 @@ svg.lc circle{r:3;}
             <div class="work-title">⚙️ Système</div>
             <div class="work-actions">
               <button class="abtn" onclick="runHealthCheck()">🩺 Diagnostic</button>
+              <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openFormEditor()">📝 Éditeur formulaire Agent</button>
             </div>
           </div>
           <div class="work-body" id="sys-body">
@@ -552,6 +578,27 @@ svg.lc circle{r:3;}
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Form Editor -->
+<div class="fe-overlay" id="fe-overlay" onclick="if(event.target===this)closeFormEditor()">
+  <div class="fe-box">
+    <div class="fe-header">
+      <h2>📝 Éditeur de formulaire Agent</h2>
+      <button class="abtn" onclick="addFieldToStep()">＋ Ajouter champ</button>
+      <button class="fmodal-close" onclick="closeFormEditor()">✕</button>
+    </div>
+    <div class="fe-body">
+      <div class="fe-steps" id="fe-steps"></div>
+      <div class="fe-fields" id="fe-fields"></div>
+    </div>
+    <div class="fe-footer">
+      <button class="abtn g" onclick="saveFormConfig()">💾 Sauvegarder & Publier</button>
+      <button class="abtn" onclick="closeFormEditor()">Annuler</button>
+      <div style="flex:1;"></div>
+      <span style="font-size:11px;color:var(--muted);" id="fe-status">—</span>
+    </div>
   </div>
 </div>
 
@@ -1983,6 +2030,124 @@ async function saveContratEdit(id){
     if(currentPage==='contrats')renderContratsTable();
     if(currentPage==='accueil')renderAccueil();
     showToast('Contrat mis à jour ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+// ══════════════════════════════════════
+// FORM EDITOR
+// ══════════════════════════════════════
+let feConfig=null;
+let feCurrentStep=0;
+
+async function openFormEditor(){
+  // Load current config from DB
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers:H()});
+    const d=await r.json();
+    if(d&&d[0])feConfig=JSON.parse(JSON.stringify(typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config));
+  }catch(e){showToast('Erreur chargement config',true);return;}
+  if(!feConfig||!feConfig.steps){showToast('Config invalide',true);return;}
+  document.getElementById('fe-overlay').classList.add('open');
+  feCurrentStep=0;
+  renderFormEditor();
+}
+function closeFormEditor(){document.getElementById('fe-overlay').classList.remove('open');}
+
+function renderFormEditor(){
+  // Step buttons
+  document.getElementById('fe-steps').innerHTML=feConfig.steps.map((s,i)=>
+    `<div class="fe-step-btn ${i===feCurrentStep?'active':''}" onclick="feCurrentStep=${i};renderFormEditor()">
+      <div style="font-size:14px;margin-bottom:2px;">${['👤','📍','⚙️','📄'][i]||'📋'}</div>
+      ${esc(s.title)}
+      <div style="font-size:10px;color:var(--muted);">${s.fields.length} champs</div>
+    </div>`
+  ).join('');
+
+  // Fields for current step (draggable)
+  const step=feConfig.steps[feCurrentStep];
+  let html='';
+  step.fields.forEach((f,i)=>{
+    html+=`<div class="fe-field" draggable="true" ondragstart="feDragStart(event,${i})" ondragover="feDragOver(event)" ondrop="feDrop(event,${i})" ondragend="feDragEnd(event)">
+      <div class="fe-field-drag">⠿</div>
+      <div class="fe-field-info">
+        <div class="fe-field-label">${esc(f.label)}</div>
+        <div class="fe-field-meta">${f.type} · ${f.table}.${f.col} · ${f.width||'half'}${f.required?' · requis':''}${f.default?' · def:'+f.default:''}</div>
+      </div>
+      <div class="fe-field-actions">
+        <button onclick="feEditField(${i})" title="Modifier">✏️</button>
+        <button onclick="feMoveField(${i},-1)" title="Monter">⬆</button>
+        <button onclick="feMoveField(${i},1)" title="Descendre">⬇</button>
+        <button onclick="feDeleteField(${i})" title="Supprimer">🗑</button>
+      </div>
+    </div>`;
+  });
+  html+=`<div class="fe-drop-zone" ondragover="feDragOver(event)" ondrop="feDrop(event,${step.fields.length})">Glisser ici pour réordonner</div>`;
+  document.getElementById('fe-fields').innerHTML=html;
+  document.getElementById('fe-status').textContent=`${feConfig.steps.reduce((s,st)=>s+st.fields.length,0)} champs total`;
+}
+
+// Drag & drop
+let feDragIdx=null;
+function feDragStart(e,idx){feDragIdx=idx;e.target.classList.add('dragging');}
+function feDragOver(e){e.preventDefault();}
+function feDrop(e,targetIdx){
+  e.preventDefault();
+  if(feDragIdx===null||feDragIdx===targetIdx)return;
+  const step=feConfig.steps[feCurrentStep];
+  const [item]=step.fields.splice(feDragIdx,1);
+  const insertAt=targetIdx>feDragIdx?targetIdx-1:targetIdx;
+  step.fields.splice(insertAt,0,item);
+  feDragIdx=null;
+  renderFormEditor();
+}
+function feDragEnd(e){e.target.classList.remove('dragging');feDragIdx=null;}
+
+function feMoveField(idx,dir){
+  const step=feConfig.steps[feCurrentStep];
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=step.fields.length)return;
+  [step.fields[idx],step.fields[newIdx]]=[step.fields[newIdx],step.fields[idx]];
+  renderFormEditor();
+}
+
+function feDeleteField(idx){
+  if(!confirm('Supprimer ce champ ?'))return;
+  feConfig.steps[feCurrentStep].fields.splice(idx,1);
+  renderFormEditor();
+}
+
+function feEditField(idx){
+  const f=feConfig.steps[feCurrentStep].fields[idx];
+  const newLabel=prompt('Label:',f.label);if(newLabel===null)return;f.label=newLabel;
+  const newType=prompt('Type (text/email/tel/date/select/textarea/puissance):',f.type);if(newType)f.type=newType;
+  if(newType==='select'){const opts=prompt('Options (séparées par |):',f.options||'');if(opts!==null)f.options=opts;}
+  const newDefault=prompt('Valeur par défaut:',f.default||'');f.default=newDefault||undefined;
+  const newWidth=prompt('Largeur (half/full):',f.width||'half');if(newWidth)f.width=newWidth;
+  renderFormEditor();
+}
+
+function addFieldToStep(){
+  const label=prompt('Label du nouveau champ:');if(!label)return;
+  const table=prompt('Table (personnes/contrats/adresses):','contrats');if(!table)return;
+  const col=prompt('Colonne DB:');if(!col)return;
+  const type=prompt('Type (text/email/tel/date/select/textarea):','text')||'text';
+  let options='';
+  if(type==='select')options=prompt('Options (séparées par |):','')||'';
+  feConfig.steps[feCurrentStep].fields.push({
+    id:col+'_'+Date.now(),label,type,table,col,width:'half',options:options||undefined
+  });
+  renderFormEditor();
+}
+
+async function saveFormConfig(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps`,{
+      method:'PATCH',headers:H(),
+      body:JSON.stringify({config:feConfig,updated_at:new Date().toISOString()})
+    });
+    if(!r.ok)throw new Error(await r.text());
+    showToast('✅ Configuration publiée — Agent mis à jour');
+    closeFormEditor();
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
