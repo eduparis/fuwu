@@ -2040,12 +2040,16 @@ let feConfig=null;
 let feCurrentStep=0;
 
 async function openFormEditor(){
-  // Load current config from DB
+  // Load current config from DB (use anon key for REST)
   try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers:H()});
+    const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json'};
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers});
     const d=await r.json();
-    if(d&&d[0])feConfig=JSON.parse(JSON.stringify(typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config));
-  }catch(e){showToast('Erreur chargement config',true);return;}
+    if(d&&d[0]&&d[0].config){
+      feConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
+      feConfig=JSON.parse(JSON.stringify(feConfig)); // deep clone
+    }
+  }catch(e){showToast('Erreur chargement config: '+e.message,true);return;}
   if(!feConfig||!feConfig.steps){showToast('Config invalide',true);return;}
   document.getElementById('fe-overlay').classList.add('open');
   feCurrentStep=0;
@@ -2141,8 +2145,9 @@ function addFieldToStep(){
 
 async function saveFormConfig(){
   try{
+    const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${accessToken||SUPABASE_ANON_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'};
     const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.agent_task_steps`,{
-      method:'PATCH',headers:H(),
+      method:'PATCH',headers,
       body:JSON.stringify({config:feConfig,updated_at:new Date().toISOString()})
     });
     if(!r.ok)throw new Error(await r.text());
