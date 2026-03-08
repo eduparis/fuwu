@@ -747,7 +747,7 @@ async function fetchAll(url){
   return all;
 }
 async function loadContrats(){
-  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,elec_car,inscrit_par,bs_fournisseur&order=created_at.desc`);
+  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,elec_car,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,agent_penalite,note_agent&order=created_at.desc`);
   const seen=new Set();allContrats=allContrats.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
   allContrats.forEach(c=>contratMap[c.id]=c);
   // Load adresses in batches
@@ -1070,7 +1070,7 @@ function renderContratsTable(){
       <td style="font-family:monospace;font-size:11px;">${esc(pdl||'—')}</td>
       <td style="font-size:11px;color:var(--muted);">${fmtDate(c.date_debut||c.created_at)}</td>
       <td style="font-size:11px;max-width:100px;">${esc(c.source||'—')}</td>
-      <td style="font-size:11px;">${esc(c.inscrit_par||'—')}</td>
+      <td style="font-size:11px;">${c.agent_code?`<span style="background:rgba(25,135,84,0.08);color:var(--success);padding:1px 6px;border-radius:6px;font-size:10px;font-weight:600;">${esc(c.agent_code)}</span>`:'<span style="color:var(--muted);font-size:10px;">—</span>'}</td>
     </tr>`;
   }).join('');
 
@@ -1246,7 +1246,8 @@ function renderContratModal(id){
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Détails</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-adresse')">Adresse</div>
-    <div class="fmodal-tab" onclick="fmTab(this,'fmt-task')">⚡ Tâche</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-gestion')">🎯 Gestion tâche</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-task')">⚡ Créer tâche</div>
   `;
   document.getElementById('fm-body').innerHTML=`
     <div id="fmt-main">
@@ -1299,6 +1300,29 @@ function renderContratModal(id){
           ${fmField('fc-pce','PCE',a.pce)}
           ${fmField('fc-puissance','Puissance',a.puissance)}
           ${fmField('fc-logement','Type logement',a.type_logement,'select','|appartement|maison|commerce|autre')}
+        </div>
+      </div>
+    </div>
+    <div id="fmt-gestion" style="display:none">
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          <div class="fmodal-section">Agent assigné</div>
+          ${fmField('fc-agent','Agent Code',c.agent_code)}
+          <div class="fmodal-field"><label>Statut agent</label><div style="padding:6px 0;font-size:13px;">${c.agent_code?`<span class="badge b-actif">🟢 Pris par ${esc(c.agent_code)}</span> ${c.agent_claimed_at?'<span style="font-size:10px;color:var(--muted);margin-left:6px;">'+fmtDate(c.agent_claimed_at)+'</span>':''}`:'<span class="badge b-attente">⏳ Non assigné</span>'}</div></div>
+          <div class="fmodal-field"><label>Dernière modif par</label><div style="padding:6px 0;font-size:13px;color:var(--muted);">${esc(c.modifie_par||'—')}</div></div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button class="abtn" onclick="assignAgent('${id}')">🛡 Assigner agent</button>
+            <button class="abtn r" onclick="removeAgent('${id}')">✕ Retirer agent</button>
+          </div>
+        </div>
+        <div class="fmodal-col">
+          <div class="fmodal-section">Commission & Pénalité</div>
+          ${fmField('fc-comm-montant','Commission agent (€ HT)',comm?comm.montant:'')}
+          ${fmField('fc-penalite','Pénalité abandon (€)',c.agent_penalite||'0')}
+          ${fmField('fc-note-agent','Note admin sur tâche',c.note_agent,'textarea')}
+          <div class="fmodal-section">Inscrit par</div>
+          <div class="fmodal-field"><label>Source / Intermédiaire</label><div style="padding:6px 0;font-size:13px;">${esc(c.source||'—')}</div></div>
+          <div class="fmodal-field"><label>Inscrit par</label><div style="padding:6px 0;font-size:13px;">${esc(c.inscrit_par||'—')}</div></div>
         </div>
       </div>
     </div>
@@ -1417,6 +1441,27 @@ function renderCommModal(id){
   document.getElementById('fm-actions').innerHTML=c.statut!=='paye'?`<button class="abtn g" onclick="markPaid('${c.id}')">✅ Marquer payé</button>`:`<button class="abtn w" onclick="markUnpaid('${c.id}')">↩ Annuler paiement</button>`;
 }
 
+async function assignAgent(contratId){
+  const code=prompt('Code agent (ex: A508):');
+  if(!code)return;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_code:code.toUpperCase(),modifie_par:'ADMIN',agent_claimed_at:new Date().toISOString()})});
+    const c=contratMap[contratId];if(c){c.agent_code=code.toUpperCase();c.modifie_par='ADMIN';c.agent_claimed_at=new Date().toISOString();}
+    renderContratModal(contratId);
+    showToast('🛡 Agent '+code.toUpperCase()+' assigné');
+  }catch(e){showToast('Erreur',true);}
+}
+
+async function removeAgent(contratId){
+  if(!confirm('Retirer l\'agent de cette tâche ?'))return;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_code:null,modifie_par:'ADMIN',agent_claimed_at:null,contrat_status:'en_attente'})});
+    const c=contratMap[contratId];if(c){c.agent_code=null;c.modifie_par='ADMIN';c.agent_claimed_at=null;c.contrat_status='en_attente';}
+    renderContratModal(contratId);
+    showToast('Agent retiré — tâche remise en attente');
+  }catch(e){showToast('Erreur',true);}
+}
+
 function fmTab(el,panelId){
   el.parentElement.querySelectorAll('.fmodal-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
@@ -1429,9 +1474,23 @@ function fmTab(el,panelId){
 async function saveContratFull(contratId,personneId,adresseId){
   try{
     // Save contrat
-    const cb={contrat_status:gv('fc-status'),fournisseur:gv('fc-fournisseur'),id_fournisseur:gv('fc-id_fournisseur'),energie_type:gv('fc-energie'),formule:gv('fc-formule'),option_tarifaire:gv('fc-option'),date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit')};
+    const cb={contrat_status:gv('fc-status'),fournisseur:gv('fc-fournisseur'),id_fournisseur:gv('fc-id_fournisseur'),energie_type:gv('fc-energie'),formule:gv('fc-formule'),option_tarifaire:gv('fc-option'),date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit'),modifie_par:'ADMIN'};
+    // Task management fields
+    const agentVal=gv('fc-agent');if(agentVal!==undefined)cb.agent_code=agentVal;
+    const penalite=gv('fc-penalite');if(penalite!==undefined)cb.agent_penalite=parseFloat(penalite)||0;
+    const noteAgent=gv('fc-note-agent');if(noteAgent!==undefined)cb.note_agent=noteAgent;
     await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify(cb)});
     Object.assign(contratMap[contratId],cb);
+
+    // Save commission if field exists
+    const commMontant=gv('fc-comm-montant');
+    if(commMontant){
+      const comm=allComm.find(cm=>cm.contrat_id===contratId);
+      if(comm){
+        await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=eq.${comm.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({montant:parseFloat(commMontant)})});
+        comm.montant=commMontant;
+      }
+    }
 
     // Save client if fields exist
     if(document.getElementById('fc-prenom')){
