@@ -260,6 +260,7 @@ let accessToken=null;
 let allTasks=[], personnesMap={}, adressesMap={};
 let currentFilter='a_faire';
 let currentTaskId=null;
+let myAgentCode=''; // Agent's code for claiming tasks
 
 // ── Task type config ──
 const TASK_TYPES={
@@ -298,6 +299,9 @@ async function doLogin(){
     document.getElementById('login').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('agent-name').textContent=email;
+    // Get agent_code from personnes
+    try{const ra=await fetch(`${SB}/rest/v1/personnes?email=eq.${encodeURIComponent(email)}&select=agent_code`,{headers:fuwuH()});const ad=await ra.json();if(ad&&ad[0]&&ad[0].agent_code)myAgentCode=ad[0].agent_code;}catch(e){}
+    if(!myAgentCode)myAgentCode=email.split('@')[0].toUpperCase();
     await loadTasks();
   }catch(e){err.textContent='Erreur: '+e.message;err.style.display='block';}
 }
@@ -310,7 +314,7 @@ async function loadTasks(){
   if(!formConfig)await loadFormConfig();
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
-    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_penalite&order=created_at.desc&limit=500`,{headers:fuwuH()});
     if(!r.ok)throw new Error(await r.text());
     allTasks=await r.json();
 
@@ -424,14 +428,27 @@ function renderTasks(){
       packHtml=`<span class="tcard-pack">📦 Déménagement · ${done}/${pack.total}</span>`;
     }
 
-    return `<div class="tcard ${isUrgent?'urgent':''}" onclick="openTask('${t.id}')">
-      <div class="tcard-icon">${tt.icon}</div>
+    const isClaimed=!!t.agent_code;
+    const isMyTask=t.agent_code===myAgentCode;
+    const canClaim=!isClaimed&&t.contrat_status==='en_attente';
+
+    // Agent badge or claim button
+    let agentHtml='';
+    if(isClaimed){
+      agentHtml=`<span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:8px;${isMyTask?'background:rgba(25,135,84,0.1);color:var(--success);':'background:rgba(138,130,120,0.1);color:var(--muted);'}">${isMyTask?'🟢 Moi':'👤 '+esc(t.agent_code)}</span>`;
+    }
+
+    return `<div class="tcard ${isUrgent?'urgent':''}" style="position:relative;">
+      ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;z-index:2;">🙋 Prendre</div>`:''}
+      <div onclick="openTask('${t.id}')" style="display:flex;gap:12px;flex:1;cursor:pointer;">
+      <div class="tcard-icon" style="margin-top:${canClaim?'20px':'0'}">${tt.icon}</div>
       <div class="tcard-body">
         <div class="tcard-title">${tt.label}</div>
         <div class="tcard-sub">${esc(t.option_tarifaire||'')}</div>
         <div class="tcard-meta">
           <span class="tcard-tag ${ts.cls}">${ts.label}</span>
           ${packHtml}
+          ${agentHtml}
         </div>
       </div>
       <div class="tcard-right">
@@ -440,6 +457,7 @@ function renderTasks(){
         <div class="tcard-addr">${esc(addr||'—')}</div>
         ${pdl?`<div class="tcard-pdl">PDL: ${esc(pdl)}</div>`:''}
         <div class="tcard-date">${fmtDate(t.date_debut)}</div>
+      </div>
       </div>
     </div>`;
   }).join('');
@@ -479,7 +497,7 @@ function renderField(f,val){
   const style='width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;';
   const roStyle='width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--muted);font-family:inherit;cursor:not-allowed;';
   // Force readonly for certain agent fields
-  const isRO=f.readonly||f.col==='id_service'||f.col==='inscrit_par';
+  const isRO=f.readonly||f.col==='id_service'||f.col==='inscrit_par'||f.col==='agent_code'||f.col==='source';
   const lbl=`<label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${f.label}${f.required?' *':''}${isRO?' 🔒':''}</label>`;
 
   // Readonly: just display value
@@ -586,34 +604,68 @@ function goStep(n){
 function updateNav(id,t){
   const pid=t.personne_id||'',aid=t.adresse_id||'';
   const p=personnesMap[pid]||{};
+  const isMyTask=t.agent_code===myAgentCode;
+  const isClaimed=!!t.agent_code;
   let h='';
   if(_step>0)h+=`<button class="abtn" onclick="goStep(${_step-1})">← Précédent</button>`;
   h+='<div style="flex:1;"></div>';
-  if(t.contrat_status==='en_attente'&&_step===0)h+=`<button class="abtn primary" onclick="quickStart('${id}');goStep(1);">▶ Commencer</button>`;
+  // Claim or start
+  if(!isClaimed&&t.contrat_status==='en_attente')h+=`<button class="abtn primary" onclick="claimTask('${id}');goStep(1);">🙋 Prendre & Commencer</button>`;
+  else if(t.contrat_status==='en_attente'&&_step===0)h+=`<button class="abtn primary" onclick="quickStart('${id}');goStep(1);">▶ Commencer</button>`;
+  // Navigation
   if(_step<_totalSteps-1)h+=`<button class="abtn primary" onclick="goStep(${_step+1})">Suivant →</button>`;
   if(_step===_totalSteps-1){
     h+=`<button class="abtn g" onclick="saveAll('${id}','${pid}','${aid}')">💾 Sauvegarder</button>`;
-    if(t.contrat_status==='en_traitement')h+=`<button class="abtn g" onclick="saveAndDone('${id}','${pid}','${aid}')">✅ Sauver & Terminer</button>`;
+    if(t.contrat_status==='en_traitement'&&isMyTask)h+=`<button class="abtn g" onclick="saveAndDone('${id}','${pid}','${aid}')">✅ Sauver & Terminer</button>`;
   }
+  // Abandon (only if I claimed it and it's in progress)
+  if(isMyTask&&t.contrat_status==='en_traitement')h+=`<button class="abtn r" onclick="abandonTask('${id}')" style="font-size:10px;">🚫 Abandonner</button>`;
   if(p.telephone)h+=`<a class="abtn" href="tel:${p.telephone}">📞</a>`;
   document.getElementById('dw-actions').innerHTML=h;
 }
 
+// Claim a task (from task list)
+async function claimTask(id){
+  try{
+    const body={agent_code:myAgentCode,modifie_par:myAgentCode,agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement'};
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
+    const t=allTasks.find(x=>x.id===id);
+    if(t)Object.assign(t,body);
+    renderStats();renderTasks();
+    showToast('🙋 Tâche prise — '+myAgentCode);
+  }catch(e){showToast('Erreur',true);}
+}
+
+// Start working (from inside modal, step 1)
 async function quickStart(id){
-  // Auto-attach agent to this task
-  const agentEmail=document.getElementById('agent-name')?.textContent||'';
-  const body={contrat_status:'en_traitement'};
-  if(agentEmail)body.inscrit_par=agentEmail.split('@')[0].toUpperCase();
+  const body={agent_code:myAgentCode,modifie_par:myAgentCode,agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement'};
   await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
   const t=allTasks.find(x=>x.id===id);
-  if(t){t.contrat_status='en_traitement';if(body.inscrit_par)t.inscrit_par=body.inscrit_par;}
-  renderStats();renderTasks();showToast('▶ Commencé — Agent attribué');
+  if(t)Object.assign(t,body);
+  document.getElementById('dw-sub').textContent=document.getElementById('dw-sub').textContent.replace('À faire','En cours');
+  renderStats();renderTasks();showToast('▶ Commencé — Agent '+myAgentCode);
+}
+
+// Abandon a task
+async function abandonTask(id){
+  if(!confirm('Abandonner cette tâche ?\nUne pénalité de commission peut s\'appliquer.'))return;
+  const t=allTasks.find(x=>x.id===id);
+  const penalite=parseFloat(t?.agent_penalite||0);
+  const body={agent_code:null,modifie_par:myAgentCode,agent_claimed_at:null,contrat_status:'en_attente'};
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
+  if(t)Object.assign(t,body);
+  // Record penalite in historique if > 0
+  if(penalite>0){
+    try{await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:fuwuH(),body:JSON.stringify({contrat_id:id,champ:'agent_abandon',ancienne_valeur:myAgentCode,nouvelle_valeur:'abandonné',modifie_par:myAgentCode,action_type:'abandon'})});}catch(e){}
+  }
+  renderStats();renderTasks();closeFM();
+  showToast(penalite>0?`⚠️ Tâche abandonnée — Pénalité: ${penalite}€`:'↩ Tâche remise en attente');
 }
 
 async function saveAndDone(id,pid,aid){
   await saveAll(id,pid,aid);
-  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'actif'})});
-  const t=allTasks.find(x=>x.id===id);if(t)t.contrat_status='actif';
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'actif',modifie_par:myAgentCode})});
+  const t=allTasks.find(x=>x.id===id);if(t){t.contrat_status='actif';t.modifie_par=myAgentCode;}
   renderStats();renderTasks();closeFM();showToast('✅ Terminé & sauvé');
 }
 
@@ -643,6 +695,9 @@ async function saveAll(cid,pid,aid){
         else if(f.table==='adresses')adresseBody[f.col]=val;
       });
     });
+
+    // Always set modifie_par
+    contratBody.modifie_par=myAgentCode;
 
     // Also grab note if exists
     const note=gv('tf-note');
@@ -737,11 +792,8 @@ let allCompleted=[];
 let resFilter='all';
 
 async function loadResults(){
-  const agentEmail=document.getElementById('agent-name')?.textContent||'';
-  const agentCode=agentEmail.split('@')[0].toUpperCase();
   try{
-    // Load all completed contrats by this agent
-    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=eq.actif&inscrit_par=ilike.*${encodeURIComponent(agentCode)}*&select=id,id_service,personne_id,fournisseur,energie_type,formule,date_debut,created_at,source&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=eq.actif&agent_code=eq.${encodeURIComponent(myAgentCode)}&select=id,id_service,personne_id,fournisseur,energie_type,formule,date_debut,created_at,source&order=created_at.desc&limit=500`,{headers:fuwuH()});
     if(r.ok)allCompleted=await r.json();
 
     // Load personnes for display
