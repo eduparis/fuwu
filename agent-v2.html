@@ -257,7 +257,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script>
 const SB=SUPABASE_URL;
 let accessToken=null;
-let allTasks=[], personnesMap={}, adressesMap={};
+let allTasks=[], personnesMap={}, adressesMap={}, commMap={};
 let currentFilter='a_faire';
 let currentTaskId=null;
 let myAgentCode=''; // Agent's code for claiming tasks
@@ -329,6 +329,12 @@ async function loadTasks(){
     for(let i=0;i<aids.length;i+=200){
       const batch=aids.slice(i,i+200);
       try{const ra=await fetch(`${SB}/rest/v1/adresses?id=in.(${batch.join(',')})&select=id,rue,complement,code_postal,ville,pdl,pce,puissance`,{headers:fuwuH()});const d=await ra.json();if(Array.isArray(d))d.forEach(a=>adressesMap[a.id]=a);}catch(e){}
+    }
+    // Load commissions
+    const cids=allTasks.map(t=>t.id);
+    for(let i=0;i<cids.length;i+=200){
+      const batch=cids.slice(i,i+200);
+      try{const rc=await fetch(`${SB}/rest/v1/commissions?contrat_id=in.(${batch.join(',')})&select=id,contrat_id,montant,statut`,{headers:fuwuH()});const d=await rc.json();if(Array.isArray(d))d.forEach(c=>commMap[c.contrat_id]=c);}catch(e){}
     }
 
     renderStats();
@@ -431,33 +437,30 @@ function renderTasks(){
     const isClaimed=!!t.agent_code;
     const isMyTask=t.agent_code===myAgentCode;
     const canClaim=!isClaimed&&t.contrat_status==='en_attente';
+    const comm=commMap[t.id];
+    const commAmt=comm?parseFloat(comm.montant||0):0;
 
-    // Agent badge or claim button
+    // Agent badge
     let agentHtml='';
-    if(isClaimed){
-      agentHtml=`<span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:8px;${isMyTask?'background:rgba(25,135,84,0.1);color:var(--success);':'background:rgba(138,130,120,0.1);color:var(--muted);'}">${isMyTask?'🟢 Moi':'👤 '+esc(t.agent_code)}</span>`;
-    }
+    if(isClaimed)agentHtml=`<span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:8px;${isMyTask?'background:rgba(25,135,84,0.1);color:var(--success);':'background:rgba(138,130,120,0.1);color:var(--muted);'}">${isMyTask?'🟢 Moi':'👤 '+esc(t.agent_code)}</span>`;
 
-    return `<div class="tcard ${isUrgent?'urgent':''}" style="position:relative;">
-      ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;z-index:2;">🙋 Prendre</div>`:''}
-      <div onclick="openTask('${t.id}')" style="display:flex;gap:12px;flex:1;cursor:pointer;">
-      <div class="tcard-icon" style="margin-top:${canClaim?'20px':'0'}">${tt.icon}</div>
-      <div class="tcard-body">
-        <div class="tcard-title">${tt.label}</div>
-        <div class="tcard-sub">${esc(t.option_tarifaire||'')}</div>
+    return `<div class="tcard ${isUrgent?'urgent':''}" style="position:relative;" onclick="openTask('${t.id}')">
+      ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:6px;cursor:pointer;z-index:2;">🙋 Prendre</div>`:''}
+      <div class="tcard-icon">${tt.icon}</div>
+      <div class="tcard-body" style="flex:1;">
+        <div class="tcard-title">${tt.label}${t.id_service?' · <span style="font-weight:400;color:var(--muted);font-size:12px;">'+esc(t.id_service)+'</span>':''}</div>
+        <div class="tcard-sub">${esc(t.option_tarifaire||t.fournisseur||'')}</div>
         <div class="tcard-meta">
           <span class="tcard-tag ${ts.cls}">${ts.label}</span>
           ${packHtml}
           ${agentHtml}
+          ${commAmt>0?`<span style="font-size:10px;font-weight:600;color:var(--accent);">💰 ${commAmt.toFixed(0)}€</span>`:''}
         </div>
       </div>
-      <div class="tcard-right">
-        <div class="tcard-client">${esc(name)}</div>
-        <div style="font-size:10px;color:var(--muted);">${esc(p.email||'')}${p.telephone?' · '+esc(p.telephone):''}</div>
-        <div class="tcard-addr">${esc(addr||'—')}</div>
-        ${pdl?`<div class="tcard-pdl">PDL: ${esc(pdl)}</div>`:''}
+      <div class="tcard-right" style="text-align:right;">
         <div class="tcard-date">${fmtDate(t.date_debut)}</div>
-      </div>
+        ${t.fournisseur?`<div style="font-size:11px;color:var(--muted);">${esc(normFourn(t.fournisseur))}</div>`:''}
+        ${t.energie_type?`<div style="font-size:11px;">${t.energie_type==='elec'?'⚡':t.energie_type==='gaz'?'🔥':'⚡🔥'}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -870,6 +873,7 @@ function showTab(name,el){
 // ══════════════════════════════════════
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
 function fmtDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR');}
+function normFourn(f){if(!f)return'';return f.replace(/totalenergies/i,'TotalEnergies').replace(/^edf$/i,'EDF').replace(/^engie$/i,'Engie');}
 function dr(k,v){return `<div class="drow"><span class="drow-k">${k}</span><span class="drow-v">${v||'—'}</span></div>`;}
 function copyText(t){navigator.clipboard.writeText(t);showToast('Copié: '+t);}
 function showToast(m,err){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(err?' error':'');setTimeout(()=>t.className='toast',3000);}
