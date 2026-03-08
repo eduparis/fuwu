@@ -183,6 +183,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
     <div class="tabs">
       <div class="tab active" onclick="showTab('taches',this)">📋 Tâches <span class="tbadge" id="tb-taches">0</span></div>
+      <div class="tab" onclick="showTab('resultats',this)">📊 Résultats</div>
       <div class="tab" onclick="showTab('clients',this)">👥 Clients</div>
       <div class="tab" onclick="showTab('contrats',this)">📄 Contrats</div>
       <div class="tab" onclick="showTab('inscription',this)">✏️ Inscription</div>
@@ -195,6 +196,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
           <div class="stats" id="task-stats"></div>
           <div class="chips" id="task-chips"></div>
           <div class="tlist" id="task-list"><div style="padding:20px;color:var(--muted);font-size:13px;"><span class="spinner"></span> Chargement…</div></div>
+        </div>
+
+        <!-- ═══ PAGE: RÉSULTATS ═══ -->
+        <div class="page" id="pg-resultats">
+          <div class="stats" id="res-stats"></div>
+          <div style="padding:16px 20px;flex-shrink:0;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;" id="res-chips"></div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:0 20px 20px;" id="res-list"><div style="color:var(--muted);font-size:13px;">Chargement…</div></div>
         </div>
 
         <!-- ═══ PAGE: CLIENTS ═══ -->
@@ -467,7 +477,15 @@ function renderField(f,val){
   const id='tf-'+f.id;
   const v=val||f.default||'';
   const style='width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;';
-  const lbl=`<label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${f.label}${f.required?' *':''}</label>`;
+  const roStyle='width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--muted);font-family:inherit;cursor:not-allowed;';
+  // Force readonly for certain agent fields
+  const isRO=f.readonly||f.col==='id_service'||f.col==='inscrit_par';
+  const lbl=`<label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${f.label}${f.required?' *':''}${isRO?' 🔒':''}</label>`;
+
+  // Readonly: just display value
+  if(isRO){
+    return `<div style="margin-bottom:8px;${f.width==='full'?'grid-column:1/-1;':''}">${lbl}<div style="${roStyle}">${esc(v)||'—'}</div><input type="hidden" id="${id}" value="${esc(v)}"></div>`;
+  }
 
   if(f.type==='select'){
     const opts=(f.options||'').split('|').map(o=>`<option value="${o}" ${o===v?'selected':''}>${o||'—'}</option>`).join('');
@@ -582,9 +600,14 @@ function updateNav(id,t){
 }
 
 async function quickStart(id){
-  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'en_traitement'})});
-  const t=allTasks.find(x=>x.id===id);if(t)t.contrat_status='en_traitement';
-  renderStats();renderTasks();showToast('▶ Commencé');
+  // Auto-attach agent to this task
+  const agentEmail=document.getElementById('agent-name')?.textContent||'';
+  const body={contrat_status:'en_traitement'};
+  if(agentEmail)body.inscrit_par=agentEmail.split('@')[0].toUpperCase();
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
+  const t=allTasks.find(x=>x.id===id);
+  if(t){t.contrat_status='en_traitement';if(body.inscrit_par)t.inscrit_par=body.inscrit_par;}
+  renderStats();renderTasks();showToast('▶ Commencé — Agent attribué');
 }
 
 async function saveAndDone(id,pid,aid){
@@ -708,6 +731,78 @@ function showClientDetail(id){
 }
 
 // ══════════════════════════════════════
+// RÉSULTATS (completed tasks stats)
+// ══════════════════════════════════════
+let allCompleted=[];
+let resFilter='all';
+
+async function loadResults(){
+  const agentEmail=document.getElementById('agent-name')?.textContent||'';
+  const agentCode=agentEmail.split('@')[0].toUpperCase();
+  try{
+    // Load all completed contrats by this agent
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=eq.actif&inscrit_par=ilike.*${encodeURIComponent(agentCode)}*&select=id,id_service,personne_id,fournisseur,energie_type,formule,date_debut,created_at,source&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    if(r.ok)allCompleted=await r.json();
+
+    // Load personnes for display
+    const pids=[...new Set(allCompleted.map(c=>c.personne_id).filter(Boolean))];
+    for(let i=0;i<pids.length;i+=200){
+      const batch=pids.slice(i,i+200);
+      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,prenom,nom,email`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
+    }
+  }catch(e){console.error(e);}
+  renderResults();
+}
+
+function renderResults(){
+  // Stats
+  const total=allCompleted.length;
+  const thisMonth=allCompleted.filter(c=>{const d=c.date_debut||c.created_at||'';return d.startsWith(new Date().toISOString().substring(0,7));}).length;
+  const byType={};
+  allCompleted.forEach(c=>{const t=c.formule||'autre';byType[t]=(byType[t]||0)+1;});
+
+  document.getElementById('res-stats').innerHTML=`
+    <div class="scard"><div class="scard-val v-green">${total}</div><div class="scard-label">Total terminés</div></div>
+    <div class="scard"><div class="scard-val v-gold">${thisMonth}</div><div class="scard-label">Ce mois</div></div>
+    <div class="scard"><div class="scard-val v-blue">${byType['mise_en_service']||0}</div><div class="scard-label">Mise en service</div></div>
+    <div class="scard"><div class="scard-val v-orange">${byType['resiliation']||0}</div><div class="scard-label">Résiliation</div></div>
+  `;
+
+  // Filter chips
+  const filters=[
+    {id:'all',label:`Tous (${total})`},
+    {id:'mise_en_service',label:`⚡ Mise en service (${byType['mise_en_service']||0})`},
+    {id:'resiliation',label:`❌ Résiliation (${byType['resiliation']||0})`},
+    {id:'changement_fournisseur',label:`🔄 Changement (${byType['changement_fournisseur']||0})`},
+    {id:'box_internet',label:`📡 Box (${byType['box_internet']||0})`},
+  ];
+  document.getElementById('res-chips').innerHTML=filters.map(f=>
+    `<div class="chip ${resFilter===f.id?'on':''}" onclick="resFilter='${f.id}';renderResults()">${f.label}</div>`
+  ).join('');
+
+  // List
+  let filtered=allCompleted;
+  if(resFilter!=='all')filtered=allCompleted.filter(c=>c.formule===resFilter);
+
+  document.getElementById('res-list').innerHTML=filtered.length?filtered.map(c=>{
+    const p=personnesMap[c.personne_id]||{};
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+    const tt=TASK_TYPES[c.formule]||{icon:'📋',label:c.formule||'—'};
+    return `<div class="tcard">
+      <div class="tcard-icon">${tt.icon}</div>
+      <div class="tcard-body">
+        <div class="tcard-title">${tt.label}</div>
+        <div class="tcard-sub">${esc(c.id_service||'')} · ${esc(c.fournisseur||'')}</div>
+      </div>
+      <div class="tcard-right">
+        <div class="tcard-client">${esc(name)}</div>
+        <div class="tcard-date">${fmtDate(c.date_debut||c.created_at)}</div>
+      </div>
+    </div>`;
+  }).join(''):'<div style="color:var(--muted);font-size:13px;">Aucune tâche terminée.</div>';
+}
+
+// ══════════════════════════════════════
 // TAB NAV
 // ══════════════════════════════════════
 function showTab(name,el){
@@ -715,6 +810,7 @@ function showTab(name,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   if(el)el.classList.add('active');
   document.getElementById('pg-'+name).classList.add('active');
+  if(name==='resultats'&&!allCompleted.length)loadResults();
 }
 
 // ══════════════════════════════════════
