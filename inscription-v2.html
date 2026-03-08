@@ -80,6 +80,22 @@
   .recap-key{font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);flex-shrink:0;padding-top:2px;}
   .recap-val{font-size:13px;color:var(--text);text-align:right;word-break:break-word;}
   .pdl-suggest{display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer;}
+  .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .service-btn{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 12px;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--muted);}
+  .service-btn:hover:not(.disabled){border-color:var(--gold);color:var(--text);}
+  .service-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .service-btn.disabled{opacity:0.4;cursor:not-allowed;}
+  .service-icon{font-size:22px;margin-bottom:6px;}
+  .service-name{font-size:13px;font-weight:600;}
+  .service-desc{font-size:10px;color:var(--muted);margin-top:2px;}
+  .sous-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sous-card{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s;color:var(--muted);}
+  .sous-card:hover{border-color:var(--gold);color:var(--text);}
+  .sous-card.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .sous-icon{font-size:24px;margin-bottom:8px;}
+  .sous-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+  .sous-desc{font-size:11px;color:var(--muted);line-height:1.4;}
+  .sous-card.selected .sous-desc{color:rgba(201,168,76,0.7);}
   @media(max-width:480px){
     .wrap{padding:24px 16px 40px;}
     .card{padding:20px 16px;}
@@ -145,7 +161,11 @@ function renderPages(){
       html+=`<div class="dup-warning" id="dup-warning"><div class="dup-title">👤 Client existant trouvé</div><div class="dup-client" id="dup-client-info"></div><div class="dup-btns"><button class="dup-btn dup-btn-use" onclick="useExistingClient()">Utiliser ce client</button><button class="dup-btn dup-btn-new" onclick="forceNewClient=true;document.getElementById('dup-warning').classList.remove('show')">Créer nouveau</button></div></div>`;
     }
 
-    // Render fields in pairs (half+half = row, full = solo)
+    // Render fields in pairs
+    if(step.fields.length===0){
+      // Empty step = recap
+      html+=`<div id="recap-body"></div>`;
+    } else {
     let i=0;
     while(i<step.fields.length){
       const f=step.fields[i];
@@ -153,7 +173,6 @@ function renderPages(){
         html+=`<div class="fg">${renderField(f)}</div>`;
         i++;
       }else{
-        // Try to pair with next half
         const next=step.fields[i+1];
         if(next&&next.width!=='full'){
           html+=`<div class="form-row"><div class="fg">${renderField(f)}</div><div class="fg">${renderField(next)}</div></div>`;
@@ -163,6 +182,7 @@ function renderPages(){
           i++;
         }
       }
+    }
     }
 
     html+=`</div><div class="alert alert-error" id="err-${si+1}"></div>`;
@@ -178,6 +198,41 @@ function renderPages(){
 function renderField(f){
   const id='f-'+f.id;
   const req=f.required?'<span class="req">*</span>':'';
+
+  // Service grid (big cards)
+  if(f.type==='service_grid'){
+    const services=[
+      {k:'energie',icon:'⚡',name:'Énergie',desc:'Électricité & Gaz',enabled:true},
+      {k:'telecom',icon:'📡',name:'Télécom',desc:'Bientôt disponible',enabled:false},
+      {k:'banque',icon:'🏦',name:'Banque',desc:'Bientôt disponible',enabled:false},
+      {k:'services',icon:'🛎️',name:'Services Fuwu',desc:'Bientôt disponible',enabled:false},
+    ];
+    return `<label>${esc(f.label)}</label><div class="service-grid">${services.map(s=>
+      `<div class="service-btn ${s.k===(f.default||'energie')?'selected':''}${s.enabled?'':' disabled'}" onclick="${s.enabled?`selectCard('${id}','${s.k}',this)`:''}">`+
+      `<div class="service-icon">${s.icon}</div><div class="service-name">${s.name}</div><div class="service-desc">${s.desc}</div></div>`
+    ).join('')}</div><input type="hidden" id="${id}" value="${f.default||'energie'}">`;
+  }
+
+  // Souscription grid (medium cards)
+  if(f.type==='souscription_grid'){
+    const opts=[
+      {k:'mise_en_service',icon:'🔌',name:'Mise en service',desc:'Nouveau compteur ou première activation'},
+      {k:'en_service',icon:'🔄',name:'Changement fournisseur',desc:'Compteur actif, changer de fournisseur'},
+    ];
+    return `<label>${esc(f.label)}</label><div class="sous-grid">${opts.map(o=>
+      `<div class="sous-card ${o.k===(f.default||'mise_en_service')?'selected':''}" onclick="selectCard('${id}','${o.k}',this)">`+
+      `<div class="sous-icon">${o.icon}</div><div class="sous-title">${o.name}</div><div class="sous-desc">${o.desc}</div></div>`
+    ).join('')}</div><input type="hidden" id="${id}" value="${f.default||'mise_en_service'}">`;
+  }
+
+  // Generic toggle (from options "val:Label|val2:Label2")
+  if(f.type==='toggle'){
+    const opts=(f.options||'').split('|').map(o=>{const[k,l]=o.split(':');return{k,l};});
+    const def=f.default||opts[0]?.k||'';
+    return `<label>${esc(f.label)}</label><div class="toggle-group">${opts.map(o=>
+      `<div class="toggle-btn ${o.k===def?'selected':''}" onclick="selectToggle('${id}','${o.k}',this)">${esc(o.l)}</div>`
+    ).join('')}</div><input type="hidden" id="${id}" value="${def}">`;
+  }
 
   // Special: civilite → toggle buttons
   if(f.col==='civilite'){
@@ -269,10 +324,18 @@ function validate(n){
   return true;
 }
 
-// ── Toggle selector ──
+// ── Toggle & Card selectors ──
 function selectToggle(inputId,val,el){
   document.getElementById(inputId).value=val;
   el.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  // If civilite = Société, show SIRET
+  if(inputId==='f-civilite'){const fg=document.getElementById('f-siret');if(fg)fg.closest('.fg').style.display=val==='Société'?'block':'none';}
+}
+
+function selectCard(inputId,val,el){
+  document.getElementById(inputId).value=val;
+  el.parentElement.querySelectorAll('.service-btn,.sous-card').forEach(b=>b.classList.remove('selected'));
   el.classList.add('selected');
 }
 
@@ -352,20 +415,23 @@ function esc(s){const d=document.createElement('div');d.textContent=s||'';return
 function buildRecap(){
   let rows=[];
   formConfig.steps.forEach(step=>{
+    if(!step.fields.length)return;
+    rows.push(null); // separator
     step.fields.forEach(f=>{
       let val=v('f-'+f.id);
       if(!val)return;
-      if(f.col==='iban')val='•••• '+val.replace(/\s/g,'').slice(-4);
+      if(f.col==='iban')val='•••• •••• •••• '+val.replace(/\s/g,'').slice(-4);
       if(f.col==='source')val=val+'@aaaww.top';
       rows.push([f.label,val]);
     });
   });
-  const lastPage=document.querySelector('.page:last-of-type .card');
-  if(!lastPage)return;
-  const recapEl=lastPage.querySelector('#recap-body')||document.createElement('div');
-  recapEl.id='recap-body';
-  if(!lastPage.querySelector('#recap-body'))lastPage.appendChild(recapEl);
-  recapEl.innerHTML=rows.map(r=>`<div class="recap-row"><span class="recap-key">${esc(r[0])}</span><span class="recap-val">${esc(r[1])}</span></div>`).join('');
+  if(rows[0]===null)rows.shift(); // remove leading separator
+  const recapEl=document.getElementById('recap-body');
+  if(!recapEl)return;
+  recapEl.innerHTML=rows.map(r=>
+    r===null?'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">':
+    `<div class="recap-row"><span class="recap-key">${esc(r[0])}</span><span class="recap-val">${esc(r[1])}</span></div>`
+  ).join('');
 }
 
 // ── Submit ──
