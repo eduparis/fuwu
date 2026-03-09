@@ -911,7 +911,7 @@ let allDecomptes=[];
 async function loadDecomptes(){allDecomptes=await fetchAll(`${SUPABASE_URL}/rest/v1/decomptes?select=*&order=created_at.desc`);}
 async function loadPersonnes(){
   // Lighter select — drop iban, siret, colocataire fields (only needed in detail)
-  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,type_client,siret,iban,adresse_intermediaire,commission_default_ht,commission_default_ttc_eur,commission_default_cny&order=created_at.desc`);
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,type_client,siret,iban,adresse_intermediaire,tva_intracom,taux_change_cny,commission_default_ht,commission_default_ttc_eur,commission_default_cny&order=created_at.desc`);
   allPersonnes.forEach(p=>personneMap[p.id]=p);
 }
 
@@ -1532,6 +1532,7 @@ async function renderContratModal(id){
           <div style="display:flex;gap:8px;">
             <div class="fmodal-field" style="flex:1;"><label>HT €</label><input type="number" step="0.01" id="fc-comm-ht" value="${defHT!=null?defHT:''}" onchange="syncCommFields('ht')"></div>
             <div class="fmodal-field" style="flex:1;"><label>TTC €</label><input type="number" step="0.01" id="fc-comm-ttc-eur" value="${defTTCeur!=null?defTTCeur:''}" onchange="syncCommFields('ttc')"></div>
+            <div class="fmodal-field" style="flex:0.7;"><label>Taux ¥</label><input type="number" step="0.01" id="fc-taux-cny" value="${curInterm?.taux_change_cny||8}" onchange="syncCommFields('taux')"></div>
             <div class="fmodal-field" style="flex:1;"><label>TTC ¥</label><input type="number" step="0.01" id="fc-comm-ttc-cny" value="${defTTCcny!=null?defTTCcny:''}"></div>
           </div>
         </div>
@@ -1680,14 +1681,16 @@ function renderPersonneModal(id){
         <div class="fmodal-col">
           <div class="fmodal-section">Société / Facturation</div>
           ${fmField('fp-siret','SIRET',p.siret)}
+          ${fmField('fp-tva-intracom','N° TVA intracommunautaire',p.tva_intracom)}
           ${fmField('fp-iban','IBAN',p.iban)}
           ${fmField('fp-adresse-interm','Adresse (siège)',p.adresse_intermediaire,'textarea')}
         </div>
         <div class="fmodal-col">
           <div class="fmodal-section">Commission par défaut</div>
-          ${fmField('fp-comm-ht','HT € (défaut)',p.commission_default_ht||20)}
-          ${fmField('fp-comm-ttc','TTC € (défaut)',p.commission_default_ttc_eur||24)}
-          ${fmField('fp-comm-cny','TTC ¥ (défaut)',p.commission_default_cny||192)}
+          <div class="fmodal-field"><label>Taux de change € → ¥</label><input type="number" step="0.01" id="fp-taux-cny" value="${p.taux_change_cny||8}" onchange="calcIntermComm()"></div>
+          <div class="fmodal-field"><label>HT € (défaut)</label><input type="number" step="0.01" id="fp-comm-ht" value="${p.commission_default_ht||20}" onchange="calcIntermComm()"></div>
+          <div class="fmodal-field"><label>TTC € (auto HT×1.2)</label><input type="number" step="0.01" id="fp-comm-ttc" value="${p.commission_default_ttc_eur||(p.commission_default_ht?p.commission_default_ht*1.2:24)}"></div>
+          <div class="fmodal-field"><label>TTC ¥ (auto TTC×taux)</label><input type="number" step="0.01" id="fp-comm-cny" value="${p.commission_default_cny||(p.commission_default_ttc_eur?(p.commission_default_ttc_eur*(p.taux_change_cny||8)):192)}"></div>
         </div>
       </div>`:''}
     </div>
@@ -1916,17 +1919,41 @@ function onIntermChange(intermId){
   const htEl=document.getElementById('fc-comm-ht');
   const ttcEl=document.getElementById('fc-comm-ttc-eur');
   const cnyEl=document.getElementById('fc-comm-ttc-cny');
+  const tauxEl=document.getElementById('fc-taux-cny');
   if(p){
+    const taux=p.taux_change_cny||8;
     htEl.value=p.commission_default_ht||20;
-    ttcEl.value=p.commission_default_ttc_eur||24;
-    cnyEl.value=p.commission_default_cny||192;
+    ttcEl.value=p.commission_default_ttc_eur||((p.commission_default_ht||20)*1.2);
+    cnyEl.value=p.commission_default_cny||((p.commission_default_ttc_eur||24)*taux);
+    if(tauxEl)tauxEl.value=taux;
   } else { htEl.value='';ttcEl.value='';cnyEl.value=''; }
 }
 function syncCommFields(from){
   const htEl=document.getElementById('fc-comm-ht');
   const ttcEl=document.getElementById('fc-comm-ttc-eur');
-  if(from==='ht'){ ttcEl.value=(parseFloat(htEl.value)||0)*1.2; }
-  else if(from==='ttc'){ htEl.value=((parseFloat(ttcEl.value)||0)/1.2).toFixed(2); }
+  const cnyEl=document.getElementById('fc-comm-ttc-cny');
+  const taux=parseFloat(document.getElementById('fc-taux-cny')?.value)||8;
+  if(from==='ht'){
+    const ht=parseFloat(htEl.value)||0;
+    ttcEl.value=(ht*1.2).toFixed(2);
+    cnyEl.value=(ht*1.2*taux).toFixed(2);
+  } else if(from==='ttc'){
+    const ttc=parseFloat(ttcEl.value)||0;
+    htEl.value=(ttc/1.2).toFixed(2);
+    cnyEl.value=(ttc*taux).toFixed(2);
+  } else if(from==='taux'){
+    const ttc=parseFloat(ttcEl.value)||0;
+    cnyEl.value=(ttc*taux).toFixed(2);
+  }
+}
+// Auto-calc for intermediary profile defaults
+function calcIntermComm(){
+  const ht=parseFloat(document.getElementById('fp-comm-ht')?.value)||0;
+  const taux=parseFloat(document.getElementById('fp-taux-cny')?.value)||8;
+  const ttcEl=document.getElementById('fp-comm-ttc');
+  const cnyEl=document.getElementById('fp-comm-cny');
+  if(ttcEl)ttcEl.value=(ht*1.2).toFixed(2);
+  if(cnyEl)cnyEl.value=(ht*1.2*taux).toFixed(2);
 }
 
 function fmTab(el,panelId){
@@ -2012,8 +2039,10 @@ async function savePersonneFull(id){
     const raw={civilite:gv('fp-civ'),prenom:gv('fp-prenom'),nom:gv('fp-nom'),email:gv('fp-email'),telephone:gv('fp-tel'),wechat:gv('fp-wechat'),login:gv('fp-login'),categorie:gv('fp-cat'),note:gv('fp-note'),agent_code:gv('fp-agent-code'),type_client:gv('fp-type-client')};
     // Intermediary fields (only if fields exist in DOM)
     const siret=gv('fp-siret');if(siret!==null)raw.siret=siret;
+    const tvaIntracom=gv('fp-tva-intracom');if(tvaIntracom!==null)raw.tva_intracom=tvaIntracom;
     const iban=gv('fp-iban');if(iban!==null)raw.iban=iban;
     const addrI=gv('fp-adresse-interm');if(addrI!==null)raw.adresse_intermediaire=addrI;
+    const tauxCny=gv('fp-taux-cny');if(tauxCny!==null)raw.taux_change_cny=parseFloat(tauxCny)||8;
     const commHt=gv('fp-comm-ht');if(commHt!==null)raw.commission_default_ht=parseFloat(commHt)||20;
     const commTtc=gv('fp-comm-ttc');if(commTtc!==null)raw.commission_default_ttc_eur=parseFloat(commTtc)||24;
     const commCny=gv('fp-comm-cny');if(commCny!==null)raw.commission_default_cny=parseFloat(commCny)||192;
