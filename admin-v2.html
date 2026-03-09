@@ -1452,11 +1452,11 @@ async function renderContratModal(id){
     }catch(e){}
   }
   let p=personneMap[c.personne_id]||{};
-  if(c.personne_id&&p.iban===undefined){
+  if(c.personne_id&&!p._fullLoaded){
     try{
       const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${c.personne_id}&select=*`,{headers:H()});
       const d=await r.json();
-      if(d&&d[0]){Object.assign(p,d[0]);personneMap[c.personne_id]=p;}
+      if(d&&d[0]){Object.assign(p,d[0]);p._fullLoaded=true;personneMap[c.personne_id]=p;}
     }catch(e){}
   }
   const a=adresseMap[c.adresse_id]||{};
@@ -1552,7 +1552,7 @@ async function renderContratModal(id){
           ${fmField('fc-prenom','Prénom',p.prenom)}
           ${fmField('fc-nom','Nom',p.nom)}
           ${fmField('fc-dob','Date de naissance',p.date_naissance,'date')}
-          ${fmField('fc-siret','SIRET',p.siret)}
+          ${(p.type_client&&p.type_client!=='particulier')?fmField('fc-siret','SIRET',p.siret):''}
           ${fmField('fc-coloc-prenom','Colocataire Prénom',p.colocataire_prenom)}
           ${fmField('fc-coloc-nom','Colocataire Nom',p.colocataire_nom)}
         </div>
@@ -1652,7 +1652,7 @@ function renderPersonneModal(id){
       <div class="fmodal-grid">
         <div class="fmodal-col">
           <div class="fmodal-section">Identité</div>
-          ${fmField('fp-civ','Civilité',p.civilite,'select','M.|Mme|M. & Mme|Société')}
+          ${fmField('fp-civ','Civilité',p.civilite,'select','|Monsieur|Madame|M. & Mme|Société')}
           ${fmField('fp-type-client','Type',p.type_client||'particulier','select','particulier|societe')}
           ${fmField('fp-prenom','Prénom',p.prenom)}
           ${fmField('fp-nom','Nom',p.nom)}
@@ -2188,7 +2188,7 @@ function renderPersonneDrawer(id){
     </div>
     <div id="dt-edit" style="display:none">
       <div class="dsection">Modifier</div>
-      ${editField('pe-civilite','Civilité',p.civilite,'select','M.|Mme|M. & Mme')}
+      ${editField('pe-civilite','Civilité',p.civilite,'select','|Monsieur|Madame|M. & Mme|Société')}
       ${editField('pe-prenom','Prénom',p.prenom)}
       ${editField('pe-nom','Nom',p.nom)}
       ${editField('pe-email','Email',p.email,'email')}
