@@ -1119,7 +1119,7 @@ function renderContratsTable(){
     return `<tr class="${sel}" onclick="openEntity('contrat','${c.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${chk} onchange="toggleCT('${c.id}',this)"></td>
       <td onclick="event.stopPropagation()"><div class="status-wrap"><span class="badge ${statusClass(c.contrat_status)}" onclick="toggleStatusMenu(event,'sm-${c.id}')" style="cursor:pointer;">${statusLabel(c.contrat_status)} ▾</span><div class="status-menu" id="sm-${c.id}"><div class="status-opt" onclick="quickStatusInline('${c.id}','en_attente')"><div class="dot" style="background:var(--warning)"></div>En attente</div><div class="status-opt" onclick="quickStatusInline('${c.id}','en_traitement')"><div class="dot" style="background:var(--info)"></div>En traitement</div><div class="status-opt" onclick="quickStatusInline('${c.id}','actif')"><div class="dot" style="background:var(--success)"></div>Actif</div><div class="status-opt" onclick="quickStatusInline('${c.id}','annule')"><div class="dot" style="background:var(--danger)"></div>Annulé</div><div class="status-opt" onclick="quickStatusInline('${c.id}','refuse')"><div class="dot" style="background:var(--danger)"></div>Refusé</div></div></div></td>
-      <td style="font-family:monospace;font-size:11px;color:var(--accent);font-weight:600;">${idClient!=='—'?'#'+esc(idClient.replace(/^#/,'')):''}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--accent);font-weight:600;">${idClient!=='—'?esc(idClient.startsWith('#')?idClient:'#'+idClient):''}</td>
       <td><div style="font-weight:600;font-size:12px;">${esc(name)}</div><div style="font-size:10px;color:var(--muted);">${esc(p.email||'')}</div></td>
       <td style="font-family:monospace;font-size:11px;font-weight:600;">${esc(idContrat)}</td>
       <td style="font-size:11px;">${esc(normFourn(c.fournisseur)||'—')}</td>
@@ -1296,7 +1296,7 @@ function renderContratModal(id){
   const comm=allComm.find(cm=>cm.contrat_id===id);
   const tt=c.formule?{resiliation:'❌ Résiliation',mise_en_service:'⚡ Mise en service',changement_fournisseur:'🔄 Changement',box_internet:'📡 Box',ouverture_banque:'🏦 Banque'}[c.formule]||'📄 Contrat':'📄 Contrat';
 
-  document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">Client #${esc(p.id_client||'—')}</span>`;
+  document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">Client ${esc((p.id_client||'—').replace(/^#/,'#'))}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Détails</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
@@ -1413,7 +1413,7 @@ function renderPersonneModal(id){
   const activeC=contrats.filter(c=>c.contrat_status==='actif'||c.contrat_status==='en_traitement'||c.contrat_status==='en_attente');
   const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');
 
-  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} <span style="font-size:12px;font-family:monospace;color:var(--accent);">#${esc(p.id_client||'—')}</span>`;
+  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} <span style="font-size:12px;font-family:monospace;color:var(--accent);">${esc(p.id_client||'')}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
