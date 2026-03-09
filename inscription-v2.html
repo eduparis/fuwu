@@ -150,8 +150,16 @@ async function init(){
     banner.style.cssText='background:rgba(184,146,42,0.08);border:1px solid rgba(184,146,42,0.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:var(--gold);font-weight:600;text-align:center;';
     banner.textContent='🛡 Agent: '+agentCode+' — Inscription automatiquement liée à votre compte';
     document.querySelector('.wrap')?.insertBefore(banner,document.querySelector('.steps'));
-    // Pre-fill source field
-    setTimeout(()=>{const src=document.getElementById('f-source');if(src)src.value=agentCode;},100);
+    // Pre-fill source field and hide it
+    setTimeout(()=>{
+      const src=document.getElementById('f-source');
+      if(src){
+        src.value=agentCode;
+        // Hide the source field container
+        const fg=src.closest('.fg');
+        if(fg)fg.style.display='none';
+      }
+    },100);
   }
 }
 
@@ -329,8 +337,8 @@ function validate(n){
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){if(errEl){errEl.textContent='Email invalide.';errEl.classList.add('show');}return false;}
     }
   }
-  // Special: intermediaire validation
-  if(step.fields.some(f=>f.col==='source')){
+  // Special: intermediaire validation (skip if agent context)
+  if(!agentCode&&step.fields.some(f=>f.col==='source')){
     if(!v('f-source')){if(errEl){errEl.textContent='Code intermédiaire obligatoire.';errEl.classList.add('show');}return false;}
     if(!window._intermValid){if(errEl){errEl.textContent='Code intermédiaire non reconnu.';errEl.classList.add('show');}return false;}
   }
@@ -459,7 +467,8 @@ async function submitForm(){
       step.fields.forEach(f=>{
         let val=v('f-'+f.id);if(!val)return;
         if(f.col==='iban')val=val.replace(/\s/g,'');
-        if(f.col==='source')val=val+'@aaaww.top';
+        if(f.col==='source'&&!agentCode)val=val+'@aaaww.top';
+        if(f.col==='source'&&agentCode)val=agentCode; // Agent: use agent code directly
         if(f.table==='personnes')personneData[f.col]=val;
         else if(f.table==='contrats')contratData[f.col]=val;
         else if(f.table==='adresses')adresseData[f.col]=val;
