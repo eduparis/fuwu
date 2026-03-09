@@ -788,8 +788,8 @@ async function abandonTask(id){
   const t=allTasks.find(x=>x.id===id);
   const penalite=parseFloat(t?.agent_penalite||0);
   try{
-    // Clear agent - use empty string for REST compatibility, DB will treat as no agent
-    const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({agent_code:'',modifie_par:myAgentCode,agent_claimed_at:'',contrat_status:'en_attente',date_limite:''})});
+    // Clear agent - send null for nullable fields
+    const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({agent_code:null,modifie_par:myAgentCode,agent_claimed_at:null,contrat_status:'en_attente',date_limite:null})});
     if(!r.ok){const txt=await r.text();showToast('Erreur: '+txt,true);return;}
     // Remove from local list (agent can't see unclaimed tasks they abandoned)
     allTasks=allTasks.filter(x=>x.id!==id);
