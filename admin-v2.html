@@ -1547,19 +1547,26 @@ async function changeAgentPassword(personneId){
   if(!newPwd||newPwd.length<6){showToast('Mot de passe trop court (min 6)',true);return;}
   const p=personneMap[personneId];if(!p)return;
   try{
-    // Use admin_change_password RPC
+    // Try admin_change_password RPC first (updates existing auth user)
     const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_change_password`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_new_password:newPwd})});
-    if(!r.ok){const t=await r.text();throw new Error(t);}
-    showToast('🔑 Mot de passe mis à jour pour '+esc(p.email));
-    document.getElementById('fp-new-pwd').value='';
-  }catch(e){
-    // Fallback: update password_hash directly
-    try{
-      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({password_hash:newPwd})});
-      showToast('🔑 Mot de passe mis à jour (hash local)');
+    if(r.ok){
+      showToast('🔑 Mot de passe mis à jour pour '+esc(p.email));
       document.getElementById('fp-new-pwd').value='';
-    }catch(e2){showToast('Erreur: '+e.message,true);}
-  }
+      return;
+    }
+    // If failed, maybe user doesn't exist in auth - create it
+    const r2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_auth_user`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_password:newPwd,p_role:p.est_agent?'agent_interne':'intermediaire'})});
+    if(r2.ok){
+      const uid=await r2.json();
+      // Save auth_uid to personnes
+      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({auth_uid:uid})});
+      p.auth_uid=uid;
+      showToast('🔑 Compte créé + mot de passe défini pour '+esc(p.email));
+      document.getElementById('fp-new-pwd').value='';
+      return;
+    }
+    throw new Error(await r2.text());
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
 async function toggleAgentStatus(personneId,newState){
@@ -1663,8 +1670,11 @@ async function saveContratFull(contratId,personneId,adresseId){
 
 async function savePersonneFull(id){
   try{
-    const pb={civilite:gv('fp-civ'),prenom:gv('fp-prenom'),nom:gv('fp-nom'),email:gv('fp-email'),telephone:gv('fp-tel'),wechat:gv('fp-wechat'),login:gv('fp-login'),categorie:gv('fp-cat'),note:gv('fp-note')};
-    await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(pb)});
+    const raw={civilite:gv('fp-civ'),prenom:gv('fp-prenom'),nom:gv('fp-nom'),email:gv('fp-email'),telephone:gv('fp-tel'),wechat:gv('fp-wechat'),login:gv('fp-login'),categorie:gv('fp-cat'),note:gv('fp-note'),agent_code:gv('fp-agent-code')};
+    // Filter out null values to avoid overwriting with null
+    const pb={};Object.entries(raw).forEach(([k,v])=>{if(v!==null)pb[k]=v;});
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(pb)});
+    if(!r.ok){const t=await r.text();throw new Error(t);}
     Object.assign(personneMap[id],pb);
     if(currentPage==='crm')renderCRMTable();
     showToast('Client sauvegardé ✅');
