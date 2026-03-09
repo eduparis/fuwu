@@ -505,8 +505,18 @@ svg.lc circle{r:3;}
             <button class="abtn" onclick="batchCRM('merge')">🔗 Fusionner</button>
           </div>
           <div style="padding:10px 24px 0;flex-shrink:0;">
+            <!-- Quick filter cards -->
+            <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;" id="crm-cards">
+              <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('recent')"><div class="scard-val v-green" id="crm-c-recent">—</div><div class="scard-label">Récents 3 jours</div></div>
+              <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('client')"><div class="scard-val v-blue" id="crm-c-client">—</div><div class="scard-label">Clients</div></div>
+              <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('agent')"><div class="scard-val v-orange" id="crm-c-agent">—</div><div class="scard-label">Agents</div></div>
+              <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('intermediaire')"><div class="scard-val v-gold" id="crm-c-interm">—</div><div class="scard-label">Intermédiaires</div></div>
+            </div>
             <div class="fbar">
-              <input type="text" class="finput" style="flex:1;min-width:200px;" id="crm-search" placeholder="🔍 Rechercher…" oninput="filterCRM()">
+              <div style="flex:1;min-width:200px;position:relative;">
+                <input type="text" class="finput" style="width:100%;padding-right:30px;" id="crm-search" placeholder="🔍 Rechercher…" oninput="filterCRM()">
+                <span onclick="document.getElementById('crm-search').value='';filterCRM();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted);font-size:14px;display:none;" id="crm-search-x">✕</span>
+              </div>
               <select class="finput" id="crm-role" onchange="filterCRM()"><option value="">Tous rôles</option><option value="client">Client</option><option value="intermediaire">Intermédiaire</option><option value="agent">Agent</option></select>
               <select class="finput" id="crm-cat" onchange="filterCRM()"><option value="">Toutes catégories</option></select>
             </div>
@@ -899,7 +909,7 @@ async function loadContrats(){
 async function loadCommissions(){allComm=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);const seen=new Set();allComm=allComm.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});}
 async function loadPersonnes(){
   // Lighter select — drop iban, siret, colocataire fields (only needed in detail)
-  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client&order=created_at.desc`);
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at&order=created_at.desc`);
   allPersonnes.forEach(p=>personneMap[p.id]=p);
 }
 
@@ -1241,18 +1251,56 @@ function toggleAllCT(cb){const start=(ctPage-1)*PAGE;fContrats.slice(start,start
 // ══════════════════════════════════════
 // CRM PAGE
 // ══════════════════════════════════════
+let _crmQuick=''; // '', 'recent', 'client', 'agent', 'intermediaire'
+
+function crmQuickFilter(type){
+  _crmQuick=_crmQuick===type?'':type; // toggle
+  document.getElementById('crm-role').value=
+    type==='client'?'client':type==='agent'?'agent':type==='intermediaire'?'intermediaire':'';
+  filterCRM();
+}
+
 function filterCRM(){
   const q=(document.getElementById('crm-search').value||'').toLowerCase();
   const role=document.getElementById('crm-role').value;
+  // Show/hide X button
+  const xBtn=document.getElementById('crm-search-x');
+  if(xBtn)xBtn.style.display=q?'block':'none';
+
+  const now=Date.now();
+  const threeDaysAgo=now-3*24*3600000;
+
   fCRM=allPersonnes.filter(p=>{
     if(role==='client'&&!p.est_client)return false;
     if(role==='intermediaire'&&!p.est_intermediaire)return false;
     if(role==='agent'&&!p.est_agent)return false;
-    if(q){const hay=[p.prenom,p.nom,p.email,p.telephone,p.wechat,p.login].join(' ').toLowerCase();if(!hay.includes(q))return false;}
+    if(_crmQuick==='recent'){
+      // created_at is loaded in desc order; check if within 3 days
+      // personnes may not have created_at in lightweight load, use position heuristic
+      if(p.created_at&&new Date(p.created_at).getTime()<threeDaysAgo)return false;
+    }
+    if(q){const hay=[p.prenom,p.nom,p.email,p.telephone,p.wechat,p.login,p.id_client].join(' ').toLowerCase();if(!hay.includes(q))return false;}
     return true;
   });
+
+  // Sort: newest first (allPersonnes already loaded in created_at desc order, maintain that)
   crmPage=1;crmSelected.clear();
+  updateCRMCards();
   renderCRMTable();
+}
+
+function updateCRMCards(){
+  const now=Date.now();
+  const threeDaysAgo=now-3*24*3600000;
+  const recent=allPersonnes.filter(p=>p.created_at&&new Date(p.created_at).getTime()>=threeDaysAgo).length;
+  const clients=allPersonnes.filter(p=>p.est_client).length;
+  const agents=allPersonnes.filter(p=>p.est_agent).length;
+  const interms=allPersonnes.filter(p=>p.est_intermediaire).length;
+  const el=id=>document.getElementById(id);
+  if(el('crm-c-recent'))el('crm-c-recent').textContent=recent;
+  if(el('crm-c-client'))el('crm-c-client').textContent=clients;
+  if(el('crm-c-agent'))el('crm-c-agent').textContent=agents;
+  if(el('crm-c-interm'))el('crm-c-interm').textContent=interms;
 }
 function renderCRMTable(){
   const start=(crmPage-1)*PAGE,page=fCRM.slice(start,start+PAGE);
@@ -2110,8 +2158,140 @@ function toggleNouveau(){document.getElementById('nouveau-menu').classList.toggl
 document.addEventListener('click',e=>{if(!e.target.closest('.nouveau-wrap'))document.getElementById('nouveau-menu').classList.remove('open');});
 function openCreate(type){
   document.getElementById('nouveau-menu').classList.remove('open');
-  // TODO: open right drawer with create form
-  showToast(`Nouveau ${type} — en développement`);
+  const titles={client:'👤 Nouveau Client',intermediaire:'🤝 Nouvel Intermédiaire',agent:'🛡 Nouvel Agent',fournisseur:'🏢 Nouveau Fournisseur',contrat:'📄 Nouveau Contrat'};
+  document.getElementById('fm-title').innerHTML=titles[type]||'Nouveau';
+  document.getElementById('fm-tabs').innerHTML='';
+
+  if(type==='client'||type==='intermediaire'||type==='agent'){
+    const isInterm=type==='intermediaire';
+    const isAgent=type==='agent';
+    document.getElementById('fm-body').innerHTML=`
+      <div class="fmodal-grid"><div class="fmodal-col">
+        <div class="fmodal-section">Identité</div>
+        ${fmField('nc-civ','Civilité','','select','|Monsieur|Madame|M. & Mme|Société')}
+        ${fmField('nc-prenom','Prénom','')}
+        ${fmField('nc-nom','Nom','')}
+        ${fmField('nc-email','Email','','email')}
+        ${fmField('nc-tel','Téléphone','','tel')}
+      </div><div class="fmodal-col">
+        <div class="fmodal-section">Détails</div>
+        ${fmField('nc-wechat','WeChat / WhatsApp','')}
+        ${isInterm||isAgent?fmField('nc-login','Login',''):''}
+        ${isAgent?fmField('nc-agent-code','Code Agent',''):''}
+        ${isInterm||isAgent?fmField('nc-password','Mot de passe initial',''):''}
+        ${fmField('nc-note','Note','','textarea')}
+      </div></div>
+    `;
+    document.getElementById('fm-actions').innerHTML=`
+      <button class="abtn g" onclick="submitCreate('${type}')">✅ Créer</button>
+      <button class="abtn" onclick="closeFModal()">Annuler</button>
+    `;
+  } else if(type==='contrat'){
+    document.getElementById('fm-body').innerHTML=`
+      <div class="fmodal-grid"><div class="fmodal-col">
+        <div class="fmodal-section">Contrat</div>
+        ${fmField('nc-fournisseur','Fournisseur','TotalEnergies')}
+        ${fmField('nc-energie','Énergie','elec','select','elec|gaz|elec+gaz')}
+        ${fmField('nc-formule','Type mission','','select','|mise_en_service|changement_fournisseur|resiliation|box_internet|ouverture_banque')}
+        ${fmField('nc-date','Date début',new Date().toISOString().slice(0,10),'date')}
+      </div><div class="fmodal-col">
+        <div class="fmodal-section">Client (email existant)</div>
+        ${fmField('nc-client-email','Email client','','email')}
+        <div style="font-size:11px;color:var(--muted);margin-top:-8px;">Si le client existe, il sera automatiquement lié.</div>
+        ${fmField('nc-source','Source / Intermédiaire','')}
+      </div></div>
+    `;
+    document.getElementById('fm-actions').innerHTML=`
+      <button class="abtn g" onclick="submitCreateContrat()">✅ Créer</button>
+      <button class="abtn" onclick="closeFModal()">Annuler</button>
+    `;
+  } else if(type==='fournisseur'){
+    document.getElementById('fm-body').innerHTML=`
+      <div class="fmodal-section">Fournisseur</div>
+      ${fmField('nc-f-nom','Nom','')}\
+      ${fmField('nc-f-contact','Nom contact','')}
+      ${fmField('nc-f-email','Email contact','','email')}
+      ${fmField('nc-f-tel','Téléphone','','tel')}
+    `;
+    document.getElementById('fm-actions').innerHTML=`
+      <button class="abtn g" onclick="submitCreateFournisseur()">✅ Créer</button>
+      <button class="abtn" onclick="closeFModal()">Annuler</button>
+    `;
+  }
+  openFModal();
+}
+
+async function submitCreate(type){
+  const isInterm=type==='intermediaire';
+  const isAgent=type==='agent';
+  const body={
+    civilite:gv('nc-civ'),prenom:gv('nc-prenom'),nom:gv('nc-nom'),
+    email:gv('nc-email'),telephone:gv('nc-tel'),wechat:gv('nc-wechat'),
+    note:gv('nc-note'),
+    est_client:type==='client',est_intermediaire:isInterm,est_agent:isAgent
+  };
+  if(isInterm||isAgent){
+    body.login=gv('nc-login');
+    if(isAgent)body.agent_code=gv('nc-agent-code');
+  }
+  // Filter nulls
+  const clean={};Object.entries(body).forEach(([k,v])=>{if(v!==null&&v!==undefined)clean[k]=v;});
+  if(!clean.email&&!clean.nom){showToast('Email ou nom requis',true);return;}
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes`,{method:'POST',headers:HR(),body:JSON.stringify(clean)});
+    if(!r.ok)throw new Error(await r.text());
+    const[newP]=await r.json();
+    // Create auth user if password provided
+    const pwd=gv('nc-password');
+    if(pwd&&newP.email){
+      try{
+        const role=isAgent?'agent_interne':'intermediaire';
+        await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_auth_user`,{method:'POST',headers:H(),body:JSON.stringify({p_email:newP.email,p_password:pwd,p_role:role})});
+      }catch(e){console.warn('Auth user creation failed',e);}
+    }
+    allPersonnes.unshift(newP);personneMap[newP.id]=newP;
+    closeFModal();
+    if(currentPage==='crm')filterCRM();
+    showToast(type.charAt(0).toUpperCase()+type.slice(1)+' créé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function submitCreateContrat(){
+  const clientEmail=gv('nc-client-email');
+  let personneId=null;
+  if(clientEmail){
+    // Find existing personne
+    const existing=allPersonnes.find(p=>p.email&&p.email.toLowerCase()===clientEmail.toLowerCase());
+    if(existing)personneId=existing.id;
+  }
+  const body={
+    personne_id:personneId,fournisseur:gv('nc-fournisseur'),energie_type:gv('nc-energie'),
+    formule:gv('nc-formule'),date_debut:gv('nc-date'),source:gv('nc-source'),contrat_status:'en_attente'
+  };
+  const clean={};Object.entries(body).forEach(([k,v])=>{if(v!==null&&v!==undefined)clean[k]=v;});
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats`,{method:'POST',headers:HR(),body:JSON.stringify(clean)});
+    if(!r.ok)throw new Error(await r.text());
+    const[newC]=await r.json();
+    allContrats.unshift(newC);contratMap[newC.id]=newC;
+    closeFModal();
+    if(currentPage==='contrats')filterContrats();
+    if(currentPage==='accueil')renderAccueil();
+    updateBadges();
+    showToast('Contrat créé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function submitCreateFournisseur(){
+  const body={nom:gv('nc-f-nom'),contact_nom:gv('nc-f-contact'),contact_email:gv('nc-f-email'),contact_telephone:gv('nc-f-tel'),actif:true};
+  const clean={};Object.entries(body).forEach(([k,v])=>{if(v!==null&&v!==undefined)clean[k]=v;});
+  if(!clean.nom){showToast('Nom requis',true);return;}
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/fournisseurs`,{method:'POST',headers:HR(),body:JSON.stringify(clean)});
+    if(!r.ok)throw new Error(await r.text());
+    closeFModal();
+    showToast('Fournisseur créé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
 // ══════════════════════════════════════
