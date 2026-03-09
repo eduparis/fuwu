@@ -562,7 +562,7 @@ svg.lc circle{r:3;}
                 <table class="dt-table" id="ct-table">
                   <thead><tr>
                     <th style="width:30px;"><input type="checkbox" onchange="toggleAllCT(this)"></th>
-                    <th>Statut</th><th>ID Client</th><th>Client</th><th>ID Contrat</th><th>Fournisseur</th><th>Énergie</th><th>Date</th><th>Agent</th>
+                    <th>Statut</th><th>ID Client</th><th>Client</th><th>ID Contrat</th><th>Fournisseur</th><th>Type</th><th>Date</th><th>Agent</th>
                   </tr></thead>
                   <tbody id="ct-tbody"></tbody>
                 </table>
@@ -1089,6 +1089,8 @@ function filterContrats(special){
     }
     return true;
   });
+  // Sort by date (newest first)
+  fContrats.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   ctPage=1;ctSelected.clear();
   renderContratsTable();
 }
@@ -1109,11 +1111,11 @@ function renderContratsTable(){
     return `<tr class="${sel}" onclick="openEntity('contrat','${c.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${chk} onchange="toggleCT('${c.id}',this)"></td>
       <td onclick="event.stopPropagation()"><div class="status-wrap"><span class="badge ${statusClass(c.contrat_status)}" onclick="toggleStatusMenu(event,'sm-${c.id}')" style="cursor:pointer;">${statusLabel(c.contrat_status)} ▾</span><div class="status-menu" id="sm-${c.id}"><div class="status-opt" onclick="quickStatusInline('${c.id}','en_attente')"><div class="dot" style="background:var(--warning)"></div>En attente</div><div class="status-opt" onclick="quickStatusInline('${c.id}','en_traitement')"><div class="dot" style="background:var(--info)"></div>En traitement</div><div class="status-opt" onclick="quickStatusInline('${c.id}','actif')"><div class="dot" style="background:var(--success)"></div>Actif</div><div class="status-opt" onclick="quickStatusInline('${c.id}','annule')"><div class="dot" style="background:var(--danger)"></div>Annulé</div><div class="status-opt" onclick="quickStatusInline('${c.id}','refuse')"><div class="dot" style="background:var(--danger)"></div>Refusé</div></div></div></td>
-      <td style="font-family:monospace;font-size:11px;color:var(--accent);font-weight:600;">#${esc(idClient)}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--accent);font-weight:600;">${idClient!=='—'?'#'+esc(idClient.replace(/^#/,'')):''}</td>
       <td><div style="font-weight:600;font-size:12px;">${esc(name)}</div><div style="font-size:10px;color:var(--muted);">${esc(p.email||'')}</div></td>
       <td style="font-family:monospace;font-size:11px;font-weight:600;">${esc(idContrat)}</td>
       <td style="font-size:11px;">${esc(normFourn(c.fournisseur)||'—')}</td>
-      <td>${c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':c.energie_type==='elec+gaz'?'⚡🔥':'—'}</td>
+      <td style="font-size:11px;">${c.formule?({mise_en_service:'⚡ MES',resiliation:'❌ Résil',changement_fournisseur:'🔄 Chgt',box_internet:'📡 Box',ouverture_banque:'🏦 Banque',demenagement:'📦 Démén'}[c.formule]||esc(c.formule)):(c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':c.energie_type==='elec+gaz'?'⚡🔥':'—')}</td>
       <td style="font-size:11px;color:var(--muted);">${fmtDate(c.date_debut||c.created_at)}</td>
       <td style="font-size:11px;">${c.agent_code?`<span style="background:rgba(25,135,84,0.08);color:var(--success);padding:1px 6px;border-radius:6px;font-size:10px;font-weight:600;">${esc(c.agent_code)}</span>`:'<span style="color:var(--muted);font-size:10px;">—</span>'}</td>
     </tr>`;
