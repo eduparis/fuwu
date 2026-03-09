@@ -1614,7 +1614,7 @@ function renderPersonneModal(id){
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-tasks')">⚡ Tâches</div>
-    ${p.est_agent||p.est_intermediaire?`<div class="fmodal-tab" onclick="fmTab(this,'fmt-access')">🔑 Accès</div>`:''}
+    ${`<div class="fmodal-tab" onclick="fmTab(this,'fmt-access')">🔑 Accès</div>`}
   `;
   document.getElementById('fm-body').innerHTML=`
     <div id="fmt-profil">
@@ -1633,7 +1633,11 @@ function renderPersonneModal(id){
           ${fmField('fp-login','Login',p.login)}
           ${fmField('fp-cat','Catégorie',p.categorie,'select','|A|B|C|D|VIP')}
           ${fmField('fp-note','Note',p.note,'textarea')}
-          <div class="fmodal-field"><label>Rôle</label><div class="fmodal-readonly">${roles.join(', ')||'—'}</div></div>
+          <div class="fmodal-field"><label>Rôle</label><div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0;">
+            <button class="abtn ${p.est_client?'g':''}" onclick="toggleRole('${id}','est_client',${!p.est_client})" style="font-size:11px;">${p.est_client?'✅':'⬜'} Client</button>
+            <button class="abtn ${p.est_intermediaire?'g':''}" onclick="toggleRole('${id}','est_intermediaire',${!p.est_intermediaire})" style="font-size:11px;">${p.est_intermediaire?'✅':'⬜'} Intermédiaire</button>
+            <button class="abtn ${p.est_agent?'g':''}" onclick="toggleRole('${id}','est_agent',${!p.est_agent})" style="font-size:11px;">${p.est_agent?'✅':'⬜'} Agent</button>
+          </div></div>
         </div>
       </div>
     </div>
@@ -1662,7 +1666,7 @@ function renderPersonneModal(id){
       <div id="task-panel-${id}"></div>
       ${activeC.length?`<div class="fmodal-section" style="margin-top:16px;">Résiliation rapide</div>${activeC.map(c=>{const a=adresseMap[c.adresse_id]||{};return `<div class="todo" style="padding:10px 12px;"><div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':'🔥'}</div><div class="todo-info"><div class="todo-title" style="font-size:11px;">${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div><div class="todo-sub">${[a.rue,a.ville].filter(Boolean).join(', ')}</div></div><button class="abtn r" style="font-size:10px;" onclick="event.stopPropagation();quickResiliation('${id}','${c.id}')">❌ Résilier</button></div>`;}).join('')}`:''}
     </div>
-    ${p.est_agent||p.est_intermediaire?`<div id="fmt-access" style="display:none">
+    <div id="fmt-access" style="display:none">
       <div class="fmodal-grid">
         <div class="fmodal-col">
           <div class="fmodal-section">Compte & Accès</div>
@@ -1680,7 +1684,7 @@ function renderPersonneModal(id){
           <button class="abtn ${p.est_agent?'r':'g'}" onclick="toggleAgentStatus('${id}',${!p.est_agent})" style="width:100%;">${p.est_agent?'⚪ Désactiver':'🟢 Activer'} Agent</button>
         </div>
       </div>
-    </div>`:''}
+    </div>
   `;
   document.getElementById('fm-actions').innerHTML=`
     <button class="abtn g" onclick="savePersonneFull('${id}')">💾 Sauvegarder</button>
@@ -1772,6 +1776,20 @@ async function toggleAgentStatus(personneId,newState){
     renderPersonneModal(personneId);
     showToast(newState?'🟢 Agent activé':'⚪ Agent désactivé');
   }catch(e){showToast('Erreur',true);}
+}
+
+async function toggleRole(personneId,field,newState){
+  if(!confirm(`${newState?'Activer':'Désactiver'} ${field.replace('est_','')} ?`))return;
+  try{
+    const body={};body[field]=newState;
+    await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    const p=personneMap[personneId];if(p)p[field]=newState;
+    // Also update allPersonnes array
+    const ap=allPersonnes.find(x=>x.id===personneId);if(ap)ap[field]=newState;
+    renderPersonneModal(personneId);
+    if(currentPage==='crm'){updateCRMCards();renderCRMTable();}
+    showToast((newState?'✅ ':'⬜ ')+field.replace('est_','').charAt(0).toUpperCase()+field.replace('est_','').slice(1));
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
 async function assignAgent(contratId){
