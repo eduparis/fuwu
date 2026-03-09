@@ -473,7 +473,7 @@ svg.lc circle{r:3;}
           <div class="work-body">
             <!-- Active tasks overview -->
             <div class="stats stats-4" id="task-stats"></div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;" id="task-filter-chips"></div>
+            <div style="display:none;" id="task-filter-chips"></div>
             <div id="task-active-list"></div>
             <!-- Task type config (hidden, rendered by Éditeur Missions) -->
             <div id="task-types-grid" style="display:none;"></div>
@@ -3221,23 +3221,21 @@ function renderActiveTasksList(){
     return da<db?-1:da>db?1:0;
   });
 
-  // Batch action bar
-  let batchBar='';
-  if(taskSelection.size>0){
-    // Build agent options from personnes with est_agent=true
-    const agents=Object.values(personneMap).filter(p=>p.est_agent&&p.agent_code);
-    const agentOpts=agents.map(a=>`<option value="${esc(a.agent_code)}">${esc(a.agent_code)} — ${esc([a.prenom,a.nom].filter(Boolean).join(' ')||a.email)}</option>`).join('');
-    batchBar=`<div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span style="font-size:12px;font-weight:700;">${taskSelection.size} sélectionné(s)</span>
-      <select id="batch-agent-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:160px;"><option value="">— Choisir agent —</option>${agentOpts}</select>
-      <button class="abtn primary" onclick="batchAssignAgent()">🛡 Assigner</button>
-      <select id="batch-prio-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:100px;"><option value="">— Priorité —</option><option value="haute">🔴 Haute</option><option value="moyenne">🟡 Moyenne</option><option value="normal">⚪ Normal</option></select>
-      <button class="abtn" onclick="batchSetPriority()">🔥 Appliquer</button>
-      <input type="number" id="batch-comm-val" class="finput" style="padding:5px 8px;font-size:11px;width:70px;" placeholder="€ HT">
-      <button class="abtn" onclick="batchSetCommission()">💰 Commission</button>
-      <button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Désélectionner</button>
-    </div>`;
-  }
+  // Batch action bar — always visible
+  const agents=Object.values(personneMap).filter(p=>p.est_agent&&p.agent_code);
+  const agentOpts=agents.map(a=>`<option value="${esc(a.agent_code)}">${esc(a.agent_code)} — ${esc([a.prenom,a.nom].filter(Boolean).join(' ')||a.email)}</option>`).join('');
+  const selCount=taskSelection.size;
+  const batchBar=`<div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:10;">
+    <span style="font-size:12px;font-weight:700;">${selCount||'0'} sélectionné(s)</span>
+    <button class="abtn" onclick="selectAllTasks()" style="font-size:10px;">☑ Tout</button>
+    <select id="batch-agent-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:160px;"><option value="">— Choisir agent —</option>${agentOpts}</select>
+    <button class="abtn primary" onclick="batchAssignAgent()">🛡 Assigner</button>
+    <select id="batch-prio-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:100px;"><option value="">— Priorité —</option><option value="haute">🔴 Haute</option><option value="moyenne">🟡 Moyenne</option><option value="normal">⚪ Normal</option></select>
+    <button class="abtn" onclick="batchSetPriority()">🔥 Appliquer</button>
+    <input type="number" id="batch-comm-val" class="finput" style="padding:5px 8px;font-size:11px;width:70px;" placeholder="€ HT">
+    <button class="abtn" onclick="batchSetCommission()">💰 Commission</button>
+    ${selCount?`<button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Désélectionner</button>`:''}
+  </div>`;
 
   document.getElementById('task-active-list').innerHTML=batchBar+(filtered.length?filtered.slice(0,50).map(c=>{
     const p=personneMap[c.personne_id]||{};
@@ -3245,6 +3243,7 @@ function renderActiveTasksList(){
     const tt=allTaskTypes.find(t=>t.id===c.formule)||{icon:'📋',label:c.formule||'Tâche'};
     const checked=taskSelection.has(c.id)?'checked':'';
     const prioStyle=c.priorite==='haute'?'border-left:3px solid var(--danger);':c.priorite==='moyenne'?'border-left:3px solid var(--warning);':'';
+    const commVal=c.agent_commission_par_contrat!=null?c.agent_commission_par_contrat:(tt.commission_default!=null?tt.commission_default:null);
     return `<div class="todo" style="${prioStyle}">
       <input type="checkbox" ${checked} onclick="event.stopPropagation();toggleTaskSel('${c.id}',this)" style="margin-right:8px;cursor:pointer;">
       <div class="todo-icon" style="font-size:16px;" onclick="openEntity('contrat','${c.id}')">${tt.icon}</div>
@@ -3253,7 +3252,7 @@ function renderActiveTasksList(){
         <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${esc(c.id_service||'')} · ${fmtDate(c.date_debut)}${c.priorite&&c.priorite!=='normal'?' · <span style="font-size:10px;font-weight:700;color:'+(c.priorite==='haute'?'var(--danger)':'var(--warning)')+';">'+(c.priorite==='haute'?'🔴':'🟡')+' '+c.priorite+'</span>':''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        ${(c.agent_commission_par_contrat||tt.commission_default)?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${c.agent_commission_par_contrat||tt.commission_default}€</div>`:''}
+        ${commVal!=null&&commVal>0?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${commVal}€</div>`:''}
         <div style="font-size:10px;color:var(--muted);">${esc(normFourn(c.fournisseur)||'')}</div>
       </div>
     </div>`;
@@ -3261,6 +3260,12 @@ function renderActiveTasksList(){
 }
 
 function toggleTaskSel(id,cb){if(cb.checked)taskSelection.add(id);else taskSelection.delete(id);renderActiveTasksList();}
+function selectAllTasks(){
+  const active=allContrats.filter(c=>c.contrat_status==='en_attente'||c.contrat_status==='en_traitement');
+  if(taskSelection.size===active.length){taskSelection.clear();}
+  else{active.forEach(c=>taskSelection.add(c.id));}
+  renderActiveTasksList();
+}
 
 async function batchAssignAgent(){
   const code=document.getElementById('batch-agent-select')?.value;
