@@ -3210,7 +3210,7 @@ function renderActiveTasksList(){
 
   // Sort: priorité (haute>moyenne>normal) → statut (en_traitement>en_attente) → date_debut nearest first
   const prioOrder={haute:0,moyenne:1,normal:2};
-  const statusOrder={en_traitement:0,en_attente:1};
+  const statusOrder={en_attente:0,en_traitement:1};
   filtered.sort((a,b)=>{
     const pa=(prioOrder[a.priorite]??2)-(prioOrder[b.priorite]??2);
     if(pa!==0)return pa;
@@ -3233,6 +3233,8 @@ function renderActiveTasksList(){
       <button class="abtn primary" onclick="batchAssignAgent()">🛡 Assigner</button>
       <select id="batch-prio-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:100px;"><option value="">— Priorité —</option><option value="haute">🔴 Haute</option><option value="moyenne">🟡 Moyenne</option><option value="normal">⚪ Normal</option></select>
       <button class="abtn" onclick="batchSetPriority()">🔥 Appliquer</button>
+      <input type="number" id="batch-comm-val" class="finput" style="padding:5px 8px;font-size:11px;width:70px;" placeholder="€ HT">
+      <button class="abtn" onclick="batchSetCommission()">💰 Commission</button>
       <button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Désélectionner</button>
     </div>`;
   }
@@ -3284,6 +3286,22 @@ async function batchSetPriority(){
   taskSelection.clear();
   renderActiveTasksList();
   showToast(`🔥 ${ids.length} tâche(s) → ${prio}`);
+}
+
+async function batchSetCommission(){
+  const val=document.getElementById('batch-comm-val')?.value;
+  if(!val&&val!=='0'){showToast('Entrez un montant',true);return;}
+  const amount=parseFloat(val);
+  const ids=[...taskSelection];
+  if(!confirm(`Modifier la commission agent à ${amount}€ HT pour ${ids.length} tâche(s) ?`))return;
+  for(let i=0;i<ids.length;i+=50){
+    const batch=ids.slice(i,i+50);
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=in.(${batch.join(',')})`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_commission_par_contrat:amount,modifie_par:'ADMIN'})});
+    batch.forEach(id=>{const c=contratMap[id];if(c)c.agent_commission_par_contrat=amount;});
+  }
+  taskSelection.clear();
+  renderActiveTasksList();
+  showToast(`💰 ${ids.length} tâche(s) → ${amount}€ HT`);
 }
 
 // ══════════════════════════════════════
