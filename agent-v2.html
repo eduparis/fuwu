@@ -317,9 +317,11 @@ async function loadTasks(){
   try{const rt=await fetch(`${SB}/rest/v1/task_types?actif=eq.true&select=id,label,icon,commission_default,penalite_default,description`,{headers:fuwuH()});const d=await rt.json();if(Array.isArray(d))d.forEach(t=>{taskTypesMap[t.id]=t;if(t.label)TASK_TYPES[t.id]={icon:t.icon||'📋',label:t.label,instruction:t.description||'Traiter cette tâche.'};});}catch(e){}
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
-    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_penalite,priorite,date_limite&order=created_at.desc&limit=500`,{headers:fuwuH()});
-    if(!r.ok)throw new Error(await r.text());
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_commission_par_contrat,agent_penalite,priorite,date_limite,note_agent&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    console.log('loadTasks response:',r.status,r.statusText);
+    if(!r.ok){const txt=await r.text();console.error('loadTasks error body:',txt);throw new Error(txt);}
     allTasks=await r.json();
+    console.log('loadTasks loaded:',allTasks.length,'tasks, myAgentCode:',myAgentCode);
 
     // Batch load personnes
     const pids=[...new Set(allTasks.map(t=>t.personne_id).filter(Boolean))];

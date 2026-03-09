@@ -473,7 +473,7 @@ svg.lc circle{r:3;}
           <div class="work-body">
             <!-- Active tasks overview -->
             <div class="stats stats-4" id="task-stats"></div>
-            <div style="display:none;" id="task-filter-chips"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;align-items:center;" id="task-filter-chips"></div>
             <div id="task-active-list"></div>
             <!-- Task type config (hidden, rendered by Éditeur Missions) -->
             <div id="task-types-grid" style="display:none;"></div>
@@ -3007,6 +3007,7 @@ async function saveContratEdit(id){
 let allTaskTypes=[];
 let allServiceCats=[];
 let activeTaskFilter='all';
+let activeAgentFilter=''; // filter by specific agent code
 
 async function loadTaskPage(){
   try{
@@ -3188,24 +3189,29 @@ function renderActiveTasksList(){
   const noAgent=active.filter(c=>!c.agent_code);
   const attente=active.filter(c=>c.contrat_status==='en_attente');
 
+  // Build agent filter dropdown
+  const agentCodes=[...new Set(active.map(c=>c.agent_code).filter(Boolean))].sort();
+  const agentFilterOpts=agentCodes.map(code=>{
+    const ag=Object.values(personneMap).find(p=>p.agent_code===code);
+    const label=ag?`${code} — ${[ag.prenom,ag.nom].filter(Boolean).join(' ')}`:code;
+    return `<option value="${code}" ${code===activeAgentFilter?'selected':''}>${esc(label)} (${active.filter(c=>c.agent_code===code).length})</option>`;
+  }).join('');
+
   document.getElementById('task-stats').innerHTML=`
-    <div class="scard" onclick="activeTaskFilter='all';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-orange">${active.length}</div><div class="scard-label">Total actives</div></div>
-    <div class="scard" onclick="activeTaskFilter='no_agent';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-red">${noAgent.length}</div><div class="scard-label">Sans agent</div></div>
-    <div class="scard" onclick="activeTaskFilter='with_agent';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-blue">${byAgent.length}</div><div class="scard-label">Agent assigné</div></div>
-    <div class="scard" onclick="activeTaskFilter='en_attente';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-gold">${attente.length}</div><div class="scard-label">En attente</div></div>
+    <div class="scard ${activeTaskFilter==='all'&&!activeAgentFilter?'scard-on':''}" onclick="activeTaskFilter='all';activeAgentFilter='';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-orange">${active.length}</div><div class="scard-label">Total actives</div></div>
+    <div class="scard ${activeTaskFilter==='no_agent'?'scard-on':''}" onclick="activeTaskFilter='no_agent';activeAgentFilter='';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-red">${noAgent.length}</div><div class="scard-label">Sans agent</div></div>
+    <div class="scard ${activeTaskFilter==='with_agent'&&!activeAgentFilter?'scard-on':''}" onclick="activeTaskFilter='with_agent';activeAgentFilter='';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-blue">${byAgent.length}</div><div class="scard-label">Agent assigné</div></div>
+    <div class="scard ${activeTaskFilter==='en_attente'?'scard-on':''}" onclick="activeTaskFilter='en_attente';activeAgentFilter='';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-gold">${attente.length}</div><div class="scard-label">En attente</div></div>
   `;
 
-  // Filter chips by task type
-  const types=[{id:'all',label:'Tous'}];
-  allTaskTypes.filter(t=>t.actif).forEach(t=>types.push({id:t.id,label:t.icon+' '+t.label}));
-  document.getElementById('task-filter-chips').innerHTML=types.map(f=>
-    `<div class="chip ${activeTaskFilter===f.id?'on':''}" onclick="activeTaskFilter='${f.id}';taskSelection.clear();renderActiveTasksList()">${f.label}</div>`
-  ).join('');
+  document.getElementById('task-filter-chips').innerHTML=`<select class="finput" style="padding:5px 10px;font-size:12px;" onchange="activeAgentFilter=this.value;activeTaskFilter=this.value?'by_agent':'all';taskSelection.clear();renderActiveTasksList()"><option value="">👁 Tous les agents</option>${agentFilterOpts}</select>`;
+  document.getElementById('task-filter-chips').style.display='flex';
 
   let filtered=active;
   if(activeTaskFilter==='no_agent')filtered=noAgent;
   else if(activeTaskFilter==='with_agent')filtered=byAgent;
   else if(activeTaskFilter==='en_attente')filtered=attente;
+  else if(activeTaskFilter==='by_agent'&&activeAgentFilter)filtered=active.filter(c=>c.agent_code===activeAgentFilter);
   else if(activeTaskFilter!=='all')filtered=active.filter(c=>c.formule===activeTaskFilter);
 
   // Sort: priorité (haute>moyenne>normal) → statut (en_traitement>en_attente) → date_debut nearest first
