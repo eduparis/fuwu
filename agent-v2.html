@@ -247,8 +247,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="fmodal-body" id="dw-body" style="padding:0;"></div>
     <div class="step-nav" id="dw-actions"></div>
   </div>
-    </div>
-  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -681,7 +679,7 @@ function openTask(id){
     if(i===steps.length-1){
       const ttDef=taskTypesMap[t.formule];
       const commVal=ttDef?parseFloat(ttDef.commission_default||0):0; // Only task type commission for agent
-      extra+=`</div></div>
+      extra+=`
         <div style="margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
           <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Informations système</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;">
@@ -922,7 +920,9 @@ async function searchClients(){
     el.innerHTML='<div style="color:var(--muted)"><span class="spinner"></span> Recherche…</div>';
     try{
       // Search by email, nom, prenom, telephone, wechat
-      const encoded=encodeURIComponent(q);
+      // Escape PostgreSQL LIKE special characters before encoding
+      const safe=q.replace(/[%_\\]/g,c=>'\\'+c);
+      const encoded=encodeURIComponent(safe);
       const r=await fetch(`${SB}/rest/v1/personnes?or=(email.ilike.*${encoded}*,nom.ilike.*${encoded}*,prenom.ilike.*${encoded}*,telephone.ilike.*${encoded}*,wechat.ilike.*${encoded}*)&select=id,civilite,prenom,nom,email,telephone,wechat&limit=20&order=nom.asc`,{headers:fuwuH()});
       if(!r.ok)throw new Error(r.status);
       const results=await r.json();

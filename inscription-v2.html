@@ -121,8 +121,9 @@
 </div>
 
 <script>
-const SB='https://xwcnbgapjkgbtpgfyjeb.supabase.co';
-const AK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3Y25iZ2FwamtnYnRwZ2Z5amViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDkyMjQsImV4cCI6MjA4Nzk4NTIyNH0.5H9i2BsTFH3UmDFdOnHRnAkF4eVwDExAaXHait4RFbI';
+// ── Config: try common.js globals first, fallback to hardcoded (for standalone/iframe use) ──
+const SB=(typeof SUPABASE_URL!=='undefined')?SUPABASE_URL:'https://xwcnbgapjkgbtpgfyjeb.supabase.co';
+const AK=(typeof SUPABASE_ANON_KEY!=='undefined')?SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3Y25iZ2FwamtnYnRwZ2Z5amViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDkyMjQsImV4cCI6MjA4Nzk4NTIyNH0.5H9i2BsTFH3UmDFdOnHRnAkF4eVwDExAaXHait4RFbI';
 const H={'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json','Prefer':'return=representation'};
 let formConfig=null,totalSteps=0,currentStep=0;
 let existingPersonne=null,forceNewClient=false;
@@ -518,7 +519,7 @@ async function submitForm(){
         // Auto-set deadline (24h default)
         patchBody.date_limite=new Date(Date.now()+24*3600000).toISOString();
       }
-      try{await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(patchBody)});}catch(e){}
+      try{const pr=await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(patchBody)});if(!pr.ok)console.warn('Contrat patch failed:',await pr.text());}catch(e){console.warn('Contrat patch error',e);}
     }
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelector('.steps').style.display='none';
