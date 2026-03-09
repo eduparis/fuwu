@@ -896,7 +896,7 @@ async function fetchAll(url){
 }
 async function loadContrats(){
   // Lighter select — drop fields only needed in detail view
-  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent,intermediaire_id,commission_ht,commission_ttc_eur,commission_ttc_cny,mode_paiement_intermediaire,decompte_id&order=created_at.desc`);
+  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent,intermediaire_id,commission_ht,commission_ttc_eur,commission_ttc_cny,mode_paiement_intermediaire,decompte_id,agent_commission_par_contrat,agent_penalite&order=created_at.desc`);
   const seen=new Set();allContrats=allContrats.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
   allContrats.forEach(c=>contratMap[c.id]=c);
   // Load adresses in batches
@@ -1588,25 +1588,21 @@ async function renderContratModal(id){
       <div class="fmodal-grid">
         <div class="fmodal-col">
           <div class="fmodal-section">Agent assigné</div>
-          ${fmField('fc-agent','Agent Code',c.agent_code)}
+          <div class="fmodal-field"><label>Agent Code</label><select id="fc-agent" class="finput"><option value="">— Non assigné —</option>${agentsList.map(ag=>`<option value="${ag.agent_code}" ${ag.agent_code===c.agent_code?'selected':''}>${ag.agent_code} — ${esc([ag.prenom,ag.nom].filter(Boolean).join(' '))}</option>`).join('')}</select></div>
           <div class="fmodal-field"><label>Statut agent</label><div style="padding:6px 0;font-size:13px;">${c.agent_code?`<span class="badge b-actif">🟢 Pris par ${esc(c.agent_code)}</span> ${c.agent_claimed_at?'<span style="font-size:10px;color:var(--muted);margin-left:6px;">'+fmtDate(c.agent_claimed_at)+'</span>':''}`:'<span class="badge b-attente">⏳ Non assigné</span>'}</div></div>
           <div class="fmodal-field"><label>Dernière modif par</label><div style="padding:6px 0;font-size:13px;color:var(--muted);">${esc(c.modifie_par||'—')}</div></div>
-          <div style="display:flex;gap:6px;margin-top:8px;">
-            <button class="abtn" onclick="assignAgent('${id}')">🛡 Assigner agent</button>
-            <button class="abtn r" onclick="removeAgent('${id}')">✕ Retirer agent</button>
-          </div>
           <div class="fmodal-section">Priorité & Délai</div>
           ${fmField('fc-priorite','Niveau de priorité',c.priorite||'normal','select','normal|moyenne|haute')}
           ${fmField('fc-date-limite','Date limite',c.date_limite?c.date_limite.substring(0,16):'','datetime-local')}
         </div>
         <div class="fmodal-col">
           <div class="fmodal-section">Commission & Pénalité</div>
-          ${fmField('fc-comm-montant','Commission agent (€ HT)',comm?comm.montant:'')}
+          ${fmField('fc-comm-montant','Commission agent (€ HT)',comm?comm.montant:(c.agent_commission_par_contrat||5))}
           ${fmField('fc-penalite','Pénalité abandon (€)',c.agent_penalite||'0')}
-          ${fmField('fc-note-agent','Note admin sur tâche',c.note_agent,'textarea')}
+          ${fmField('fc-note-gestion','Note admin sur tâche',c.note_agent,'textarea')}
           <div class="fmodal-section">Inscrit par</div>
-          <div class="fmodal-field"><label>Source / Intermédiaire</label><div style="padding:6px 0;font-size:13px;">${esc(c.source||'—')}</div></div>
-          <div class="fmodal-field"><label>Inscrit par</label><div style="padding:6px 0;font-size:13px;">${esc(c.inscrit_par||'—')}</div></div>
+          <div class="fmodal-field"><label>Intermédiaire</label><div style="padding:6px 0;font-size:13px;">${c.intermediaire_id?esc((personneMap[c.intermediaire_id]||{}).login||(personneMap[c.intermediaire_id]||{}).email||'—'):esc(c.source||'—')}</div></div>
+          <div class="fmodal-field"><label>Inscrit par (agent)</label><div style="padding:6px 0;font-size:13px;">${esc(c.inscrit_par||'—')}</div></div>
         </div>
       </div>
     </div>
@@ -1976,7 +1972,7 @@ async function saveContratFull(contratId,personneId,adresseId){
       abonnement_ht:gv('fc-abo-ht'),abonnement_ttc:gv('fc-abo-ttc'),
       choix_paiement:gv('fc-paiement'),mode_facturation:gv('fc-facturation'),envoi_facture:gv('fc-envoi'),
       date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit'),
-      note_agent:gv('fc-note-agent'),modifie_par:'ADMIN'
+      note_agent:gv('fc-note-agent')||gv('fc-note-gestion'),modifie_par:'ADMIN'
     };
     // Intermediary commission fields
     const intermIdVal=gv('fc-intermediaire-id');
@@ -2020,12 +2016,24 @@ async function saveContratFull(contratId,personneId,adresseId){
       Object.assign(personneMap[personneId],pb);
     }
 
-    // Save adresse
-    if(adresseId&&document.getElementById('fc-rue')){
+    // Save adresse (or create if none exists)
+    if(document.getElementById('fc-rue')){
       const rawAb={rue:gv('fc-rue'),complement:gv('fc-complement'),code_postal:gv('fc-cp'),ville:gv('fc-ville'),pdl:gv('fc-pdl'),pce:gv('fc-pce'),puissance:gv('fc-puissance'),type_logement:gv('fc-logement')};
       const ab={};Object.entries(rawAb).forEach(([k,v])=>{if(v!==null&&v!==undefined)ab[k]=v;});
-      await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=eq.${adresseId}`,{method:'PATCH',headers:H(),body:JSON.stringify(ab)});
-      adresseMap[adresseId]={...adresseMap[adresseId],...ab};
+      const hasData=Object.values(ab).some(v=>v);
+      if(adresseId&&hasData){
+        await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=eq.${adresseId}`,{method:'PATCH',headers:H(),body:JSON.stringify(ab)});
+        adresseMap[adresseId]={...adresseMap[adresseId],...ab};
+      } else if(!adresseId&&hasData){
+        // Create new adresse and link to contrat
+        const rA=await fetch(`${SUPABASE_URL}/rest/v1/adresses`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(ab)});
+        if(rA.ok){
+          const [newAddr]=await rA.json();
+          adresseMap[newAddr.id]=newAddr;
+          await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify({adresse_id:newAddr.id})});
+          contratMap[contratId].adresse_id=newAddr.id;
+        }
+      }
     }
 
     if(currentPage==='contrats')renderContratsTable();
