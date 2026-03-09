@@ -429,6 +429,7 @@ svg.lc circle{r:3;}
       <div class="snav" onclick="showPage('contrats')" id="sn-contrats">📄<span class="snav-tip">Contrats</span><span class="snav-badge" id="sb-contrats" style="display:none"></span></div>
       <div class="snav" onclick="showPage('finance')" id="sn-finance">💶<span class="snav-tip">Finance</span><span class="snav-badge" id="sb-finance" style="display:none"></span></div>
       <div class="snav" onclick="showPage('systeme')" id="sn-systeme">⚙️<span class="snav-tip">Système</span></div>
+      <div class="snav" onclick="showPage('alerts')" id="sn-alerts">🔔<span class="snav-tip">Alertes</span><span class="snav-badge" id="sb-alerts" style="display:none"></span></div>
       <div class="sidebar-spacer"></div>
       <div class="snav" onclick="showPage('recherche')" id="sn-recherche">🔍<span class="snav-tip">Recherche</span></div>
     </div>
@@ -625,9 +626,26 @@ svg.lc circle{r:3;}
           </div>
         </div>
 
-      </div>
+        <!-- ═══ PAGE: ALERTES ═══ -->
+        <div class="page" id="pg-alerts">
+          <div class="work-header">
+            <div class="work-title">🔔 Centre d'alertes</div>
+            <div class="work-actions">
+              <button class="abtn" onclick="loadAlerts()">↻ Actualiser</button>
+              <button class="abtn" onclick="runDataAudit()">🩺 Lancer巡检</button>
+              <button class="abtn g" onclick="resolveAllVisible()">✅ Tout résoudre</button>
+            </div>
+          </div>
+          <div class="work-body">
+            <div class="stats stats-4" id="alert-stats"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;" id="alert-chips"></div>
+            <div id="alert-list" style="color:var(--muted);font-size:13px;">Chargement…</div>
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin:24px 0 10px;">Historique des contrôles santé</div>
+            <div id="health-list" style="color:var(--muted);font-size:13px;"></div>
+          </div>
+        </div>
 
-      <!-- ── RIGHT DRAWER ── -->
+      </div>
       <div class="drawer" id="drawer">
         <div class="drawer-header">
           <div class="drawer-title" id="drawer-title">—</div>
@@ -827,6 +845,7 @@ function showPage(name){
   if(name==='crm'&&!fCRM.length)filterCRM();
   if(name==='finance')renderFinance();
   if(name==='taches')loadTaskPage();
+  if(name==='alerts')loadAlerts();
 }
 
 // ══════════════════════════════════════
@@ -2303,7 +2322,6 @@ async function savePersonneEdit(id){
     note:document.getElementById('pe-note')?.value.trim()||null,
     categorie:document.getElementById('pe-cat')?.value||null,
   };
-  // Filter out null values to avoid overwriting existing data with null
   const body={};Object.entries(raw).forEach(([k,v])=>{if(v!==null&&v!==undefined)body[k]=v;});
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
@@ -2327,7 +2345,6 @@ async function saveContratEdit(id){
     source:document.getElementById('ce-source')?.value.trim()||null,
     inscrit_par:document.getElementById('ce-inscrit')?.value.trim()||null,
   };
-  // Filter out null values to avoid overwriting existing data
   const body={};Object.entries(raw).forEach(([k,v])=>{if(v!==null&&v!==undefined)body[k]=v;});
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
@@ -2841,6 +2858,152 @@ async function saveFormConfig(){
     showToast(`✅ Formulaire ${name} publié — mise à jour automatique`);
     closeFormEditor();
   }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+// ══════════════════════════════════════
+// ALERTS CENTER
+// ══════════════════════════════════════
+let allAlerts=[], allHealthChecks=[];
+let alertFilter='unresolved';
+
+async function loadAlerts(){
+  try{
+    // Load alerts (latest 200)
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/system_alerts?select=*&order=created_at.desc&limit=200`,{headers:H()});
+    if(r.ok) allAlerts=await r.json();
+    // Load health checks (latest 20)
+    const rh=await fetch(`${SUPABASE_URL}/rest/v1/health_checks?select=*&order=created_at.desc&limit=20`,{headers:H()});
+    if(rh.ok) allHealthChecks=await rh.json();
+  }catch(e){console.error(e);}
+  renderAlertStats();
+  renderAlertChips();
+  renderAlertList();
+  renderHealthList();
+  updateAlertBadge();
+}
+
+function renderAlertStats(){
+  const unresolved=allAlerts.filter(a=>!a.resolved);
+  const p1=unresolved.filter(a=>a.severity==='P1').length;
+  const p2=unresolved.filter(a=>a.severity==='P2').length;
+  const p3=unresolved.filter(a=>a.severity==='P3').length;
+  const today=allAlerts.filter(a=>a.created_at&&a.created_at.startsWith(new Date().toISOString().substring(0,10))).length;
+  const lastHealth=allHealthChecks[0];
+  const sysStatus=lastHealth?(lastHealth.status==='healthy'?'🟢 OK':lastHealth.status==='warning'?'🟡 Attention':'🔴 Critique'):'⚪ Inconnu';
+  document.getElementById('alert-stats').innerHTML=`
+    <div class="scard" onclick="alertFilter='p1';renderAlertChips();renderAlertList()"><div class="scard-val" style="color:var(--danger)">${p1}</div><div class="scard-label">P1 Urgent</div></div>
+    <div class="scard" onclick="alertFilter='p2';renderAlertChips();renderAlertList()"><div class="scard-val" style="color:var(--warning)">${p2}</div><div class="scard-label">P2 Sévère</div></div>
+    <div class="scard" onclick="alertFilter='p3';renderAlertChips();renderAlertList()"><div class="scard-val" style="color:var(--info)">${p3}</div><div class="scard-label">P3 Warning</div></div>
+    <div class="scard"><div class="scard-val">${today}</div><div class="scard-label">Aujourd'hui</div></div>
+  `;
+}
+
+function renderAlertChips(){
+  const filters=[
+    {id:'unresolved',label:'Non résolues'},
+    {id:'p1',label:'🔴 P1'},{id:'p2',label:'🟠 P2'},{id:'p3',label:'🟡 P3'},{id:'p4',label:'ℹ️ P4'},
+    {id:'all',label:'Toutes'},{id:'resolved',label:'✅ Résolues'}
+  ];
+  document.getElementById('alert-chips').innerHTML=filters.map(f=>
+    `<div class="chip ${alertFilter===f.id?'on':''}" onclick="alertFilter='${f.id}';renderAlertChips();renderAlertList()" style="padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:${alertFilter===f.id?'var(--accent)':'var(--surface2)'};color:${alertFilter===f.id?'#fff':'var(--muted)'}">${f.label}</div>`
+  ).join('');
+}
+
+function renderAlertList(){
+  let filtered=allAlerts;
+  if(alertFilter==='unresolved')filtered=allAlerts.filter(a=>!a.resolved);
+  else if(alertFilter==='resolved')filtered=allAlerts.filter(a=>a.resolved);
+  else if(alertFilter==='p1')filtered=allAlerts.filter(a=>a.severity==='P1'&&!a.resolved);
+  else if(alertFilter==='p2')filtered=allAlerts.filter(a=>a.severity==='P2'&&!a.resolved);
+  else if(alertFilter==='p3')filtered=allAlerts.filter(a=>a.severity==='P3'&&!a.resolved);
+  else if(alertFilter==='p4')filtered=allAlerts.filter(a=>a.severity==='P4');
+
+  const el=document.getElementById('alert-list');
+  if(!filtered.length){el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;">✅ Aucune alerte.</div>';return;}
+
+  el.innerHTML=filtered.slice(0,100).map(a=>{
+    const emoji={P1:'🔴',P2:'🟠',P3:'🟡',P4:'ℹ️'}[a.severity]||'❓';
+    const time=a.created_at?new Date(a.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const bgColor=a.resolved?'transparent':a.severity==='P1'?'rgba(239,68,68,0.04)':a.severity==='P2'?'rgba(245,158,11,0.04)':'transparent';
+    const borderColor=a.severity==='P1'?'var(--danger)':a.severity==='P2'?'var(--warning)':'var(--border)';
+    let ctx='';
+    try{const c=typeof a.context==='string'?JSON.parse(a.context):a.context;if(c&&Object.keys(c).length)ctx=Object.entries(c).map(([k,v])=>esc(k)+': '+esc(String(v))).join(' · ');}catch(e){}
+
+    return `<div style="background:${bgColor};border:1px solid ${a.resolved?'var(--border)':borderColor};border-radius:10px;padding:12px 16px;margin-bottom:8px;${a.resolved?'opacity:0.5;':''}">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">${emoji}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;">${esc(a.message||'—')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+            <span style="background:var(--surface3);padding:1px 6px;border-radius:4px;font-size:10px;">${esc(a.category)}</span>
+            · ${time} · ${esc(a.source_page||'')}${a.user_email?' · '+esc(a.user_email):''}
+          </div>
+          ${ctx?'<div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:monospace;">'+esc(ctx)+'</div>':''}
+        </div>
+        <div style="flex-shrink:0;display:flex;gap:4px;">
+          ${!a.resolved?`<button class="abtn g" style="font-size:10px;padding:3px 8px;" onclick="resolveAlert('${a.id}')">✅</button>`:'<span style="font-size:10px;color:var(--success);">résolu</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderHealthList(){
+  const el=document.getElementById('health-list');
+  if(!allHealthChecks.length){el.innerHTML='<div style="color:var(--muted);">Aucun contrôle.</div>';return;}
+  el.innerHTML=allHealthChecks.slice(0,15).map(h=>{
+    const icon=h.status==='healthy'?'🟢':h.status==='warning'?'🟡':'🔴';
+    const time=h.created_at?new Date(h.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    let detail='';
+    try{const r=typeof h.result==='string'?JSON.parse(h.result):h.result;detail=Object.entries(r).filter(([k])=>k!=='checked_at'&&k!=='date').map(([k,v])=>k.replace(/_/g,' ')+': '+v).join(' · ');}catch(e){}
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;font-size:12px;">
+      <span>${icon}</span>
+      <span style="font-weight:600;width:90px;">${esc(h.check_type)}</span>
+      <span style="color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(detail)}</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">${time}</span>
+    </div>`;
+  }).join('');
+}
+
+async function resolveAlert(id){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/system_alerts?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),resolved_by:'admin'})});
+    const a=allAlerts.find(x=>x.id===id);if(a){a.resolved=true;a.resolved_at=new Date().toISOString();}
+    renderAlertStats();renderAlertList();updateAlertBadge();
+    showToast('Alerte résolue ✅');
+  }catch(e){showToast('Erreur',true);}
+}
+
+async function resolveAllVisible(){
+  const unresolvedIds=allAlerts.filter(a=>!a.resolved).map(a=>a.id);
+  if(!unresolvedIds.length){showToast('Rien à résoudre');return;}
+  if(!confirm(`Résoudre ${unresolvedIds.length} alerte(s) ?`))return;
+  try{
+    for(let i=0;i<unresolvedIds.length;i+=200){
+      const batch=unresolvedIds.slice(i,i+200);
+      await fetch(`${SUPABASE_URL}/rest/v1/system_alerts?id=in.(${batch.join(',')})`,{method:'PATCH',headers:H(),body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),resolved_by:'admin'})});
+    }
+    allAlerts.forEach(a=>{if(!a.resolved){a.resolved=true;a.resolved_at=new Date().toISOString();}});
+    renderAlertStats();renderAlertList();updateAlertBadge();
+    showToast(`${unresolvedIds.length} alertes résolues ✅`);
+  }catch(e){showToast('Erreur',true);}
+}
+
+async function runDataAudit(){
+  showToast('Lancement巡检…');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/system_data_audit`,{method:'POST',headers:H(),body:'{}'});
+    if(!r.ok)throw new Error(await r.text());
+    const result=await r.json();
+    showToast('巡检完成 ✅');
+    await loadAlerts();
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+function updateAlertBadge(){
+  const unresolved=allAlerts.filter(a=>!a.resolved&&(a.severity==='P1'||a.severity==='P2')).length;
+  const badge=document.getElementById('sb-alerts');
+  if(badge)badge.style.display=unresolved>0?'block':'none';
 }
 
 // ── Init ──

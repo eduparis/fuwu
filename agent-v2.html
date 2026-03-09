@@ -920,7 +920,6 @@ async function searchClients(){
     el.innerHTML='<div style="color:var(--muted)"><span class="spinner"></span> Recherche…</div>';
     try{
       // Search by email, nom, prenom, telephone, wechat
-      // Escape PostgreSQL LIKE special characters before encoding
       const safe=q.replace(/[%_\\]/g,c=>'\\'+c);
       const encoded=encodeURIComponent(safe);
       const r=await fetch(`${SB}/rest/v1/personnes?or=(email.ilike.*${encoded}*,nom.ilike.*${encoded}*,prenom.ilike.*${encoded}*,telephone.ilike.*${encoded}*,wechat.ilike.*${encoded}*)&select=id,civilite,prenom,nom,email,telephone,wechat&limit=20&order=nom.asc`,{headers:fuwuH()});

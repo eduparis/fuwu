@@ -121,7 +121,7 @@
 </div>
 
 <script>
-// ── Config: try common.js globals first, fallback to hardcoded (for standalone/iframe use) ──
+// Config: use common.js globals if available (loaded via parent page), else fallback
 const SB=(typeof SUPABASE_URL!=='undefined')?SUPABASE_URL:'https://xwcnbgapjkgbtpgfyjeb.supabase.co';
 const AK=(typeof SUPABASE_ANON_KEY!=='undefined')?SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3Y25iZ2FwamtnYnRwZ2Z5amViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDkyMjQsImV4cCI6MjA4Nzk4NTIyNH0.5H9i2BsTFH3UmDFdOnHRnAkF4eVwDExAaXHait4RFbI';
 const H={'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json','Prefer':'return=representation'};
