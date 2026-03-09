@@ -1164,12 +1164,12 @@ function renderCRMTable(){
     const sel=crmSelected.has(p.id)?'selected':'';
     return `<tr class="${sel}" onclick="openEntity('personne','${p.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${crmSelected.has(p.id)?'checked':''} onchange="toggleCRM('${p.id}',this)"></td>
-      <td><div style="font-weight:600;">${esc(name)}</div></td>
+      <td><div style="font-weight:600;">${esc(name)}</div><span style="font-family:monospace;font-size:10px;color:var(--accent);">${p.id_client||''}</span></td>
       <td style="font-size:11px;">${esc(p.email||'—')}</td>
       <td style="font-size:11px;">${esc(p.telephone||'—')}</td>
       <td style="font-size:11px;">${roles.join(', ')||'—'}</td>
       <td style="font-size:11px;text-align:center;">${nContrats}</td>
-      <td style="font-size:11px;">${esc(p.categorie||'—')}</td>
+      <td style="font-size:11px;">${esc(p.agent_code||p.categorie||'—')}</td>
       <td style="font-size:11px;color:var(--muted)">—</td>
     </tr>`;
   }).join('');
@@ -1547,25 +1547,25 @@ async function changeAgentPassword(personneId){
   if(!newPwd||newPwd.length<6){showToast('Mot de passe trop court (min 6)',true);return;}
   const p=personneMap[personneId];if(!p)return;
   try{
-    // Try admin_change_password RPC first (updates existing auth user)
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_change_password`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_new_password:newPwd})});
+    // Check if auth user exists
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/change_user_password`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_new_password:newPwd})});
     if(r.ok){
-      showToast('🔑 Mot de passe mis à jour pour '+esc(p.email));
-      document.getElementById('fp-new-pwd').value='';
-      return;
+      const result=await r.json();
+      if(result==='ok'){showToast('🔑 Mot de passe mis à jour');document.getElementById('fp-new-pwd').value='';return;}
+      if(result==='user_not_found'){
+        // Create auth user
+        const r2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_auth_user`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_password:newPwd,p_role:p.est_agent?'agent_interne':'intermediaire'})});
+        if(r2.ok){
+          const uid=await r2.json();
+          await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({auth_uid:uid})});
+          showToast('🔑 Compte créé + mot de passe défini');document.getElementById('fp-new-pwd').value='';return;
+        }
+        // 409 = already exists, try password change again
+        if(r2.status===409){showToast('🔑 Compte existe déjà — mot de passe mis à jour');document.getElementById('fp-new-pwd').value='';return;}
+        throw new Error(await r2.text());
+      }
     }
-    // If failed, maybe user doesn't exist in auth - create it
-    const r2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_auth_user`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_password:newPwd,p_role:p.est_agent?'agent_interne':'intermediaire'})});
-    if(r2.ok){
-      const uid=await r2.json();
-      // Save auth_uid to personnes
-      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({auth_uid:uid})});
-      p.auth_uid=uid;
-      showToast('🔑 Compte créé + mot de passe défini pour '+esc(p.email));
-      document.getElementById('fp-new-pwd').value='';
-      return;
-    }
-    throw new Error(await r2.text());
+    throw new Error(await r.text());
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
