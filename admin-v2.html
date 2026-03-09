@@ -784,17 +784,84 @@ async function enterApp(email){
 }
 
 // ══════════════════════════════════════
-// DATA LOADING
+// DATA LOADING (optimized: RPC first, full load in background)
 // ══════════════════════════════════════
+let _dashStats=null; // cached RPC result
+let _dataFullyLoaded=false;
+
 async function initData(){
   const t0=Date.now();
+
+  // Phase 1: fast dashboard via RPC (single query, ~200ms)
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_dashboard_stats`,{method:'POST',headers:H(),body:'{}'});
+    if(r.ok){_dashStats=await r.json();renderAccueilFromStats(_dashStats);}
+  }catch(e){console.warn('Dashboard RPC failed, falling back to full load',e);}
+
+  // Phase 2: load full data in background for other pages
   await Promise.all([loadContrats(),loadCommissions(),loadPersonnes()]);
   buildMaps();
-  document.getElementById('last-refresh').textContent=`Chargé en ${((Date.now()-t0)/1000).toFixed(1)}s — ${allContrats.length} contrats, ${allPersonnes.length} personnes`;
+  _dataFullyLoaded=true;
+
+  const elapsed=((Date.now()-t0)/1000).toFixed(1);
+  document.getElementById('last-refresh').textContent=`Chargé en ${elapsed}s — ${allContrats.length} contrats, ${allPersonnes.length} personnes`;
+
+  // Re-render accueil with full data (for charts that need it)
   renderAccueil();
   updateBadges();
 }
-async function refreshAll(){await initData();showToast('Données rechargées');}
+async function refreshAll(){_dashStats=null;_dataFullyLoaded=false;await initData();showToast('Données rechargées');}
+
+/**
+ * Render accueil from pre-aggregated RPC stats (instant)
+ */
+function renderAccueilFromStats(s){
+  if(!s)return;
+  document.getElementById('acc-stats').innerHTML=`
+    <div class="scard" onclick="showPage('contrats')"><div class="scard-label">Contrats actifs</div><div class="scard-val v-blue">${s.actif}</div><div class="scard-sub">sur ${s.total} total</div></div>
+    <div class="scard" onclick="showPage('crm')"><div class="scard-label">Clients</div><div class="scard-val v-green">${s.clients}</div><div class="scard-sub">${s.agents} agents · ${s.interms} interm.</div></div>
+    <div class="scard" onclick="showPage('taches')"><div class="scard-label">Tâches actives</div><div class="scard-val v-orange">${s.attente+s.traitement}</div><div class="scard-sub">${s.sans_agent} sans agent</div></div>
+    <div class="scard" onclick="showPage('finance')"><div class="scard-label">Commissions à payer</div><div class="scard-val v-gold">${Math.round(s.comm_due)} €</div><div class="scard-sub">HT non payé</div></div>
+    <div class="scard" onclick="quickFilter('en_attente')"><div class="scard-label">En attente</div><div class="scard-val v-orange">${s.attente+s.traitement}</div><div class="scard-sub">${s.attente} attente + ${s.traitement} trait.</div></div>
+    <div class="scard"><div class="scard-label">Nouveaux ce mois</div><div class="scard-val v-green">${s.new_month}</div><div class="scard-sub">contrats</div></div>
+  `;
+
+  // Render bar chart from RPC monthly data
+  const monthly=s.monthly||[];
+  if(monthly.length){
+    const maxMonth=Math.max(...monthly.map(m=>m.count),1);
+    const barHtml=monthly.map(m=>{
+      const h=Math.max(2,Math.round(m.count/maxMonth*100));
+      const label=m.month.substring(5);
+      return '<div class="bar" style="height:'+h+'px"><div class="bar-tip">'+label+': '+m.count+'</div></div>';
+    }).join('');
+    const labelHtml=monthly.map(m=>'<span>'+m.month.substring(5)+'</span>').join('');
+
+    const fournisseurs=s.fournisseurs||[];
+    const maxFourn=fournisseurs.length?fournisseurs[0].count:1;
+    const fournHtml=fournisseurs.map(f=>
+      '<div class="fourn-row"><div class="fourn-name">'+esc(f.name)+'</div><div class="fourn-bar-bg"><div class="fourn-bar" style="width:'+Math.round(f.count/maxFourn*100)+'%"></div></div><div class="fourn-count">'+f.count+'</div></div>'
+    ).join('');
+
+    document.getElementById('acc-charts').innerHTML=`
+      <div class="chart-box"><div class="chart-title">Nouveaux contrats / mois</div><div class="bar-chart">${barHtml}</div><div class="bar-labels">${labelHtml}</div></div>
+      <div class="chart-box"><div class="chart-title">Par fournisseur</div>${fournHtml||'<div style="color:var(--muted);font-size:12px;">Aucune donnée</div>'}</div>
+    `;
+  }
+
+  // Render top intermediaires from RPC
+  const topInterm=s.top_intermediaires||[];
+  if(topInterm.length){
+    const topIH=topInterm.map((t,i)=>'<div class="top-row"><div class="top-rank">'+(i+1)+'</div><div class="top-name">'+esc(t.name||t.email)+'</div><div class="top-count">'+t.count+'</div></div>').join('');
+    document.getElementById('acc-rankings').innerHTML=`
+      <div class="chart-box"><div class="chart-title">Top 10 Intermédiaires</div>${topIH}</div>
+      <div class="chart-box"><div class="chart-title">Top 8 Fournisseurs</div>${(s.fournisseurs||[]).map((f,i)=>'<div class="top-row"><div class="top-rank">'+(i+1)+'</div><div class="top-name">'+esc(f.name)+'</div><div class="top-count">'+f.count+'</div></div>').join('')||'—'}</div>
+    `;
+  }
+
+  // Quick badge update
+  document.getElementById('qf-attente-n').textContent=s.attente;
+}
 
 async function fetchAll(url){
   let all=[],off=0;
@@ -808,7 +875,8 @@ async function fetchAll(url){
   return all;
 }
 async function loadContrats(){
-  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,elec_car,gaz_car,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,agent_penalite,note_agent,choix_paiement,mode_facturation,envoi_facture,prix_kwh_ht,prix_kwh_ttc,abonnement_ht,abonnement_ttc,priorite,date_limite&order=created_at.desc`);
+  // Lighter select — drop fields only needed in detail view
+  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent&order=created_at.desc`);
   const seen=new Set();allContrats=allContrats.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
   allContrats.forEach(c=>contratMap[c.id]=c);
   // Load adresses in batches
@@ -819,7 +887,11 @@ async function loadContrats(){
   }
 }
 async function loadCommissions(){allComm=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);const seen=new Set();allComm=allComm.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});}
-async function loadPersonnes(){allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,whatsapp,wechat,login,est_intermediaire,est_client,categorie,id_fournisseur,note,date_naissance,siret,colocataire_prenom,colocataire_nom,role,auth_user_id,est_agent,agent_code,code_parrainage,id_client,iban&order=created_at.desc`);allPersonnes.forEach(p=>personneMap[p.id]=p);}
+async function loadPersonnes(){
+  // Lighter select — drop iban, siret, colocataire fields (only needed in detail)
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client&order=created_at.desc`);
+  allPersonnes.forEach(p=>personneMap[p.id]=p);
+}
 
 function buildMaps(){
   intermMap={};
@@ -1290,12 +1362,12 @@ async function bulkPayAll(){
 function openFModal(){document.getElementById('fmodal').classList.add('open');}
 function closeFModal(){document.getElementById('fmodal').classList.remove('open');currentDrawerEntity=null;}
 
-function openEntity(type,id){
+async function openEntity(type,id){
   currentDrawerEntity={type,id};
-  if(type==='contrat')renderContratModal(id);
+  openFModal();
+  if(type==='contrat')await renderContratModal(id);
   else if(type==='personne')renderPersonneModal(id);
   else if(type==='commission')renderCommModal(id);
-  openFModal();
 }
 
 function fmField(id,label,val,type,opts){
@@ -1308,9 +1380,25 @@ function fmField(id,label,val,type,opts){
   return `<div class="fmodal-field"><label>${label}</label><input type="${type}" id="${id}" value="${esc(val||'')}"></div>`;
 }
 
-function renderContratModal(id){
-  const c=contratMap[id];if(!c){closeFModal();return;}
-  const p=personneMap[c.personne_id]||{};
+async function renderContratModal(id){
+  let c=contratMap[id];if(!c){closeFModal();return;}
+
+  // Lazy-load full data if detail fields are missing
+  if(c.iban===undefined){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}&select=*`,{headers:H()});
+      const d=await r.json();
+      if(d&&d[0]){Object.assign(c,d[0]);contratMap[id]=c;}
+    }catch(e){}
+  }
+  let p=personneMap[c.personne_id]||{};
+  if(c.personne_id&&p.iban===undefined){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${c.personne_id}&select=*`,{headers:H()});
+      const d=await r.json();
+      if(d&&d[0]){Object.assign(p,d[0]);personneMap[c.personne_id]=p;}
+    }catch(e){}
+  }
   const a=adresseMap[c.adresse_id]||{};
   const comm=allComm.find(cm=>cm.contrat_id===id);
   const tt=c.formule?{resiliation:'❌ Résiliation',mise_en_service:'⚡ Mise en service',changement_fournisseur:'🔄 Changement',box_internet:'📡 Box',ouverture_banque:'🏦 Banque'}[c.formule]||'📄 Contrat':'📄 Contrat';
