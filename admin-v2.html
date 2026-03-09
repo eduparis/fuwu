@@ -3190,11 +3190,12 @@ function renderActiveTasksList(){
   const attente=active.filter(c=>c.contrat_status==='en_attente');
 
   // Build agent filter dropdown
-  const agentCodes=[...new Set(active.map(c=>c.agent_code).filter(Boolean))].sort();
-  const agentFilterOpts=agentCodes.map(code=>{
-    const ag=Object.values(personneMap).find(p=>p.agent_code===code);
-    const label=ag?`${code} — ${[ag.prenom,ag.nom].filter(Boolean).join(' ')}`:code;
-    return `<option value="${code}" ${code===activeAgentFilter?'selected':''}>${esc(label)} (${active.filter(c=>c.agent_code===code).length})</option>`;
+  // Build agent filter dropdown from ALL registered agents
+  const allAgents=Object.values(personneMap).filter(p=>p.est_agent&&p.agent_code).sort((a,b)=>(a.agent_code||'').localeCompare(b.agent_code||''));
+  const agentFilterOpts=allAgents.map(ag=>{
+    const total=allContrats.filter(c=>c.agent_code===ag.agent_code).length;
+    const label=`${ag.agent_code} — ${[ag.prenom,ag.nom].filter(Boolean).join(' ')}`;
+    return `<option value="${ag.agent_code}" ${ag.agent_code===activeAgentFilter?'selected':''}>${esc(label)} (${total})</option>`;
   }).join('');
 
   document.getElementById('task-stats').innerHTML=`
@@ -3211,7 +3212,7 @@ function renderActiveTasksList(){
   if(activeTaskFilter==='no_agent')filtered=noAgent;
   else if(activeTaskFilter==='with_agent')filtered=byAgent;
   else if(activeTaskFilter==='en_attente')filtered=attente;
-  else if(activeTaskFilter==='by_agent'&&activeAgentFilter)filtered=active.filter(c=>c.agent_code===activeAgentFilter);
+  else if(activeTaskFilter==='by_agent'&&activeAgentFilter)filtered=allContrats.filter(c=>c.agent_code===activeAgentFilter);
   else if(activeTaskFilter!=='all')filtered=active.filter(c=>c.formule===activeTaskFilter);
 
   // Sort: priorité (haute>moyenne>normal) → statut (en_traitement>en_attente) → date_debut nearest first
@@ -3243,7 +3244,7 @@ function renderActiveTasksList(){
     ${selCount?`<button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Désélectionner</button>`:''}
   </div>`;
 
-  document.getElementById('task-active-list').innerHTML=batchBar+(filtered.length?filtered.slice(0,50).map(c=>{
+  document.getElementById('task-active-list').innerHTML=batchBar+(filtered.length?filtered.slice(0,200).map(c=>{
     const p=personneMap[c.personne_id]||{};
     const name=[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—';
     const tt=allTaskTypes.find(t=>t.id===c.formule)||{icon:'📋',label:c.formule||'Tâche'};
