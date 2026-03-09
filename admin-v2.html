@@ -840,10 +840,18 @@ function renderAccueil(){
   const now=new Date();const moisKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const newMois=allContrats.filter(c=>(c.date_debut||c.created_at||'').startsWith(moisKey)).length;
 
+  const clients=allPersonnes.filter(p=>p.est_client||(!p.est_intermediaire&&!p.est_agent)).length;
+  const agents=allPersonnes.filter(p=>p.est_agent).length;
+  const interms=allPersonnes.filter(p=>p.est_intermediaire).length;
+  const tachesActives=allContrats.filter(c=>c.contrat_status==='en_attente'||c.contrat_status==='en_traitement').length;
+  const sansAgent=allContrats.filter(c=>(c.contrat_status==='en_attente'||c.contrat_status==='en_traitement')&&!c.agent_code).length;
+
   document.getElementById('acc-stats').innerHTML=`
     <div class="scard" onclick="showPage('contrats')"><div class="scard-label">Contrats actifs</div><div class="scard-val v-blue">${actif}</div><div class="scard-sub">sur ${allContrats.length} total</div></div>
-    <div class="scard" onclick="quickFilter('en_attente')"><div class="scard-label">En attente</div><div class="scard-val v-orange">${attente+traitement}</div><div class="scard-sub">${attente} attente + ${traitement} traitement</div></div>
+    <div class="scard" onclick="showPage('crm')"><div class="scard-label">Clients</div><div class="scard-val v-green">${clients}</div><div class="scard-sub">${agents} agents · ${interms} interm.</div></div>
+    <div class="scard" onclick="showPage('taches')"><div class="scard-label">Tâches actives</div><div class="scard-val v-orange">${tachesActives}</div><div class="scard-sub">${sansAgent} sans agent</div></div>
     <div class="scard" onclick="showPage('finance')"><div class="scard-label">Commissions à payer</div><div class="scard-val v-gold">${commDue.toFixed(0)} €</div><div class="scard-sub">HT non payé</div></div>
+    <div class="scard" onclick="quickFilter('en_attente')"><div class="scard-label">En attente</div><div class="scard-val v-orange">${attente+traitement}</div><div class="scard-sub">${attente} attente + ${traitement} trait.</div></div>
     <div class="scard"><div class="scard-label">Nouveaux ce mois</div><div class="scard-val v-green">${newMois}</div><div class="scard-sub">contrats</div></div>
   `;
 
