@@ -317,7 +317,7 @@ async function loadTasks(){
   try{const rt=await fetch(`${SB}/rest/v1/task_types?actif=eq.true&select=id,label,icon,commission_default,penalite_default,description`,{headers:fuwuH()});const d=await rt.json();if(Array.isArray(d))d.forEach(t=>{taskTypesMap[t.id]=t;if(t.label)TASK_TYPES[t.id]={icon:t.icon||'📋',label:t.label,instruction:t.description||'Traiter cette tâche.'};});}catch(e){}
   try{
     // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
-    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_penalite&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_penalite,priorite,date_limite&order=created_at.desc&limit=500`,{headers:fuwuH()});
     if(!r.ok)throw new Error(await r.text());
     allTasks=await r.json();
 
@@ -380,12 +380,12 @@ function renderStats(){
   const visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
   const aFaire=visible.filter(t=>t.contrat_status==='en_attente').length;
   const enCours=visible.filter(t=>t.contrat_status==='en_traitement').length;
-  const demenag=visible.filter(t=>['resiliation','mise_en_service'].includes(t.formule)).length;
+  const myDone=allCompleted.length;
   document.getElementById('task-stats').innerHTML=`
     <div class="scard" onclick="setFilter('a_faire')"><div class="scard-val v-orange">${aFaire}</div><div class="scard-label">À faire</div></div>
     <div class="scard" onclick="setFilter('en_cours')"><div class="scard-val v-blue">${enCours}</div><div class="scard-label">En cours</div></div>
     <div class="scard" onclick="setFilter('all')"><div class="scard-val">${visible.length}</div><div class="scard-label">Total</div></div>
-    <div class="scard" onclick="setFilter('demenagement')"><div class="scard-val v-gold">${demenag}</div><div class="scard-label">Déménagement</div></div>
+    <div class="scard" onclick="setFilter('done')"><div class="scard-val v-green">${myDone}</div><div class="scard-label">Mes terminés</div></div>
   `;
   document.getElementById('tb-taches').textContent=aFaire;
 }
@@ -395,80 +395,131 @@ function renderChips(){
     {id:'a_faire',label:'À faire'},
     {id:'en_cours',label:'En cours'},
     {id:'all',label:'Tous'},
-    {id:'demenagement',label:'📦 Déménagement'},
-    {id:'resiliation',label:'❌ Résiliation'},
-    {id:'mise_en_service',label:'⚡ Mise en service'},
-    {id:'box',label:'📡 Box'},
-    {id:'banque',label:'🏦 Banque'},
+    {id:'done',label:'✅ Terminés'},
   ];
   document.getElementById('task-chips').innerHTML=filters.map(f=>
     `<div class="chip ${currentFilter===f.id?'on':''}" onclick="setFilter('${f.id}')">${f.label}</div>`
-  ).join('');
+  ).join('') + `<div style="flex:1;"></div><div style="display:flex;gap:4px;align-items:center;font-size:10px;color:var(--muted);">Trier: ${['priorite','temps','commission'].map(s=>
+    `<span class="chip ${currentSort===s?'on':''}" onclick="currentSort='${s}';renderTasks()" style="font-size:10px;padding:3px 8px;">${s==='priorite'?'🔥 Urgence':s==='temps'?'⏰ Temps':s==='commission'?'💰 €':s}</span>`
+  ).join('')}</div>`;
 }
 
+let currentSort='priorite';
 function setFilter(f){currentFilter=f;renderChips();renderTasks();}
+
+// Priority score: haute=3, moyenne=2, normal=1
+function getPriorityScore(t){
+  const p={'haute':3,'moyenne':2,'normal':1};
+  return p[t.priorite]||1;
+}
+// Time alive in hours
+function getAgeHours(t){
+  const created=new Date(t.created_at||t.date_debut||Date.now());
+  return (Date.now()-created.getTime())/3600000;
+}
+// Format duration
+function fmtAge(hours){
+  if(hours<1)return Math.round(hours*60)+'min';
+  if(hours<24)return Math.round(hours)+'h';
+  const d=Math.floor(hours/24);
+  const h=Math.round(hours%24);
+  return d+'j'+h+'h';
+}
+// Time remaining before deadline
+function getTimeLeft(t){
+  if(!t.date_limite)return null;
+  const diff=new Date(t.date_limite).getTime()-Date.now();
+  return diff/3600000; // hours
+}
 
 function renderTasks(){
   const packMap=detectPacks();
-  // Only show: unclaimed tasks (agent_code is null) + my tasks
   let visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
+
   let filtered=visible;
   if(currentFilter==='a_faire')filtered=visible.filter(t=>t.contrat_status==='en_attente');
   else if(currentFilter==='en_cours')filtered=visible.filter(t=>t.contrat_status==='en_traitement');
-  else if(currentFilter==='demenagement')filtered=visible.filter(t=>['resiliation','mise_en_service'].includes(t.formule));
-  else if(currentFilter==='resiliation')filtered=visible.filter(t=>t.formule==='resiliation');
-  else if(currentFilter==='mise_en_service')filtered=visible.filter(t=>t.formule==='mise_en_service');
-  else if(currentFilter==='box')filtered=visible.filter(t=>t.formule==='box_internet');
-  else if(currentFilter==='banque')filtered=visible.filter(t=>t.formule==='ouverture_banque');
+  else if(currentFilter==='done'){
+    // Show completed tasks (loaded separately)
+    if(!allCompleted.length){loadResults();return;}
+    document.getElementById('task-list').innerHTML=allCompleted.slice(0,30).map(c=>{
+      const p=personnesMap[c.personne_id]||{};
+      const tt=TASK_TYPES[c.formule]||{icon:'📋',label:c.formule||'—'};
+      const cm=resCommMap?.[c.id];
+      return `<div class="tcard" style="border-left:3px solid var(--success);"><div class="tcard-icon">${tt.icon}</div><div class="tcard-body" style="flex:1;"><div class="tcard-title">${tt.label} · ${esc(c.id_service||'')}</div><div class="tcard-sub">${esc([p.prenom,p.nom].filter(Boolean).join(' '))} · ${esc(c.fournisseur||'')}</div></div><div style="text-align:right;">${cm?`<div style="font-size:12px;font-weight:700;color:${cm.statut==='paye'?'var(--success)':'var(--accent)'};">${parseFloat(cm.montant||0).toFixed(0)}€ ${cm.statut==='paye'?'✅':'⏳'}</div>`:''}  <div style="font-size:10px;color:var(--muted);">${fmtDate(c.date_debut)}</div></div></div>`;
+    }).join('')||'<div style="padding:20px;color:var(--muted);">Aucun.</div>';
+    return;
+  }
+
+  // Sort
+  filtered=[...filtered].sort((a,b)=>{
+    if(currentSort==='priorite'){
+      const pa=getPriorityScore(a),pb=getPriorityScore(b);
+      if(pa!==pb)return pb-pa;
+      const ta=getTimeLeft(a),tb=getTimeLeft(b);
+      if(ta!==null&&tb!==null)return ta-tb; // closest deadline first
+      return getAgeHours(b)-getAgeHours(a); // oldest first
+    }
+    if(currentSort==='temps')return getAgeHours(b)-getAgeHours(a);
+    if(currentSort==='commission'){
+      const ca=commMap[a.id]?parseFloat(commMap[a.id].montant||0):(taskTypesMap[a.formule]?.commission_default||0);
+      const cb=commMap[b.id]?parseFloat(commMap[b.id].montant||0):(taskTypesMap[b.formule]?.commission_default||0);
+      return cb-ca;
+    }
+    return 0;
+  });
 
   if(!filtered.length){document.getElementById('task-list').innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;">Aucune tâche.</div>';return;}
 
   document.getElementById('task-list').innerHTML=filtered.map(t=>{
-    const p=personnesMap[t.personne_id]||{};
-    const a=adressesMap[t.adresse_id]||{};
     const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule||'Tâche'};
     const ts=TASK_STATUS[t.contrat_status]||{label:t.contrat_status||'—',cls:''};
-    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
-    const addr=[a.rue,a.code_postal,a.ville].filter(Boolean).join(', ');
-    const pdl=a.pdl||a.pce||'';
     const pack=packMap[t.id];
-    const isUrgent=t.contrat_status==='en_attente';
-
-    // Pack progress
-    let packHtml='';
-    if(pack){
-      const done=pack.tasks.filter(x=>x.contrat_status==='actif').length;
-      packHtml=`<span class="tcard-pack">📦 Déménagement · ${done}/${pack.total}</span>`;
-    }
-
     const isClaimed=!!t.agent_code;
     const isMyTask=t.agent_code===myAgentCode;
     const canClaim=!isClaimed&&t.contrat_status==='en_attente';
     const comm=commMap[t.id];
     const ttDef=taskTypesMap[t.formule];
     const commAmt=comm?parseFloat(comm.montant||0):(ttDef?parseFloat(ttDef.commission_default||0):0);
+    const age=getAgeHours(t);
+    const timeLeft=getTimeLeft(t);
 
-    // Agent badge
-    let agentHtml='';
-    if(isClaimed)agentHtml=`<span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:8px;${isMyTask?'background:rgba(25,135,84,0.1);color:var(--success);':'background:rgba(138,130,120,0.1);color:var(--muted);'}">${isMyTask?'🟢 Moi':'👤 '+esc(t.agent_code)}</span>`;
+    // Priority badge
+    const prioMap={haute:{label:'🔴 Urgent',cls:'background:rgba(220,53,69,0.1);color:var(--danger);'},moyenne:{label:'🟡 Moyen',cls:'background:rgba(230,168,23,0.1);color:var(--warning);'}};
+    const prioBadge=prioMap[t.priorite]?`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;${prioMap[t.priorite].cls}">${prioMap[t.priorite].label}</span>`:'';
 
-    return `<div class="tcard ${isUrgent?'urgent':''}" style="position:relative;" onclick="openTask('${t.id}')">
+    // Deadline badge
+    let deadlineBadge='';
+    if(timeLeft!==null){
+      if(timeLeft<0)deadlineBadge=`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:rgba(220,53,69,0.12);color:var(--danger);">⏰ Dépassé!</span>`;
+      else if(timeLeft<6)deadlineBadge=`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:rgba(230,168,23,0.12);color:var(--warning);">⏰ ${Math.round(timeLeft)}h restantes</span>`;
+    }
+
+    // Pack
+    let packBadge='';
+    if(pack){const done=pack.tasks.filter(x=>x.contrat_status==='actif').length;packBadge=`<span class="tcard-pack">📦 ${done}/${pack.total}</span>`;}
+
+    // Agent
+    let agentBadge='';
+    if(isMyTask)agentBadge='<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:6px;background:rgba(25,135,84,0.1);color:var(--success);">🟢 Moi</span>';
+
+    // Border color by priority
+    const borderColor=t.priorite==='haute'?'var(--danger)':t.priorite==='moyenne'?'var(--warning)':'var(--border)';
+
+    return `<div class="tcard" style="border-left:3px solid ${borderColor};" onclick="openTask('${t.id}')">
       ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:6px;cursor:pointer;z-index:2;">🙋 Prendre</div>`:''}
       <div class="tcard-icon">${tt.icon}</div>
       <div class="tcard-body" style="flex:1;">
-        <div class="tcard-title">${tt.label}${t.id_service?' · <span style="font-weight:400;color:var(--muted);font-size:12px;">'+esc(t.id_service)+'</span>':''}</div>
-        <div class="tcard-sub">${esc(t.option_tarifaire||t.fournisseur||'')}</div>
-        <div class="tcard-meta">
+        <div class="tcard-title">${tt.label}${t.id_service?' · <span style="font-weight:400;color:var(--muted);font-size:11px;">'+esc(t.id_service)+'</span>':''}</div>
+        <div class="tcard-meta" style="margin-top:4px;">
           <span class="tcard-tag ${ts.cls}">${ts.label}</span>
-          ${packHtml}
-          ${agentHtml}
-          ${commAmt>0?`<span style="font-size:10px;font-weight:600;color:var(--accent);">💰 ${commAmt.toFixed(0)}€</span>`:''}
+          ${prioBadge}${deadlineBadge}${packBadge}${agentBadge}
+          ${commAmt>0?`<span style="font-size:10px;font-weight:700;color:var(--accent);">💰 ${commAmt.toFixed(0)}€</span>`:''}
         </div>
       </div>
-      <div class="tcard-right" style="text-align:right;">
-        <div class="tcard-date">${fmtDate(t.date_debut)}</div>
-        ${t.fournisseur?`<div style="font-size:11px;color:var(--muted);">${esc(normFourn(t.fournisseur))}</div>`:''}
-        ${t.energie_type?`<div style="font-size:11px;">${t.energie_type==='elec'?'⚡':t.energie_type==='gaz'?'🔥':'⚡🔥'}</div>`:''}
+      <div class="tcard-right" style="text-align:right;min-width:80px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);">⏱ ${fmtAge(age)}</div>
+        <div class="tcard-date">${fmtDate(t.created_at)}</div>
       </div>
     </div>`;
   }).join('');
@@ -550,6 +601,23 @@ function renderStep(stepCfg,idx,contrat,personne,adresse,extraTop){
   return html;
 }
 
+// Same as renderStep but appends suffix HTML after the grid
+function renderStepWithSuffix(stepCfg,idx,contrat,personne,adresse,extraTop,suffix){
+  const hasGaz=contrat.energie_type==='gaz'||contrat.energie_type==='elec+gaz';
+  let html=`<div class="step-page${idx===0?' active':''}" id="step-${idx}">`;
+  if(extraTop)html+=extraTop;
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+  stepCfg.fields.forEach(f=>{
+    if(f.showIf==='hasGaz'&&!hasGaz)return;
+    const val=getFieldVal(f,contrat,personne,adresse);
+    html+=renderField(f,val);
+  });
+  html+='</div>';
+  if(suffix)html+=suffix;
+  html+='</div>';
+  return html;
+}
+
 // ══════════════════════════════════════
 // OPEN TASK (config-driven)
 // ══════════════════════════════════════
@@ -595,7 +663,27 @@ function openTask(id){
   const extraTop=`<div class="dinstr">${tt.instruction}</div>${packHtml}`;
   let bodyHtml='';
   steps.forEach((s,i)=>{
-    bodyHtml+=renderStep(s,i,t,p,a,i===0?extraTop:'');
+    let extra=i===0?extraTop:'';
+    // Last step: append system info
+    if(i===steps.length-1){
+      const commInfo=commMap[t.id];
+      const ttDef=taskTypesMap[t.formule];
+      const commVal=commInfo?parseFloat(commInfo.montant||0):(ttDef?parseFloat(ttDef.commission_default||0):0);
+      extra+=`</div></div>
+        <div style="margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Informations système</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;">
+            <div><span style="color:var(--muted);font-size:10px;">INSCRIT PAR</span><br><strong>${esc(t.inscrit_par||t.source||'—')}</strong></div>
+            <div><span style="color:var(--muted);font-size:10px;">AGENT</span><br><strong>${esc(t.agent_code||'Non assigné')}</strong></div>
+            <div><span style="color:var(--muted);font-size:10px;">MODIFIÉ PAR</span><br><strong>${esc(t.modifie_par||'—')}</strong></div>
+            <div><span style="color:var(--muted);font-size:10px;">COMMISSION</span><br><strong style="color:var(--accent);">${commVal>0?commVal.toFixed(0)+' € HT':'—'}</strong></div>
+          </div>
+        </div>`;
+      // Need to wrap properly - the extra goes after the grid close
+      bodyHtml+=renderStepWithSuffix(s,i,t,p,a,i===0?extraTop:'',extra);
+      return;
+    }
+    bodyHtml+=renderStep(s,i,t,p,a,extra);
   });
 
   document.getElementById('dw-body').innerHTML=bodyHtml;
@@ -638,12 +726,16 @@ function updateNav(id,t){
 // Claim a task (from task list)
 async function claimTask(id){
   try{
-    const body={agent_code:myAgentCode,modifie_par:myAgentCode,agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement'};
-    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
     const t=allTasks.find(x=>x.id===id);
+    const ttDef=taskTypesMap[t?.formule];
+    const delai=ttDef?.delai_heures||24;
+    const dateLimite=new Date(Date.now()+delai*3600000).toISOString();
+    const body={agent_code:myAgentCode,modifie_par:myAgentCode,agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement',date_limite:dateLimite};
+    if(!t.priorite||t.priorite==='normal'){}// keep default
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
     if(t)Object.assign(t,body);
     renderStats();renderTasks();
-    showToast('🙋 Tâche prise — '+myAgentCode);
+    showToast(`🙋 Pris — délai ${delai}h`);
   }catch(e){showToast('Erreur',true);}
 }
 
@@ -677,7 +769,36 @@ async function saveAndDone(id,pid,aid){
   await saveAll(id,pid,aid);
   await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'actif',modifie_par:myAgentCode})});
   const t=allTasks.find(x=>x.id===id);if(t){t.contrat_status='actif';t.modifie_par=myAgentCode;}
-  renderStats();renderTasks();closeFM();showToast('✅ Terminé & sauvé');
+
+  // Auto-create commission for this agent if task_type has commission_default
+  const ttDef=taskTypesMap[t?.formule];
+  const commAmt=ttDef?parseFloat(ttDef.commission_default||0):0;
+  if(commAmt>0&&t){
+    try{
+      // Check if commission already exists
+      const rc=await fetch(`${SB}/rest/v1/commissions?contrat_id=eq.${id}&select=id`,{headers:fuwuH()});
+      const existing=await rc.json();
+      if(!existing||!existing.length){
+        // Find intermediaire from source
+        let intermId=null;
+        if(t.source){
+          const ri=await fetch(`${SB}/rest/v1/personnes?email=eq.${encodeURIComponent(t.source)}&est_intermediaire=eq.true&select=id`,{headers:fuwuH()});
+          const idata=await ri.json();
+          if(idata&&idata[0])intermId=idata[0].id;
+        }
+        await fetch(`${SB}/rest/v1/commissions`,{method:'POST',headers:fuwuH(),body:JSON.stringify({
+          contrat_id:id,
+          intermediaire_id:intermId,
+          montant:commAmt,
+          statut:'non_paye',
+          type_commission:'agent',
+          business_line:'energie'
+        })});
+      }
+    }catch(e){console.warn('Commission auto-create failed',e);}
+  }
+
+  renderStats();renderTasks();closeFM();showToast('✅ Terminé & commission enregistrée');
 }
 
 // Field helpers
@@ -809,48 +930,60 @@ function showClientDetail(id){
 let allCompleted=[];
 let resFilter='all';
 
+let resCommMap={};
 async function loadResults(){
   try{
     const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=eq.actif&agent_code=eq.${encodeURIComponent(myAgentCode)}&select=id,id_service,personne_id,fournisseur,energie_type,formule,date_debut,created_at,source&order=created_at.desc&limit=500`,{headers:fuwuH()});
     if(r.ok)allCompleted=await r.json();
 
-    // Load personnes for display
+    // Load personnes
     const pids=[...new Set(allCompleted.map(c=>c.personne_id).filter(Boolean))];
     for(let i=0;i<pids.length;i+=200){
       const batch=pids.slice(i,i+200);
       try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,prenom,nom,email`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
+    }
+    // Load commissions for completed tasks
+    const cids=allCompleted.map(c=>c.id);
+    resCommMap={};
+    for(let i=0;i<cids.length;i+=200){
+      const batch=cids.slice(i,i+200);
+      try{const rc=await fetch(`${SB}/rest/v1/commissions?contrat_id=in.(${batch.join(',')})&select=id,contrat_id,montant,statut`,{headers:fuwuH()});const d=await rc.json();if(Array.isArray(d))d.forEach(c=>resCommMap[c.contrat_id]=c);}catch(e){}
     }
   }catch(e){console.error(e);}
   renderResults();
 }
 
 function renderResults(){
-  // Stats
   const total=allCompleted.length;
   const thisMonth=allCompleted.filter(c=>{const d=c.date_debut||c.created_at||'';return d.startsWith(new Date().toISOString().substring(0,7));}).length;
   const byType={};
   allCompleted.forEach(c=>{const t=c.formule||'autre';byType[t]=(byType[t]||0)+1;});
 
+  // Calculate total commission earned
+  let totalComm=0,paidComm=0;
+  allCompleted.forEach(c=>{
+    const cm=resCommMap[c.id];
+    if(cm){totalComm+=parseFloat(cm.montant||0);if(cm.statut==='paye')paidComm+=parseFloat(cm.montant||0);}
+  });
+
   document.getElementById('res-stats').innerHTML=`
     <div class="scard"><div class="scard-val v-green">${total}</div><div class="scard-label">Total terminés</div></div>
     <div class="scard"><div class="scard-val v-gold">${thisMonth}</div><div class="scard-label">Ce mois</div></div>
-    <div class="scard"><div class="scard-val v-blue">${byType['mise_en_service']||0}</div><div class="scard-label">Mise en service</div></div>
-    <div class="scard"><div class="scard-val v-orange">${byType['resiliation']||0}</div><div class="scard-label">Résiliation</div></div>
+    <div class="scard"><div class="scard-val" style="color:var(--accent);">${totalComm.toFixed(0)}€</div><div class="scard-label">Commission totale</div></div>
+    <div class="scard"><div class="scard-val v-green">${paidComm.toFixed(0)}€</div><div class="scard-label">Déjà payé</div></div>
   `;
 
-  // Filter chips
   const filters=[
     {id:'all',label:`Tous (${total})`},
-    {id:'mise_en_service',label:`⚡ Mise en service (${byType['mise_en_service']||0})`},
-    {id:'resiliation',label:`❌ Résiliation (${byType['resiliation']||0})`},
-    {id:'changement_fournisseur',label:`🔄 Changement (${byType['changement_fournisseur']||0})`},
+    {id:'mise_en_service',label:`⚡ MES (${byType['mise_en_service']||0})`},
+    {id:'resiliation',label:`❌ Résil (${byType['resiliation']||0})`},
+    {id:'changement_fournisseur',label:`🔄 Chgt (${byType['changement_fournisseur']||0})`},
     {id:'box_internet',label:`📡 Box (${byType['box_internet']||0})`},
   ];
   document.getElementById('res-chips').innerHTML=filters.map(f=>
     `<div class="chip ${resFilter===f.id?'on':''}" onclick="resFilter='${f.id}';renderResults()">${f.label}</div>`
   ).join('');
 
-  // List
   let filtered=allCompleted;
   if(resFilter!=='all')filtered=allCompleted.filter(c=>c.formule===resFilter);
 
@@ -858,14 +991,18 @@ function renderResults(){
     const p=personnesMap[c.personne_id]||{};
     const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
     const tt=TASK_TYPES[c.formule]||{icon:'📋',label:c.formule||'—'};
+    const cm=resCommMap[c.id];
+    const cmAmt=cm?parseFloat(cm.montant||0):0;
+    const cmPaid=cm?.statut==='paye';
     return `<div class="tcard">
       <div class="tcard-icon">${tt.icon}</div>
       <div class="tcard-body">
         <div class="tcard-title">${tt.label}</div>
         <div class="tcard-sub">${esc(c.id_service||'')} · ${esc(c.fournisseur||'')}</div>
       </div>
-      <div class="tcard-right">
+      <div class="tcard-right" style="text-align:right;">
         <div class="tcard-client">${esc(name)}</div>
+        ${cmAmt>0?`<div style="font-size:12px;font-weight:700;color:${cmPaid?'var(--success)':'var(--accent)'};">${cmAmt.toFixed(0)}€ ${cmPaid?'✅':'⏳'}</div>`:''}
         <div class="tcard-date">${fmtDate(c.date_debut||c.created_at)}</div>
       </div>
     </div>`;

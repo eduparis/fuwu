@@ -1358,6 +1358,9 @@ function renderContratModal(id){
             <button class="abtn" onclick="assignAgent('${id}')">🛡 Assigner agent</button>
             <button class="abtn r" onclick="removeAgent('${id}')">✕ Retirer agent</button>
           </div>
+          <div class="fmodal-section">Priorité & Délai</div>
+          ${fmField('fc-priorite','Niveau de priorité',c.priorite||'normal','select','normal|moyenne|haute')}
+          ${fmField('fc-date-limite','Date limite',c.date_limite?c.date_limite.substring(0,16):'','datetime-local')}
         </div>
         <div class="fmodal-col">
           <div class="fmodal-section">Commission & Pénalité</div>
@@ -1523,6 +1526,8 @@ async function saveContratFull(contratId,personneId,adresseId){
     const agentVal=gv('fc-agent');if(agentVal!==undefined)cb.agent_code=agentVal;
     const penalite=gv('fc-penalite');if(penalite!==undefined)cb.agent_penalite=parseFloat(penalite)||0;
     const noteAgent=gv('fc-note-agent');if(noteAgent!==undefined)cb.note_agent=noteAgent;
+    const priorite=gv('fc-priorite');if(priorite)cb.priorite=priorite;
+    const dateLimite=gv('fc-date-limite');if(dateLimite)cb.date_limite=dateLimite;
     await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify(cb)});
     Object.assign(contratMap[contratId],cb);
 
