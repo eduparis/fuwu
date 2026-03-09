@@ -610,6 +610,7 @@ svg.lc circle{r:3;}
             <div class="work-title">⚙️ Système</div>
             <div class="work-actions">
               <button class="abtn" onclick="runHealthCheck()">🩺 Diagnostic</button>
+              <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openMissionEditor()">📋 Éditeur Missions</button>
               <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openFormEditor('agent_task_steps')">📝 Formulaire Agent</button>
               <button class="abtn" style="background:var(--accent-bg);color:var(--accent);border-color:rgba(200,169,110,0.3);" onclick="openFormEditor('inscription_steps')">📝 Formulaire Inscription</button>
             </div>
@@ -617,16 +618,6 @@ svg.lc circle{r:3;}
           <div class="work-body" id="sys-body">
             <div class="stats stats-3" id="sys-stats"></div>
             <div id="sys-content" style="color:var(--muted);font-size:13px;">Cliquez sur Diagnostic pour lancer l'analyse.</div>
-
-            <!-- Éditeur Missions (task types config) -->
-            <div style="margin-top:28px;border-top:1px solid var(--border);padding-top:20px;">
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                <div style="font-size:13px;font-weight:700;color:var(--accent);">📋 Éditeur Missions</div>
-                <div style="font-size:11px;color:var(--muted);">Types de missions par service</div>
-                <button class="abtn" style="font-size:10px;margin-left:auto;" onclick="addServiceCat()">＋ Nouvelle catégorie</button>
-              </div>
-              <div id="sys-task-types-grid"></div>
-            </div>
           </div>
         </div>
 
@@ -699,6 +690,21 @@ svg.lc circle{r:3;}
       <button class="abtn g" onclick="saveFormConfig()">💾 Sauvegarder & Publier</button>
       <button class="abtn" onclick="closeFormEditor()">Annuler</button>
       <div class="fe-footer-status" id="fe-status">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Mission Editor (fullscreen overlay) -->
+<div class="fe-overlay" id="me-overlay" onclick="if(event.target===this)closeMissionEditor()">
+  <div class="fe-box" style="max-width:1000px;">
+    <div class="fe-header">
+      <h2>📋 Éditeur Missions</h2>
+      <span style="font-size:11px;color:var(--muted);">Types de missions par service — cliquez sur une carte pour modifier</span>
+      <button class="abtn" style="margin-left:auto;font-size:11px;" onclick="addServiceCat()">＋ Nouvelle catégorie</button>
+      <button class="fmodal-close" onclick="closeMissionEditor()">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;" id="me-body">
+      <div style="color:var(--muted);font-size:13px;">Chargement…</div>
     </div>
   </div>
 </div>
@@ -922,7 +928,6 @@ function showPage(name){
   if(name==='finance')renderFinance();
   if(name==='taches')loadTaskPage();
   if(name==='alerts')loadAlerts();
-  if(name==='systeme')loadTaskPage(); // loads task type editor in Système
 }
 
 // ══════════════════════════════════════
@@ -2515,9 +2520,9 @@ function renderTaskTypes(){
   }
 
   document.getElementById('task-types-grid').innerHTML=html;
-  // Also render in Système page
-  const sysGrid=document.getElementById('sys-task-types-grid');
-  if(sysGrid)sysGrid.innerHTML=html;
+  // Also render in Mission Editor overlay
+  const meBody=document.getElementById('me-body');
+  if(meBody)meBody.innerHTML=html;
 }
 
 function editTaskType(id){
@@ -2800,6 +2805,15 @@ async function openFormEditor(configId){
   renderFE();
 }
 function closeFormEditor(){document.getElementById('fe-overlay').classList.remove('open');}
+
+// ── Mission Editor (fullscreen overlay) ──
+async function openMissionEditor(){
+  document.getElementById('me-overlay').classList.add('open');
+  // Load task types if not already loaded
+  if(!allTaskTypes.length)await loadTaskPage();
+  else renderTaskTypes();
+}
+function closeMissionEditor(){document.getElementById('me-overlay').classList.remove('open');}
 
 function renderFE(){
   const icons=['👤','📍','⚙️','📄','📋'];
