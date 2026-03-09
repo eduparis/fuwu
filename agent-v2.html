@@ -448,7 +448,19 @@ function renderTasks(){
       const p=personnesMap[c.personne_id]||{};
       const tt=TASK_TYPES[c.formule]||{icon:'📋',label:c.formule||'—'};
       const cm=resCommMap?.[c.id];
-      return `<div class="tcard" style="border-left:3px solid var(--success);"><div class="tcard-icon">${tt.icon}</div><div class="tcard-body" style="flex:1;"><div class="tcard-title">${tt.label} · ${esc(c.id_service||'')}</div><div class="tcard-sub">${esc([p.prenom,p.nom].filter(Boolean).join(' '))} · ${esc(c.fournisseur||'')}</div></div><div style="text-align:right;">${cm?`<div style="font-size:12px;font-weight:700;color:${cm.statut==='paye'?'var(--success)':'var(--accent)'};">${parseFloat(cm.montant||0).toFixed(0)}€ ${cm.statut==='paye'?'✅':'⏳'}</div>`:''}  <div style="font-size:10px;color:var(--muted);">${fmtDate(c.date_debut)}</div></div></div>`;
+      const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+      return `<div class="tcard" style="border-left:3px solid var(--success);cursor:pointer;" onclick="reopenDoneTask('${c.id}')">
+        <div class="tcard-icon">${tt.icon}</div>
+        <div class="tcard-body" style="flex:1;">
+          <div class="tcard-title">${tt.label} · ${esc(c.id_service||'')}</div>
+          <div class="tcard-sub">${esc(name)} · ${esc(c.fournisseur||'')}</div>
+        </div>
+        <div style="text-align:right;">
+          ${cm?`<div style="font-size:12px;font-weight:700;color:${cm.statut==='paye'?'var(--success)':'var(--accent)'};">${parseFloat(cm.montant||0).toFixed(0)}€ ${cm.statut==='paye'?'✅':'⏳'}</div>`:''}
+          <div style="font-size:10px;color:var(--muted);">${fmtDate(c.date_debut)}</div>
+          <div style="font-size:9px;color:var(--info);margin-top:2px;">Cliquer pour rouvrir ↩</div>
+        </div>
+      </div>`;
     }).join('')||'<div style="padding:20px;color:var(--muted);">Aucun.</div>';
     return;
   }
@@ -750,6 +762,27 @@ async function quickStart(id){
 }
 
 // Abandon a task
+async function reopenDoneTask(id){
+  if(!confirm('Rouvrir cette tâche pour correction ?\nLe statut repassera en "En traitement".'))return;
+  try{
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'en_traitement',modifie_par:myAgentCode})});
+    // Move from completed to active tasks
+    const c=allCompleted.find(x=>x.id===id);
+    if(c){
+      c.contrat_status='en_traitement';
+      c.modifie_par=myAgentCode;
+      c.agent_code=myAgentCode;
+      allTasks.push(c);
+      allCompleted=allCompleted.filter(x=>x.id!==id);
+    }
+    currentFilter='en_cours';
+    renderStats();renderChips();renderTasks();
+    // Open the task modal
+    setTimeout(()=>openTask(id),200);
+    showToast('↩ Tâche rouverte — vous pouvez corriger');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
 async function abandonTask(id){
   if(!confirm('Abandonner cette tâche ?\nUne pénalité de commission peut s\'appliquer.'))return;
   const t=allTasks.find(x=>x.id===id);
