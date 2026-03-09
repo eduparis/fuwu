@@ -3010,6 +3010,9 @@ let activeTaskFilter='all';
 
 async function loadTaskPage(){
   try{
+    // Only reload contrats (lightweight) — personnes already in memory
+    await loadContrats();
+    buildMaps();
     const [r1,r2]=await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/task_types?order=sort_order.asc`,{headers:H()}),
       fetch(`${SUPABASE_URL}/rest/v1/service_categories?order=sort_order.asc`,{headers:H()})
@@ -3019,6 +3022,8 @@ async function loadTaskPage(){
   }catch(e){}
   renderTaskTypes();
   renderActiveTasksList();
+  updateBadges();
+  showToast('Missions actualisées');
 }
 
 function renderTaskTypes(){
@@ -3203,6 +3208,19 @@ function renderActiveTasksList(){
   else if(activeTaskFilter==='en_attente')filtered=attente;
   else if(activeTaskFilter!=='all')filtered=active.filter(c=>c.formule===activeTaskFilter);
 
+  // Sort: priorité (haute>moyenne>normal) → statut (en_traitement>en_attente) → date_debut nearest first
+  const prioOrder={haute:0,moyenne:1,normal:2};
+  const statusOrder={en_traitement:0,en_attente:1};
+  filtered.sort((a,b)=>{
+    const pa=(prioOrder[a.priorite]??2)-(prioOrder[b.priorite]??2);
+    if(pa!==0)return pa;
+    const sa=(statusOrder[a.contrat_status]??1)-(statusOrder[b.contrat_status]??1);
+    if(sa!==0)return sa;
+    // Date closest first (nearest future or most recent past)
+    const da=a.date_debut||'9999';const db=b.date_debut||'9999';
+    return da<db?-1:da>db?1:0;
+  });
+
   // Batch action bar
   let batchBar='';
   if(taskSelection.size>0){
@@ -3233,7 +3251,7 @@ function renderActiveTasksList(){
         <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${esc(c.id_service||'')} · ${fmtDate(c.date_debut)}${c.priorite&&c.priorite!=='normal'?' · <span style="font-size:10px;font-weight:700;color:'+(c.priorite==='haute'?'var(--danger)':'var(--warning)')+';">'+(c.priorite==='haute'?'🔴':'🟡')+' '+c.priorite+'</span>':''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        ${tt.commission_default?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${tt.commission_default}€</div>`:''}
+        ${(c.agent_commission_par_contrat||tt.commission_default)?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${c.agent_commission_par_contrat||tt.commission_default}€</div>`:''}
         <div style="font-size:10px;color:var(--muted);">${esc(normFourn(c.fournisseur)||'')}</div>
       </div>
     </div>`;
