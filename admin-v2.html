@@ -562,7 +562,7 @@ svg.lc circle{r:3;}
                 <table class="dt-table" id="ct-table">
                   <thead><tr>
                     <th style="width:30px;"><input type="checkbox" onchange="toggleAllCT(this)"></th>
-                    <th>Statut</th><th>Client</th><th>Fournisseur</th><th>Énergie</th><th>PDL/PCE</th><th>Date</th><th>Source</th><th>Agent</th>
+                    <th>Statut</th><th>ID Client</th><th>Client</th><th>ID Contrat</th><th>Fournisseur</th><th>Énergie</th><th>Date</th><th>Agent</th>
                   </tr></thead>
                   <tbody id="ct-tbody"></tbody>
                 </table>
@@ -801,7 +801,7 @@ async function loadContrats(){
   }
 }
 async function loadCommissions(){allComm=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);const seen=new Set();allComm=allComm.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});}
-async function loadPersonnes(){allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,id_fournisseur,note,date_naissance,siret,colocataire_prenom,colocataire_nom,role,auth_user_id,est_agent,agent_code,code_parrainage&order=created_at.desc`);allPersonnes.forEach(p=>personneMap[p.id]=p);}
+async function loadPersonnes(){allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,id_fournisseur,note,date_naissance,siret,colocataire_prenom,colocataire_nom,role,auth_user_id,est_agent,agent_code,code_parrainage,id_client&order=created_at.desc`);allPersonnes.forEach(p=>personneMap[p.id]=p);}
 
 function buildMaps(){
   intermMap={};
@@ -1102,18 +1102,19 @@ function renderContratsTable(){
     const p=personneMap[c.personne_id]||{};
     const a=adresseMap[c.adresse_id]||{};
     const name=[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—';
-    const pdl=[a.pdl,a.pce].filter(Boolean).join('/');
+    const idClient=p.id_client||'—';
+    const idContrat=c.id_service||'—';
     const sel=ctSelected.has(c.id)?'selected':'';
     const chk=ctSelected.has(c.id)?'checked':'';
     return `<tr class="${sel}" onclick="openEntity('contrat','${c.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${chk} onchange="toggleCT('${c.id}',this)"></td>
       <td onclick="event.stopPropagation()"><div class="status-wrap"><span class="badge ${statusClass(c.contrat_status)}" onclick="toggleStatusMenu(event,'sm-${c.id}')" style="cursor:pointer;">${statusLabel(c.contrat_status)} ▾</span><div class="status-menu" id="sm-${c.id}"><div class="status-opt" onclick="quickStatusInline('${c.id}','en_attente')"><div class="dot" style="background:var(--warning)"></div>En attente</div><div class="status-opt" onclick="quickStatusInline('${c.id}','en_traitement')"><div class="dot" style="background:var(--info)"></div>En traitement</div><div class="status-opt" onclick="quickStatusInline('${c.id}','actif')"><div class="dot" style="background:var(--success)"></div>Actif</div><div class="status-opt" onclick="quickStatusInline('${c.id}','annule')"><div class="dot" style="background:var(--danger)"></div>Annulé</div><div class="status-opt" onclick="quickStatusInline('${c.id}','refuse')"><div class="dot" style="background:var(--danger)"></div>Refusé</div></div></div></td>
+      <td style="font-family:monospace;font-size:11px;color:var(--accent);font-weight:600;">#${esc(idClient)}</td>
       <td><div style="font-weight:600;font-size:12px;">${esc(name)}</div><div style="font-size:10px;color:var(--muted);">${esc(p.email||'')}</div></td>
+      <td style="font-family:monospace;font-size:11px;font-weight:600;">${esc(idContrat)}</td>
       <td style="font-size:11px;">${esc(normFourn(c.fournisseur)||'—')}</td>
       <td>${c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':c.energie_type==='elec+gaz'?'⚡🔥':'—'}</td>
-      <td style="font-family:monospace;font-size:11px;">${esc(pdl||'—')}</td>
       <td style="font-size:11px;color:var(--muted);">${fmtDate(c.date_debut||c.created_at)}</td>
-      <td style="font-size:11px;max-width:100px;">${esc(c.source||'—')}</td>
       <td style="font-size:11px;">${c.agent_code?`<span style="background:rgba(25,135,84,0.08);color:var(--success);padding:1px 6px;border-radius:6px;font-size:10px;font-weight:600;">${esc(c.agent_code)}</span>`:'<span style="color:var(--muted);font-size:10px;">—</span>'}</td>
     </tr>`;
   }).join('');
@@ -1285,7 +1286,7 @@ function renderContratModal(id){
   const comm=allComm.find(cm=>cm.contrat_id===id);
   const tt=c.formule?{resiliation:'❌ Résiliation',mise_en_service:'⚡ Mise en service',changement_fournisseur:'🔄 Changement',box_internet:'📡 Box',ouverture_banque:'🏦 Banque'}[c.formule]||'📄 Contrat':'📄 Contrat';
 
-  document.getElementById('fm-title').innerHTML=`${tt} — ${c.id_service||c.id_fournisseur||'Contrat'}`;
+  document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">Client #${esc(p.id_client||'—')}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Détails</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
@@ -1389,8 +1390,10 @@ function renderContratModal(id){
   document.getElementById('fm-actions').innerHTML=`
     <button class="abtn g" onclick="saveContratFull('${id}','${c.personne_id}','${c.adresse_id||''}')">💾 Sauvegarder tout</button>
     <select class="finput" style="padding:5px 8px;font-size:11px;" onchange="if(this.value){quickStatusChange('${id}',this.value);this.value='';}"><option value="">Statut rapide…</option><option value="en_attente">En attente</option><option value="en_traitement">En traitement</option><option value="actif">Actif</option><option value="annule">Annulé</option></select>
-    <button class="abtn" onclick="copyText('${c.id_fournisseur||c.id_service||c.id}')">📋 Copier ID</button>
-    <button class="abtn" onclick="openEntity('personne','${c.personne_id}')">👤 Dossier client</button>
+    <button class="abtn" onclick="copyText('${c.id_service||c.id}')">📋 ID</button>
+    <button class="abtn" onclick="openEntity('personne','${c.personne_id}')">👤 Client</button>
+    <div style="flex:1;"></div>
+    <button class="abtn r" onclick="deleteContrat('${id}')" style="font-size:10px;">🗑 Supprimer</button>
   `;
 }
 
@@ -1400,7 +1403,7 @@ function renderPersonneModal(id){
   const activeC=contrats.filter(c=>c.contrat_status==='actif'||c.contrat_status==='en_traitement'||c.contrat_status==='en_attente');
   const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');
 
-  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}`;
+  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} <span style="font-size:12px;font-family:monospace;color:var(--accent);">#${esc(p.id_client||'—')}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
@@ -1508,6 +1511,27 @@ function renderCommModal(id){
   document.getElementById('fm-actions').innerHTML=c.statut!=='paye'?`<button class="abtn g" onclick="markPaid('${c.id}')">✅ Marquer payé</button>`:`<button class="abtn w" onclick="markUnpaid('${c.id}')">↩ Annuler paiement</button>`;
 }
 
+async function deleteContrat(contratId){
+  const c=contratMap[contratId];
+  const label=c?`${c.id_service||''} (${c.fournisseur||''})`:'ce contrat';
+  if(!confirm(`⚠️ Supprimer définitivement ${label} ?\n\nCette action est irréversible.`))return;
+  if(!confirm('Confirmer la suppression ?'))return;
+  try{
+    // Delete related commissions first
+    await fetch(`${SUPABASE_URL}/rest/v1/commissions?contrat_id=eq.${contratId}`,{method:'DELETE',headers:H()});
+    // Delete contrat
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'DELETE',headers:H()});
+    if(!r.ok){const t=await r.text();throw new Error(t);}
+    // Remove from local data
+    allContrats=allContrats.filter(c=>c.id!==contratId);
+    delete contratMap[contratId];
+    closeFModal();
+    filterContrats();
+    updateBadges();
+    showToast('🗑 Contrat supprimé');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
 async function changeAgentPassword(personneId){
   const newPwd=gv('fp-new-pwd');
   if(!newPwd||newPwd.length<6){showToast('Mot de passe trop court (min 6)',true);return;}
@@ -1538,13 +1562,30 @@ async function toggleAgentStatus(personneId,newState){
 }
 
 async function assignAgent(contratId){
-  const code=prompt('Code agent (ex: A508):');
-  if(!code)return;
+  const agents=Object.values(personneMap).filter(p=>p.est_agent&&p.agent_code);
+  if(!agents.length){showToast('Aucun agent trouvé',true);return;}
+  // Build modal with dropdown
+  const opts=agents.map(a=>`<option value="${esc(a.agent_code)}">${esc(a.agent_code)} — ${esc([a.prenom,a.nom].filter(Boolean).join(' ')||a.email)}</option>`).join('');
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML=`<div style="background:var(--surface);border-radius:12px;padding:24px;width:340px;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🛡 Assigner un agent</div>
+    <select id="assign-agent-sel" class="finput" style="width:100%;padding:10px;font-size:13px;margin-bottom:12px;"><option value="">— Choisir —</option>${opts}</select>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="abtn" onclick="this.closest('div[style]').remove()">Annuler</button>
+      <button class="abtn primary" onclick="doAssignAgent('${contratId}',document.getElementById('assign-agent-sel').value);this.closest('div[style]').parentElement.remove()">Confirmer</button>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+}
+
+async function doAssignAgent(contratId,code){
+  if(!code){showToast('Sélectionnez un agent',true);return;}
   try{
-    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_code:code.toUpperCase(),modifie_par:'ADMIN',agent_claimed_at:new Date().toISOString()})});
-    const c=contratMap[contratId];if(c){c.agent_code=code.toUpperCase();c.modifie_par='ADMIN';c.agent_claimed_at=new Date().toISOString();}
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_code:code,modifie_par:'ADMIN',agent_claimed_at:new Date().toISOString()})});
+    const c=contratMap[contratId];if(c){c.agent_code=code;c.modifie_par='ADMIN';c.agent_claimed_at=new Date().toISOString();}
     renderContratModal(contratId);
-    showToast('🛡 Agent '+code.toUpperCase()+' assigné');
+    showToast('🛡 Agent '+code+' assigné');
   }catch(e){showToast('Erreur',true);}
 }
 
@@ -2428,11 +2469,16 @@ function renderActiveTasksList(){
   // Batch action bar
   let batchBar='';
   if(taskSelection.size>0){
-    batchBar=`<div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+    // Build agent options from personnes with est_agent=true
+    const agents=Object.values(personneMap).filter(p=>p.est_agent&&p.agent_code);
+    const agentOpts=agents.map(a=>`<option value="${esc(a.agent_code)}">${esc(a.agent_code)} — ${esc([a.prenom,a.nom].filter(Boolean).join(' ')||a.email)}</option>`).join('');
+    batchBar=`<div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <span style="font-size:12px;font-weight:700;">${taskSelection.size} sélectionné(s)</span>
-      <button class="abtn primary" onclick="batchAssignAgent()">🛡 Assigner Agent</button>
-      <button class="abtn" onclick="batchSetPriority()">🔥 Priorité</button>
-      <button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Tout désélectionner</button>
+      <select id="batch-agent-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:160px;"><option value="">— Choisir agent —</option>${agentOpts}</select>
+      <button class="abtn primary" onclick="batchAssignAgent()">🛡 Assigner</button>
+      <select id="batch-prio-select" class="finput" style="padding:5px 8px;font-size:11px;min-width:100px;"><option value="">— Priorité —</option><option value="haute">🔴 Haute</option><option value="moyenne">🟡 Moyenne</option><option value="normal">⚪ Normal</option></select>
+      <button class="abtn" onclick="batchSetPriority()">🔥 Appliquer</button>
+      <button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Désélectionner</button>
     </div>`;
   }
 
@@ -2460,8 +2506,8 @@ function renderActiveTasksList(){
 function toggleTaskSel(id,cb){if(cb.checked)taskSelection.add(id);else taskSelection.delete(id);renderActiveTasksList();}
 
 async function batchAssignAgent(){
-  const code=prompt(`Assigner ${taskSelection.size} tâche(s) à quel agent ? (ex: A508)`);
-  if(!code)return;
+  const code=document.getElementById('batch-agent-select')?.value;
+  if(!code){showToast('Sélectionnez un agent',true);return;}
   const ids=[...taskSelection];
   for(const id of ids){
     await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_code:code.toUpperCase(),modifie_par:'ADMIN',agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement'})});
@@ -2473,8 +2519,8 @@ async function batchAssignAgent(){
 }
 
 async function batchSetPriority(){
-  const prio=prompt('Priorité pour '+taskSelection.size+' tâche(s) ? (normal / moyenne / haute)','haute');
-  if(!prio||!['normal','moyenne','haute'].includes(prio))return;
+  const prio=document.getElementById('batch-prio-select')?.value;
+  if(!prio){showToast('Sélectionnez une priorité',true);return;}
   const ids=[...taskSelection];
   for(const id of ids){
     await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({priorite:prio,modifie_par:'ADMIN'})});
