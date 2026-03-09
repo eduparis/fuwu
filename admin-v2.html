@@ -819,7 +819,7 @@ async function initData(){
   }catch(e){console.warn('Dashboard RPC failed, falling back to full load',e);}
 
   // Phase 2: load full data in background for other pages
-  await Promise.all([loadContrats(),loadCommissions(),loadPersonnes()]);
+  await Promise.all([loadContrats(),loadCommissions(),loadPersonnes(),loadDecomptes()]);
   buildMaps();
   _dataFullyLoaded=true;
 
@@ -896,7 +896,7 @@ async function fetchAll(url){
 }
 async function loadContrats(){
   // Lighter select — drop fields only needed in detail view
-  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent,intermediaire_id,commission_ht,commission_ttc_eur,commission_ttc_cny,mode_paiement_intermediaire&order=created_at.desc`);
+  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent,intermediaire_id,commission_ht,commission_ttc_eur,commission_ttc_cny,mode_paiement_intermediaire,decompte_id&order=created_at.desc`);
   const seen=new Set();allContrats=allContrats.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
   allContrats.forEach(c=>contratMap[c.id]=c);
   // Load adresses in batches
@@ -907,9 +907,11 @@ async function loadContrats(){
   }
 }
 async function loadCommissions(){allComm=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);const seen=new Set();allComm=allComm.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});}
+let allDecomptes=[];
+async function loadDecomptes(){allDecomptes=await fetchAll(`${SUPABASE_URL}/rest/v1/decomptes?select=*&order=created_at.desc`);}
 async function loadPersonnes(){
   // Lighter select — drop iban, siret, colocataire fields (only needed in detail)
-  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,commission_default_ht,commission_default_ttc_eur,commission_default_cny&order=created_at.desc`);
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,type_client,siret,iban,adresse_intermediaire,commission_default_ht,commission_default_ttc_eur,commission_default_cny&order=created_at.desc`);
   allPersonnes.forEach(p=>personneMap[p.id]=p);
 }
 
@@ -1465,17 +1467,16 @@ async function renderContratModal(id){
   const agentsList=Object.values(personneMap).filter(x=>x.est_agent&&x.agent_code);
   const inscritOpts=['','SY',...agentsList.map(a=>a.agent_code),...new Set(allContrats.map(c=>c.inscrit_par).filter(Boolean))].filter((v,i,a)=>v&&a.indexOf(v)===i).sort().map(o=>`<option value="${o}" ${o===c.inscrit_par?'selected':''}>${o}</option>`).join('');
 
-  // Build intermediary options for attribution dropdown
+  // Build intermediary dropdown
   const intermList=allPersonnes.filter(p=>p.est_intermediaire).sort((a,b)=>(a.login||a.email||'').localeCompare(b.login||b.email||''));
   const intermOpts=intermList.map(p=>{
     const label=[p.login||p.email,p.prenom,p.nom].filter(Boolean).join(' — ');
     return `<option value="${p.id}" ${p.id===c.intermediaire_id?'selected':''}>${esc(label)}</option>`;
   }).join('');
-  // Get current intermediary's defaults
   const curInterm=c.intermediaire_id?personneMap[c.intermediaire_id]:null;
-  const defHT=c.commission_ht||(curInterm?curInterm.commission_default_ht:20);
-  const defTTCeur=c.commission_ttc_eur||(curInterm?curInterm.commission_default_ttc_eur:24);
-  const defTTCcny=c.commission_ttc_cny||(curInterm?curInterm.commission_default_cny:192);
+  const defHT=c.commission_ht!=null?c.commission_ht:(curInterm&&curInterm.commission_default_ht!=null?curInterm.commission_default_ht:20);
+  const defTTCeur=c.commission_ttc_eur!=null?c.commission_ttc_eur:(curInterm&&curInterm.commission_default_ttc_eur!=null?curInterm.commission_default_ttc_eur:24);
+  const defTTCcny=c.commission_ttc_cny!=null?c.commission_ttc_cny:(curInterm&&curInterm.commission_default_cny!=null?curInterm.commission_default_cny:192);
   const defModePaiement=c.mode_paiement_intermediaire||'Parrainage';
 
   document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">Client ${esc((p.id_client||'—').replace(/^#/,'#'))}</span>`;
@@ -1527,27 +1528,17 @@ async function renderContratModal(id){
       <div class="fmodal-section" style="margin-top:12px;">💶 Commission intermédiaire</div>
       <div class="fmodal-grid">
         <div class="fmodal-col">
-          <div class="fmodal-field">
-            <label>Attribuer intermédiaire</label>
-            <select id="fc-intermediaire-id" class="finput" onchange="onIntermChange(this.value)">
-              <option value="">— Aucun —</option>
-              ${intermOpts}
-            </select>
-          </div>
+          <div class="fmodal-field"><label>Attribuer intermédiaire</label><select id="fc-intermediaire-id" class="finput" onchange="onIntermChange(this.value)"><option value="">— Aucun —</option>${intermOpts}</select></div>
           <div style="display:flex;gap:8px;">
-            <div class="fmodal-field" style="flex:1;"><label>HT €</label><input type="number" step="0.01" id="fc-comm-ht" value="${defHT||''}" onchange="syncCommFields('ht')"></div>
-            <div class="fmodal-field" style="flex:1;"><label>TTC €</label><input type="number" step="0.01" id="fc-comm-ttc-eur" value="${defTTCeur||''}" onchange="syncCommFields('ttc')"></div>
-            <div class="fmodal-field" style="flex:1;"><label>TTC ¥</label><input type="number" step="0.01" id="fc-comm-ttc-cny" value="${defTTCcny||''}"></div>
+            <div class="fmodal-field" style="flex:1;"><label>HT €</label><input type="number" step="0.01" id="fc-comm-ht" value="${defHT!=null?defHT:''}" onchange="syncCommFields('ht')"></div>
+            <div class="fmodal-field" style="flex:1;"><label>TTC €</label><input type="number" step="0.01" id="fc-comm-ttc-eur" value="${defTTCeur!=null?defTTCeur:''}" onchange="syncCommFields('ttc')"></div>
+            <div class="fmodal-field" style="flex:1;"><label>TTC ¥</label><input type="number" step="0.01" id="fc-comm-ttc-cny" value="${defTTCcny!=null?defTTCcny:''}"></div>
           </div>
         </div>
         <div class="fmodal-col">
-          <div class="fmodal-field">
-            <label>Mode de paiement intermédiaire</label>
-            <select id="fc-mode-paiement-interm" class="finput">
-              ${['Parrainage','WechatPay','Alipay','Virement','Cash'].map(m=>`<option value="${m}" ${m===defModePaiement?'selected':''}>${m}</option>`).join('')}
-            </select>
-          </div>
-          ${comm?`<div style="margin-top:8px;">${drow('Statut commission',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')} ${drow('Date paiement',comm.date_paiement||'—')}</div>`:''}
+          <div class="fmodal-field"><label>Mode paiement intermédiaire</label><select id="fc-mode-paiement-interm" class="finput">${['Parrainage','WechatPay','Alipay','Virement','Cash'].map(m=>`<option value="${m}" ${m===defModePaiement?'selected':''}>${m}</option>`).join('')}</select></div>
+          ${c.decompte_id?`<div style="margin-top:6px;padding:8px 12px;background:rgba(201,168,76,0.08);border-radius:8px;font-size:12px;"><span style="color:var(--accent);">📋 Décompte:</span> ${esc(allDecomptes.find(d=>d.id===c.decompte_id)?.numero||c.decompte_id)}</div>`:''}
+          ${comm?`<div style="margin-top:6px;">${drow('Statut commission',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}</div>`:''}
         </div>
       </div>
     </div>
@@ -1646,20 +1637,26 @@ function renderPersonneModal(id){
   const contrats=(window._contratsByPerson||{})[id]||[];
   const activeC=contrats.filter(c=>c.contrat_status==='actif'||c.contrat_status==='en_traitement'||c.contrat_status==='en_attente');
   const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');
+  const isInterm=p.est_intermediaire;
+  // Contrats attributed to this intermediary
+  const intermContrats=isInterm?allContrats.filter(c=>c.intermediaire_id===id||c.source===p.email||c.source===p.login):[];
+  const intermDecomptes=isInterm?allDecomptes.filter(d=>d.intermediaire_id===id):[];
 
   document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} <span style="font-size:12px;font-family:monospace;color:var(--accent);">${esc(p.id_client||'')}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
+    ${isInterm?`<div class="fmodal-tab" onclick="fmTab(this,'fmt-decompte')">📋 Décomptes (${intermDecomptes.length})</div>`:''}
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-tasks')">⚡ Tâches</div>
-    ${`<div class="fmodal-tab" onclick="fmTab(this,'fmt-access')">🔑 Accès</div>`}
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-access')">🔑 Accès</div>
   `;
   document.getElementById('fm-body').innerHTML=`
     <div id="fmt-profil">
       <div class="fmodal-grid">
         <div class="fmodal-col">
           <div class="fmodal-section">Identité</div>
-          ${fmField('fp-civ','Civilité',p.civilite,'select','M.|Mme|M. & Mme')}
+          ${fmField('fp-civ','Civilité',p.civilite,'select','M.|Mme|M. & Mme|Société')}
+          ${fmField('fp-type-client','Type',p.type_client||'particulier','select','particulier|societe')}
           ${fmField('fp-prenom','Prénom',p.prenom)}
           ${fmField('fp-nom','Nom',p.nom)}
           ${fmField('fp-email','Email',p.email,'email')}
@@ -1678,6 +1675,21 @@ function renderPersonneModal(id){
           </div></div>
         </div>
       </div>
+      ${isInterm?`
+      <div class="fmodal-grid" style="margin-top:8px;">
+        <div class="fmodal-col">
+          <div class="fmodal-section">Société / Facturation</div>
+          ${fmField('fp-siret','SIRET',p.siret)}
+          ${fmField('fp-iban','IBAN',p.iban)}
+          ${fmField('fp-adresse-interm','Adresse (siège)',p.adresse_intermediaire,'textarea')}
+        </div>
+        <div class="fmodal-col">
+          <div class="fmodal-section">Commission par défaut</div>
+          ${fmField('fp-comm-ht','HT € (défaut)',p.commission_default_ht||20)}
+          ${fmField('fp-comm-ttc','TTC € (défaut)',p.commission_default_ttc_eur||24)}
+          ${fmField('fp-comm-cny','TTC ¥ (défaut)',p.commission_default_cny||192)}
+        </div>
+      </div>`:''}
     </div>
     <div id="fmt-contrats" style="display:none">
       <div class="fmodal-section">Contrats</div>
@@ -1691,6 +1703,36 @@ function renderPersonneModal(id){
           <div>${statusBadge(c.contrat_status)}</div>
         </div>`;}).join(''):'<div style="color:var(--muted);font-size:12px;">Aucun contrat</div>'}
     </div>
+    ${isInterm?`<div id="fmt-decompte" style="display:none">
+      <div class="fmodal-section">Générer un décompte</div>
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          ${fmField('dc-date-debut','Période du',''+(new Date(new Date().getFullYear(),new Date().getMonth()-1,1).toISOString().slice(0,10)),'date')}
+          ${fmField('dc-date-fin','Au',''+(new Date(new Date().getFullYear(),new Date().getMonth(),0).toISOString().slice(0,10)),'date')}
+        </div>
+        <div class="fmodal-col">
+          <div style="padding-top:20px;">
+            <button class="abtn g" onclick="previewDecompte('${id}')">📋 Aperçu décompte</button>
+          </div>
+        </div>
+      </div>
+      <div id="decompte-preview-${id}"></div>
+      <div class="fmodal-section" style="margin-top:16px;">Historique des décomptes</div>
+      ${intermDecomptes.length?intermDecomptes.map(d=>`
+        <div class="todo" style="padding:10px 12px;">
+          <div class="todo-icon" style="font-size:14px;">${d.statut==='paye'?'✅':d.statut==='facture_recue'?'📄':'📋'}</div>
+          <div class="todo-info">
+            <div class="todo-title" style="font-size:12px;font-family:monospace;">${esc(d.numero)}</div>
+            <div class="todo-sub">${d.nb_contrats} contrats · ${parseFloat(d.total_ht||0).toFixed(2)}€ HT · ${fmtDate(d.date_debut)} → ${fmtDate(d.date_fin)}</div>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="badge b-${d.statut==='paye'?'paye':d.statut==='facture_recue'?'traitement':'attente'}">${d.statut}</span>
+            ${d.statut==='emis'?`<button class="abtn" style="font-size:10px;" onclick="event.stopPropagation();openFactureModal('${d.id}')">📄 Facture reçue</button>`:''}
+            ${d.statut==='facture_recue'?`<button class="abtn g" style="font-size:10px;" onclick="event.stopPropagation();markDecomptePaid('${d.id}')">💰 Marquer payé</button>`:''}
+            <button class="abtn" style="font-size:10px;" onclick="event.stopPropagation();generateDecomptePDF('${d.id}')">📥 PDF</button>
+          </div>
+        </div>`).join(''):'<div style="color:var(--muted);font-size:12px;">Aucun décompte</div>'}
+    </div>`:''}
     <div id="fmt-tasks" style="display:none">
       <div class="fmodal-section">Créer mission rapide</div>
       <div class="qtasks">
@@ -1868,14 +1910,6 @@ async function removeAgent(contratId){
   }catch(e){showToast('Erreur',true);}
 }
 
-function fmTab(el,panelId){
-  el.parentElement.querySelectorAll('.fmodal-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  const body=document.getElementById('fm-body');
-  body.querySelectorAll(':scope > div').forEach(d=>d.style.display='none');
-  document.getElementById(panelId).style.display='block';
-}
-
 // When intermediary dropdown changes, fill default commission amounts
 function onIntermChange(intermId){
   const p=intermId?personneMap[intermId]:null;
@@ -1886,21 +1920,21 @@ function onIntermChange(intermId){
     htEl.value=p.commission_default_ht||20;
     ttcEl.value=p.commission_default_ttc_eur||24;
     cnyEl.value=p.commission_default_cny||192;
-  } else {
-    htEl.value='';ttcEl.value='';cnyEl.value='';
-  }
+  } else { htEl.value='';ttcEl.value='';cnyEl.value=''; }
 }
-// Auto-sync HT↔TTC when one changes
 function syncCommFields(from){
   const htEl=document.getElementById('fc-comm-ht');
   const ttcEl=document.getElementById('fc-comm-ttc-eur');
-  if(from==='ht'){
-    const ht=parseFloat(htEl.value)||0;
-    ttcEl.value=(ht*1.2).toFixed(2);
-  } else if(from==='ttc'){
-    const ttc=parseFloat(ttcEl.value)||0;
-    htEl.value=(ttc/1.2).toFixed(2);
-  }
+  if(from==='ht'){ ttcEl.value=(parseFloat(htEl.value)||0)*1.2; }
+  else if(from==='ttc'){ htEl.value=((parseFloat(ttcEl.value)||0)/1.2).toFixed(2); }
+}
+
+function fmTab(el,panelId){
+  el.parentElement.querySelectorAll('.fmodal-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const body=document.getElementById('fm-body');
+  body.querySelectorAll(':scope > div').forEach(d=>d.style.display='none');
+  document.getElementById(panelId).style.display='block';
 }
 
 // Full save: contrat + client + adresse in one click
@@ -1915,13 +1949,15 @@ async function saveContratFull(contratId,personneId,adresseId){
       abonnement_ht:gv('fc-abo-ht'),abonnement_ttc:gv('fc-abo-ttc'),
       choix_paiement:gv('fc-paiement'),mode_facturation:gv('fc-facturation'),envoi_facture:gv('fc-envoi'),
       date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit'),
-      note_agent:gv('fc-note-agent'),modifie_par:'ADMIN',
-      intermediaire_id:gv('fc-intermediaire-id')||null,
-      commission_ht:gv('fc-comm-ht')?parseFloat(gv('fc-comm-ht')):null,
-      commission_ttc_eur:gv('fc-comm-ttc-eur')?parseFloat(gv('fc-comm-ttc-eur')):null,
-      commission_ttc_cny:gv('fc-comm-ttc-cny')?parseFloat(gv('fc-comm-ttc-cny')):null,
-      mode_paiement_intermediaire:gv('fc-mode-paiement-interm')
+      note_agent:gv('fc-note-agent'),modifie_par:'ADMIN'
     };
+    // Intermediary commission fields
+    const intermIdVal=gv('fc-intermediaire-id');
+    rawCb.intermediaire_id=intermIdVal||null;
+    const commHt=gv('fc-comm-ht');if(commHt)rawCb.commission_ht=parseFloat(commHt);
+    const commTtcEur=gv('fc-comm-ttc-eur');if(commTtcEur)rawCb.commission_ttc_eur=parseFloat(commTtcEur);
+    const commTtcCny=gv('fc-comm-ttc-cny');if(commTtcCny)rawCb.commission_ttc_cny=parseFloat(commTtcCny);
+    rawCb.mode_paiement_intermediaire=gv('fc-mode-paiement-interm')||'Parrainage';
     // Task management fields
     const agentVal=gv('fc-agent');if(agentVal!==undefined)rawCb.agent_code=agentVal;
     const penalite=gv('fc-penalite');if(penalite!==undefined)rawCb.agent_penalite=parseFloat(penalite)||0;
@@ -1973,7 +2009,14 @@ async function saveContratFull(contratId,personneId,adresseId){
 
 async function savePersonneFull(id){
   try{
-    const raw={civilite:gv('fp-civ'),prenom:gv('fp-prenom'),nom:gv('fp-nom'),email:gv('fp-email'),telephone:gv('fp-tel'),wechat:gv('fp-wechat'),login:gv('fp-login'),categorie:gv('fp-cat'),note:gv('fp-note'),agent_code:gv('fp-agent-code')};
+    const raw={civilite:gv('fp-civ'),prenom:gv('fp-prenom'),nom:gv('fp-nom'),email:gv('fp-email'),telephone:gv('fp-tel'),wechat:gv('fp-wechat'),login:gv('fp-login'),categorie:gv('fp-cat'),note:gv('fp-note'),agent_code:gv('fp-agent-code'),type_client:gv('fp-type-client')};
+    // Intermediary fields (only if fields exist in DOM)
+    const siret=gv('fp-siret');if(siret!==null)raw.siret=siret;
+    const iban=gv('fp-iban');if(iban!==null)raw.iban=iban;
+    const addrI=gv('fp-adresse-interm');if(addrI!==null)raw.adresse_intermediaire=addrI;
+    const commHt=gv('fp-comm-ht');if(commHt!==null)raw.commission_default_ht=parseFloat(commHt)||20;
+    const commTtc=gv('fp-comm-ttc');if(commTtc!==null)raw.commission_default_ttc_eur=parseFloat(commTtc)||24;
+    const commCny=gv('fp-comm-cny');if(commCny!==null)raw.commission_default_cny=parseFloat(commCny)||192;
     // Filter out null values to avoid overwriting with null
     const pb={};Object.entries(raw).forEach(([k,v])=>{if(v!==null)pb[k]=v;});
     const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(pb)});
@@ -2166,6 +2209,204 @@ async function markUnpaid(id){
   await fetch(`${SUPABASE_URL}/rest/v1/commissions?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({statut:'non_paye',date_paiement:null})});
   const c=allComm.find(x=>x.id===id);if(c){c.statut='non_paye';c.date_paiement=null;}
   renderCommDrawer(id);renderFinance();showToast('Paiement annulé');
+}
+
+// ══════════════════════════════════════
+// DECOMPTE (SETTLEMENT) SYSTEM
+// ══════════════════════════════════════
+function previewDecompte(intermId){
+  const p=personneMap[intermId];if(!p)return;
+  const dateDebut=gv('dc-date-debut');
+  const dateFin=gv('dc-date-fin');
+  if(!dateDebut||!dateFin){showToast('Sélectionnez une période',true);return;}
+
+  // Find contracts attributed to this intermediary within the period
+  const eligible=allContrats.filter(c=>{
+    if(c.intermediaire_id!==intermId)return false;
+    if(c.decompte_id)return false; // already settled
+    const d=c.date_debut;
+    if(!d)return false;
+    return d>=dateDebut&&d<=dateFin;
+  });
+
+  const totalHT=eligible.reduce((s,c)=>s+parseFloat(c.commission_ht||0),0);
+  const totalTTC=eligible.reduce((s,c)=>s+parseFloat(c.commission_ttc_eur||0),0);
+  const totalCNY=eligible.reduce((s,c)=>s+parseFloat(c.commission_ttc_cny||0),0);
+
+  const container=document.getElementById('decompte-preview-'+intermId);
+  if(!eligible.length){
+    container.innerHTML=`<div style="color:var(--muted);font-size:12px;padding:12px 0;">Aucun contrat non réglé trouvé pour cette période.</div>`;
+    return;
+  }
+
+  const rows=eligible.map(c=>{
+    const cl=personneMap[c.personne_id]||{};
+    const a=adresseMap[c.adresse_id]||{};
+    return `<tr style="font-size:11px;">
+      <td style="font-family:monospace;">${esc(c.id_service||'—')}</td>
+      <td>${esc([cl.prenom,cl.nom].filter(Boolean).join(' '))}</td>
+      <td>${esc(cl.email||'—')}</td>
+      <td>${esc(cl.telephone||'—')}</td>
+      <td>${esc(a.rue||'—')}</td>
+      <td>${esc(a.code_postal||'—')}</td>
+      <td>${esc(a.ville||'—')}</td>
+      <td style="font-family:monospace;font-size:10px;">${esc(a.pdl||'—')}</td>
+      <td style="font-family:monospace;font-size:10px;">${esc(a.pce||'—')}</td>
+      <td style="text-align:right;">${parseFloat(c.commission_ht||0).toFixed(2)}</td>
+      <td style="text-align:right;">${parseFloat(c.commission_ttc_eur||0).toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML=`
+    <div style="margin-top:12px;padding:16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent);">Aperçu: ${eligible.length} contrats</div>
+          <div style="font-size:12px;color:var(--muted);">${dateDebut} → ${dateFin}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:16px;font-weight:700;">${totalHT.toFixed(2)} € HT</div>
+          <div style="font-size:13px;color:var(--muted);">${totalTTC.toFixed(2)} € TTC · ${totalCNY.toFixed(0)} ¥</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto;">
+        <table style="width:100%;font-size:11px;"><thead><tr style="background:var(--surface);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">
+          <th style="padding:6px 4px;">Contrat</th><th>Nom</th><th>Email</th><th>Tél</th><th>Rue</th><th>CP</th><th>Ville</th><th>PDL</th><th>PCE</th><th style="text-align:right;">HT €</th><th style="text-align:right;">TTC €</th>
+        </tr></thead><tbody>${rows}</tbody>
+        <tfoot><tr style="font-weight:700;border-top:2px solid var(--accent);">
+          <td colspan="9" style="text-align:right;padding:8px 4px;">TOTAL</td>
+          <td style="text-align:right;padding:8px 4px;">${totalHT.toFixed(2)}</td>
+          <td style="text-align:right;padding:8px 4px;">${totalTTC.toFixed(2)}</td>
+        </tr></tfoot></table>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="abtn g" onclick="confirmDecompte('${intermId}','${dateDebut}','${dateFin}')">✅ Confirmer & Créer le décompte</button>
+      </div>
+    </div>`;
+}
+
+async function confirmDecompte(intermId,dateDebut,dateFin){
+  const p=personneMap[intermId];if(!p)return;
+  if(!confirm('Confirmer la création de ce décompte ? Les contrats seront marqués comme réglés.'))return;
+
+  // Generate unique numero: YYYYMMDD_login_seq
+  const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const login=(p.login||p.email||'').replace(/@.*/,'').replace(/[^a-zA-Z0-9]/g,'');
+  const existingToday=allDecomptes.filter(d=>d.numero.startsWith(today+'_'+login)).length;
+  const seq=String(existingToday+1).padStart(3,'0');
+  const numero=`${today}_${login}_${seq}`;
+
+  // Get eligible contracts
+  const eligible=allContrats.filter(c=>{
+    if(c.intermediaire_id!==intermId)return false;
+    if(c.decompte_id)return false;
+    const d=c.date_debut;
+    return d&&d>=dateDebut&&d<=dateFin;
+  });
+
+  const totalHT=eligible.reduce((s,c)=>s+parseFloat(c.commission_ht||0),0);
+  const totalTTC=eligible.reduce((s,c)=>s+parseFloat(c.commission_ttc_eur||0),0);
+  const totalCNY=eligible.reduce((s,c)=>s+parseFloat(c.commission_ttc_cny||0),0);
+
+  try{
+    // Create decompte record
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/decomptes`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({
+      numero,intermediaire_id:intermId,date_debut:dateDebut,date_fin:dateFin,
+      nb_contrats:eligible.length,total_ht:totalHT,total_ttc_eur:totalTTC,total_ttc_cny:totalCNY,
+      statut:'emis',cree_par:'ADMIN'
+    })});
+    if(!r.ok)throw new Error(await r.text());
+    const [decompte]=await r.json();
+
+    // Link contracts to this decompte
+    const ids=eligible.map(c=>c.id);
+    for(let i=0;i<ids.length;i+=50){
+      const batch=ids.slice(i,i+50);
+      await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=in.(${batch.join(',')})`,{method:'PATCH',headers:H(),body:JSON.stringify({decompte_id:decompte.id})});
+    }
+    // Update local state
+    eligible.forEach(c=>c.decompte_id=decompte.id);
+    allDecomptes.unshift(decompte);
+
+    showToast(`📋 Décompte ${numero} créé (${eligible.length} contrats)`);
+    renderPersonneModal(intermId);
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+function openFactureModal(decompteId){
+  const d=allDecomptes.find(x=>x.id===decompteId);if(!d)return;
+  const factNum=prompt('Numéro de facture reçu de l\'intermédiaire:');
+  if(!factNum)return;
+  receiveFacture(decompteId,factNum);
+}
+async function receiveFacture(decompteId,factureNumero){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/decomptes?id=eq.${decompteId}`,{method:'PATCH',headers:H(),body:JSON.stringify({statut:'facture_recue',facture_numero:factureNumero,updated_at:new Date().toISOString()})});
+    const d=allDecomptes.find(x=>x.id===decompteId);
+    if(d){d.statut='facture_recue';d.facture_numero=factureNumero;}
+    showToast('📄 Facture enregistrée');
+    // Re-render the modal
+    const intermId=d?.intermediaire_id;
+    if(intermId)renderPersonneModal(intermId);
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function markDecomptePaid(decompteId){
+  const d=allDecomptes.find(x=>x.id===decompteId);if(!d)return;
+  if(!confirm(`Marquer le décompte ${d.numero} comme payé ?\nTous les contrats associés seront marqués comme commissions payées.`))return;
+
+  const modePaiement=prompt('Mode de paiement (Virement / WechatPay / Alipay / Cash):','Virement');
+  if(!modePaiement)return;
+
+  try{
+    // Update decompte
+    await fetch(`${SUPABASE_URL}/rest/v1/decomptes?id=eq.${decompteId}`,{method:'PATCH',headers:H(),body:JSON.stringify({
+      statut:'paye',date_paiement:new Date().toISOString().slice(0,10),mode_paiement:modePaiement,updated_at:new Date().toISOString()
+    })});
+    d.statut='paye';d.date_paiement=new Date().toISOString().slice(0,10);d.mode_paiement=modePaiement;
+
+    // Mark all related commissions as paid
+    const relatedContrats=allContrats.filter(c=>c.decompte_id===decompteId);
+    const contratIds=relatedContrats.map(c=>c.id);
+    // Batch update commissions
+    for(let i=0;i<contratIds.length;i+=50){
+      const batch=contratIds.slice(i,i+50);
+      await fetch(`${SUPABASE_URL}/rest/v1/commissions?contrat_id=in.(${batch.join(',')})`,{method:'PATCH',headers:H(),body:JSON.stringify({statut:'paye',date_paiement:new Date().toISOString().slice(0,10)})});
+    }
+    // Update local commission state
+    allComm.filter(cm=>contratIds.includes(cm.contrat_id)).forEach(cm=>{cm.statut='paye';cm.date_paiement=d.date_paiement;});
+
+    showToast(`💰 Décompte ${d.numero} payé — ${relatedContrats.length} commissions marquées`);
+    const intermId=d.intermediaire_id;
+    if(intermId)renderPersonneModal(intermId);
+    renderFinance();
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function generateDecomptePDF(decompteId){
+  const d=allDecomptes.find(x=>x.id===decompteId);if(!d)return;
+  const p=personneMap[d.intermediaire_id]||{};
+  const relatedContrats=allContrats.filter(c=>c.decompte_id===decompteId);
+
+  // Build CSV-style data for download
+  let csv='Contrat;Nom;Email;Téléphone;Rue;Code Postal;Ville;PDL;PCE;HT €;TTC €\n';
+  relatedContrats.forEach(c=>{
+    const cl=personneMap[c.personne_id]||{};
+    const a=adresseMap[c.adresse_id]||{};
+    csv+=[c.id_service||'—',[cl.prenom,cl.nom].filter(Boolean).join(' '),cl.email||'',cl.telephone||'',
+      a.rue||'',a.code_postal||'',a.ville||'',a.pdl||'',a.pce||'',
+      parseFloat(c.commission_ht||0).toFixed(2),parseFloat(c.commission_ttc_eur||0).toFixed(2)
+    ].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';')+'\n';
+  });
+  csv+=`\n"TOTAL";"";"";"";"";"";"";"";"";"${parseFloat(d.total_ht||0).toFixed(2)}";"${parseFloat(d.total_ttc_eur||0).toFixed(2)}"\n`;
+  csv+=`\n"Décompte";"${d.numero}"\n"Intermédiaire";"${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}"\n"Période";"${d.date_debut} — ${d.date_fin}"\n"Statut";"${d.statut}"`;
+
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a2=document.createElement('a');
+  a2.href=url;a2.download=`decompte_${d.numero}.csv`;a2.click();
+  URL.revokeObjectURL(url);
+  showToast('📥 Décompte exporté en CSV');
 }
 
 async function quickStatusChange(contratId,newStatus){
