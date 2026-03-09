@@ -667,9 +667,8 @@ function openTask(id){
     let extra=i===0?extraTop:'';
     // Last step: append system info
     if(i===steps.length-1){
-      const commInfo=commMap[t.id];
       const ttDef=taskTypesMap[t.formule];
-      const commVal=commInfo?parseFloat(commInfo.montant||0):(ttDef?parseFloat(ttDef.commission_default||0):0);
+      const commVal=ttDef?parseFloat(ttDef.commission_default||0):0; // Only task type commission for agent
       extra+=`</div></div>
         <div style="margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
           <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Informations système</div>
@@ -755,15 +754,19 @@ async function abandonTask(id){
   if(!confirm('Abandonner cette tâche ?\nUne pénalité de commission peut s\'appliquer.'))return;
   const t=allTasks.find(x=>x.id===id);
   const penalite=parseFloat(t?.agent_penalite||0);
-  const body={agent_code:null,modifie_par:myAgentCode,agent_claimed_at:null,contrat_status:'en_attente'};
-  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
-  if(t)Object.assign(t,body);
-  // Record penalite in historique if > 0
-  if(penalite>0){
-    try{await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:fuwuH(),body:JSON.stringify({contrat_id:id,champ:'agent_abandon',ancienne_valeur:myAgentCode,nouvelle_valeur:'abandonné',modifie_par:myAgentCode,action_type:'abandon'})});}catch(e){}
-  }
-  renderStats();renderTasks();closeFM();
-  showToast(penalite>0?`⚠️ Tâche abandonnée — Pénalité: ${penalite}€`:'↩ Tâche remise en attente');
+  try{
+    // Clear agent - use empty string for REST compatibility, DB will treat as no agent
+    const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({agent_code:'',modifie_par:myAgentCode,agent_claimed_at:'',contrat_status:'en_attente',date_limite:''})});
+    if(!r.ok){const txt=await r.text();showToast('Erreur: '+txt,true);return;}
+    // Remove from local list (agent can't see unclaimed tasks they abandoned)
+    allTasks=allTasks.filter(x=>x.id!==id);
+    // Record in historique
+    if(penalite>0){
+      try{await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:fuwuH(),body:JSON.stringify({contrat_id:id,champ:'agent_abandon',ancienne_valeur:myAgentCode,nouvelle_valeur:'abandonné',modifie_par:myAgentCode,action_type:'abandon'})});}catch(e){}
+    }
+    renderStats();renderTasks();closeFM();
+    showToast(penalite>0?`⚠️ Abandonnée — Pénalité: ${penalite}€`:'↩ Tâche remise en attente');
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
 async function saveAndDone(id,pid,aid){

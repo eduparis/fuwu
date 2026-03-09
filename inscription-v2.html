@@ -127,6 +127,11 @@ const H={'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/
 let formConfig=null,totalSteps=0,currentStep=0;
 let existingPersonne=null,forceNewClient=false;
 
+// Read agent context from URL params (when loaded inside agent iframe)
+const urlParams=new URLSearchParams(window.location.search);
+const agentCode=urlParams.get('agent')||'';
+const agentEmail=urlParams.get('email')||'';
+
 // Load config and render
 async function init(){
   try{
@@ -139,6 +144,15 @@ async function init(){
   renderStepsBar();
   renderPages();
   goTo(1);
+  // If agent context, auto-fill source/intermediaire and show banner
+  if(agentCode){
+    const banner=document.createElement('div');
+    banner.style.cssText='background:rgba(184,146,42,0.08);border:1px solid rgba(184,146,42,0.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:var(--gold);font-weight:600;text-align:center;';
+    banner.textContent='🛡 Agent: '+agentCode+' — Inscription automatiquement liée à votre compte';
+    document.querySelector('.wrap')?.insertBefore(banner,document.querySelector('.steps'));
+    // Pre-fill source field
+    setTimeout(()=>{const src=document.getElementById('f-source');if(src)src.value=agentCode;},100);
+  }
 }
 
 function renderStepsBar(){
@@ -473,12 +487,29 @@ async function submitForm(){
     const result=await rpc.json();
     const newC=Array.isArray(result)?result[0]:result;
 
+    // If existing personne, update with form data (inscription changes override old data)
+    const personneId=(existingPersonne&&!forceNewClient)?existingPersonne.id:(newC?.out_personne_id||null);
+    if(personneId&&Object.keys(personneData).length>1){
+      try{await fetch(`${SB}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(personneData)});}catch(e){console.warn('Personne update failed',e);}
+    }
+
     // Set formule (task type) on the new contrat based on souscription choice
     if(newC&&(newC.out_contrat_id||newC.id)){
       const contratId=newC.out_contrat_id||newC.id;
       const souscription=v('f-souscription')||'mise_en_service';
       const formule=souscription==='en_service'?'changement_fournisseur':'mise_en_service';
-      try{await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify({formule})});}catch(e){}
+      const patchBody={formule};
+      // If agent context: auto-assign agent and set inscrit_par
+      if(agentCode){
+        patchBody.agent_code=agentCode;
+        patchBody.inscrit_par=agentCode;
+        patchBody.modifie_par=agentCode;
+        patchBody.agent_claimed_at=new Date().toISOString();
+        patchBody.contrat_status='en_traitement';
+        // Auto-set deadline (24h default)
+        patchBody.date_limite=new Date(Date.now()+24*3600000).toISOString();
+      }
+      try{await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(patchBody)});}catch(e){}
     }
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelector('.steps').style.display='none';
