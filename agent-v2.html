@@ -382,20 +382,20 @@ function renderStats(){
   const enCours=visible.filter(t=>t.contrat_status==='en_traitement').length;
   const myDone=allCompleted.length;
   document.getElementById('task-stats').innerHTML=`
-    <div class="scard" onclick="setFilter('a_faire')"><div class="scard-val v-orange">${aFaire}</div><div class="scard-label">À faire</div></div>
-    <div class="scard" onclick="setFilter('en_cours')"><div class="scard-val v-blue">${enCours}</div><div class="scard-label">En cours</div></div>
+    <div class="scard" onclick="setFilter('a_faire')"><div class="scard-val v-orange">${aFaire}</div><div class="scard-label">Missions à prendre</div></div>
+    <div class="scard" onclick="setFilter('en_cours')"><div class="scard-val v-blue">${enCours}</div><div class="scard-label">Vos missions en cours</div></div>
     <div class="scard" onclick="setFilter('all')"><div class="scard-val">${visible.length}</div><div class="scard-label">Total</div></div>
-    <div class="scard" onclick="setFilter('done')"><div class="scard-val v-green">${myDone}</div><div class="scard-label">Mes terminés</div></div>
+    <div class="scard" onclick="setFilter('done')"><div class="scard-val v-green">${myDone}</div><div class="scard-label">Vos missions réalisées</div></div>
   `;
   document.getElementById('tb-taches').textContent=aFaire;
 }
 
 function renderChips(){
   const filters=[
-    {id:'a_faire',label:'À faire'},
-    {id:'en_cours',label:'En cours'},
+    {id:'a_faire',label:'Missions à prendre'},
+    {id:'en_cours',label:'Vos missions en cours'},
     {id:'all',label:'Tous'},
-    {id:'done',label:'✅ Terminés'},
+    {id:'done',label:'✅ Vos missions réalisées'},
   ];
   document.getElementById('task-chips').innerHTML=filters.map(f=>
     `<div class="chip ${currentFilter===f.id?'on':''}" onclick="setFilter('${f.id}')">${f.label}</div>`
@@ -517,8 +517,7 @@ function renderTasks(){
     // Border color by priority
     const borderColor=t.priorite==='haute'?'var(--danger)':t.priorite==='moyenne'?'var(--warning)':'var(--border)';
 
-    return `<div class="tcard" style="border-left:3px solid ${borderColor};" onclick="openTask('${t.id}')">
-      ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:6px;cursor:pointer;z-index:2;">🙋 Prendre</div>`:''}
+    return `<div class="tcard" style="border-left:3px solid ${borderColor};position:relative;" onclick="openTask('${t.id}')">
       <div class="tcard-icon">${tt.icon}</div>
       <div class="tcard-body" style="flex:1;">
         <div class="tcard-title">${tt.label}${t.id_service?' · <span style="font-weight:400;color:var(--muted);font-size:11px;">'+esc(t.id_service)+'</span>':''}</div>
@@ -532,6 +531,7 @@ function renderTasks(){
         <div style="font-size:11px;font-weight:600;color:var(--muted);">⏱ ${fmtAge(age)}</div>
         <div class="tcard-date">${fmtDate(t.created_at)}</div>
       </div>
+      ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;align-self:center;">🙋 Prendre</div>`:''}
     </div>`;
   }).join('');
 }
