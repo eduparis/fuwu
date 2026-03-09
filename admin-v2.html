@@ -1353,6 +1353,7 @@ function renderContratModal(id){
       <div class="fmodal-grid">
         <div class="fmodal-col">
           ${fmField('fc-civ','Civilité',p.civilite,'select','|Monsieur|Madame|M. & Mme|Société')}
+          ${fmField('fc-type-client','Type client',p.type_client||'particulier','select','particulier|professionnel|proprietaire|airbnb')}
           ${fmField('fc-prenom','Prénom',p.prenom)}
           ${fmField('fc-nom','Nom',p.nom)}
           ${fmField('fc-dob','Date de naissance',p.date_naissance,'date')}
@@ -1691,7 +1692,7 @@ async function saveContratFull(contratId,personneId,adresseId){
     // Save client - all fields
     if(personneId&&document.getElementById('fc-prenom')){
       const rawPb={
-        civilite:gv('fc-civ'),prenom:gv('fc-prenom'),nom:gv('fc-nom'),
+        civilite:gv('fc-civ'),type_client:gv('fc-type-client'),prenom:gv('fc-prenom'),nom:gv('fc-nom'),
         date_naissance:gv('fc-dob'),siret:gv('fc-siret'),
         colocataire_prenom:gv('fc-coloc-prenom'),colocataire_nom:gv('fc-coloc-nom'),
         email:gv('fc-email'),email_reel:gv('fc-email2'),
