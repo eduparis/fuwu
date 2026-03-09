@@ -424,7 +424,7 @@ svg.lc circle{r:3;}
     <!-- ── SIDEBAR (compact icons only) ── -->
     <div class="sidebar">
       <div class="snav active" onclick="showPage('accueil')" id="sn-accueil">🏠<span class="snav-tip">Accueil</span></div>
-      <div class="snav" onclick="showPage('taches')" id="sn-taches">📋<span class="snav-tip">Tâches</span><span class="snav-badge" id="sb-taches" style="display:none"></span></div>
+      <div class="snav" onclick="showPage('taches')" id="sn-taches">📋<span class="snav-tip">Missions</span><span class="snav-badge" id="sb-taches" style="display:none"></span></div>
       <div class="snav" onclick="showPage('crm')" id="sn-crm">👥<span class="snav-tip">CRM</span><span class="snav-badge" id="sb-crm" style="display:none"></span></div>
       <div class="snav" onclick="showPage('contrats')" id="sn-contrats">📄<span class="snav-tip">Contrats</span><span class="snav-badge" id="sb-contrats" style="display:none"></span></div>
       <div class="snav" onclick="showPage('finance')" id="sn-finance">💶<span class="snav-tip">Finance</span><span class="snav-badge" id="sb-finance" style="display:none"></span></div>
@@ -462,27 +462,21 @@ svg.lc circle{r:3;}
           </div>
         </div>
 
-        <!-- ═══ PAGE: TÂCHES ═══ -->
+        <!-- ═══ PAGE: MISSIONS ═══ -->
         <div class="page" id="pg-taches">
           <div class="work-header">
-            <div class="work-title">📋 Gestion des tâches</div>
+            <div class="work-title">📋 Missions</div>
             <div class="work-actions">
               <button class="abtn" onclick="loadTaskPage()" id="task-refresh">↻ Actualiser</button>
             </div>
           </div>
           <div class="work-body">
-            <!-- Task type config -->
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-              <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;">Types de tâches par service</div>
-              <button class="abtn" style="font-size:10px;margin-left:auto;" onclick="addServiceCat()">＋ Nouvelle catégorie</button>
-            </div>
-            <div id="task-types-grid"></div>
-
             <!-- Active tasks overview -->
-            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Tâches en cours</div>
             <div class="stats stats-4" id="task-stats"></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;" id="task-filter-chips"></div>
             <div id="task-active-list"></div>
+            <!-- Task type config (hidden, rendered by Éditeur Missions) -->
+            <div id="task-types-grid" style="display:none;"></div>
           </div>
         </div>
 
@@ -623,6 +617,16 @@ svg.lc circle{r:3;}
           <div class="work-body" id="sys-body">
             <div class="stats stats-3" id="sys-stats"></div>
             <div id="sys-content" style="color:var(--muted);font-size:13px;">Cliquez sur Diagnostic pour lancer l'analyse.</div>
+
+            <!-- Éditeur Missions (task types config) -->
+            <div style="margin-top:28px;border-top:1px solid var(--border);padding-top:20px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <div style="font-size:13px;font-weight:700;color:var(--accent);">📋 Éditeur Missions</div>
+                <div style="font-size:11px;color:var(--muted);">Types de missions par service</div>
+                <button class="abtn" style="font-size:10px;margin-left:auto;" onclick="addServiceCat()">＋ Nouvelle catégorie</button>
+              </div>
+              <div id="sys-task-types-grid"></div>
+            </div>
           </div>
         </div>
 
@@ -820,7 +824,7 @@ function renderAccueilFromStats(s){
   document.getElementById('acc-stats').innerHTML=`
     <div class="scard" onclick="showPage('contrats')"><div class="scard-label">Contrats actifs</div><div class="scard-val v-blue">${s.actif}</div><div class="scard-sub">sur ${s.total} total</div></div>
     <div class="scard" onclick="showPage('crm')"><div class="scard-label">Clients</div><div class="scard-val v-green">${s.clients}</div><div class="scard-sub">${s.agents} agents · ${s.interms} interm.</div></div>
-    <div class="scard" onclick="showPage('taches')"><div class="scard-label">Tâches actives</div><div class="scard-val v-orange">${s.attente+s.traitement}</div><div class="scard-sub">${s.sans_agent} sans agent</div></div>
+    <div class="scard" onclick="showPage('taches')"><div class="scard-label">Missions actives</div><div class="scard-val v-orange">${s.attente+s.traitement}</div><div class="scard-sub">${s.sans_agent} sans agent</div></div>
     <div class="scard" onclick="showPage('finance')"><div class="scard-label">Commissions à payer</div><div class="scard-val v-gold">${Math.round(s.comm_due)} €</div><div class="scard-sub">HT non payé</div></div>
     <div class="scard" onclick="quickFilter('en_attente')"><div class="scard-label">En attente</div><div class="scard-val v-orange">${s.attente+s.traitement}</div><div class="scard-sub">${s.attente} attente + ${s.traitement} trait.</div></div>
     <div class="scard"><div class="scard-label">Nouveaux ce mois</div><div class="scard-val v-green">${s.new_month}</div><div class="scard-sub">contrats</div></div>
@@ -918,6 +922,7 @@ function showPage(name){
   if(name==='finance')renderFinance();
   if(name==='taches')loadTaskPage();
   if(name==='alerts')loadAlerts();
+  if(name==='systeme')loadTaskPage(); // loads task type editor in Système
 }
 
 // ══════════════════════════════════════
@@ -940,7 +945,7 @@ function renderAccueil(){
   document.getElementById('acc-stats').innerHTML=`
     <div class="scard" onclick="showPage('contrats')"><div class="scard-label">Contrats actifs</div><div class="scard-val v-blue">${actif}</div><div class="scard-sub">sur ${allContrats.length} total</div></div>
     <div class="scard" onclick="showPage('crm')"><div class="scard-label">Clients</div><div class="scard-val v-green">${clients}</div><div class="scard-sub">${agents} agents · ${interms} interm.</div></div>
-    <div class="scard" onclick="showPage('taches')"><div class="scard-label">Tâches actives</div><div class="scard-val v-orange">${tachesActives}</div><div class="scard-sub">${sansAgent} sans agent</div></div>
+    <div class="scard" onclick="showPage('taches')"><div class="scard-label">Missions actives</div><div class="scard-val v-orange">${tachesActives}</div><div class="scard-sub">${sansAgent} sans agent</div></div>
     <div class="scard" onclick="showPage('finance')"><div class="scard-label">Commissions à payer</div><div class="scard-val v-gold">${commDue.toFixed(0)} €</div><div class="scard-sub">HT non payé</div></div>
     <div class="scard" onclick="quickFilter('en_attente')"><div class="scard-label">En attente</div><div class="scard-val v-orange">${attente+traitement}</div><div class="scard-sub">${attente} attente + ${traitement} trait.</div></div>
     <div class="scard"><div class="scard-label">Nouveaux ce mois</div><div class="scard-val v-green">${newMois}</div><div class="scard-sub">contrats</div></div>
@@ -1412,8 +1417,8 @@ async function renderContratModal(id){
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Contrat</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-adresse')">Adresse</div>
-    <div class="fmodal-tab" onclick="fmTab(this,'fmt-gestion')">🎯 Gestion tâche</div>
-    <div class="fmodal-tab" onclick="fmTab(this,'fmt-task')">⚡ Créer tâche</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-gestion')">🎯 Gestion mission</div>
+    <div class="fmodal-tab" onclick="fmTab(this,'fmt-task')">⚡ Créer mission</div>
   `;
   document.getElementById('fm-body').innerHTML=`
     <div id="fmt-main">
@@ -1523,7 +1528,7 @@ async function renderContratModal(id){
       </div>
     </div>
     <div id="fmt-task" style="display:none">
-      <div class="fmodal-section">Créer tâche rapide pour ce client</div>
+      <div class="fmodal-section">Créer mission rapide pour ce client</div>
       <div class="qtasks">
         <div class="qtask" onclick="showTaskPanel('${c.personne_id}','resiliation')">❌ Résiliation</div>
         <div class="qtask" onclick="showTaskPanel('${c.personne_id}','mise_en_service')">⚡ Mise en service</div>
@@ -1592,7 +1597,7 @@ function renderPersonneModal(id){
         </div>`;}).join(''):'<div style="color:var(--muted);font-size:12px;">Aucun contrat</div>'}
     </div>
     <div id="fmt-tasks" style="display:none">
-      <div class="fmodal-section">Créer tâche rapide</div>
+      <div class="fmodal-section">Créer mission rapide</div>
       <div class="qtasks">
         <div class="qtask" onclick="showTaskPanel('${id}','resiliation')">❌ Résiliation</div>
         <div class="qtask" onclick="showTaskPanel('${id}','mise_en_service')">⚡ Mise en service</div>
@@ -1948,7 +1953,7 @@ function renderPersonneDrawer(id){
       ${drow('Naissance',fmtDate(p.date_naissance))}
     </div>
     <div id="dt-actions" style="display:none">
-      <div class="dsection">Créer une tâche rapide</div>
+      <div class="dsection">Créer une mission rapide</div>
       <div class="qtasks">
         <div class="qtask" onclick="showTaskPanel('${id}','resiliation')">❌ Résiliation</div>
         <div class="qtask" onclick="showTaskPanel('${id}','mise_en_service')">⚡ Mise en service</div>
@@ -2510,6 +2515,9 @@ function renderTaskTypes(){
   }
 
   document.getElementById('task-types-grid').innerHTML=html;
+  // Also render in Système page
+  const sysGrid=document.getElementById('sys-task-types-grid');
+  if(sysGrid)sysGrid.innerHTML=html;
 }
 
 function editTaskType(id){
