@@ -1405,6 +1405,7 @@ function renderPersonneModal(id){
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-tasks')">⚡ Tâches</div>
+    ${p.est_agent||p.est_intermediaire?`<div class="fmodal-tab" onclick="fmTab(this,'fmt-access')">🔑 Accès</div>`:''}
   `;
   document.getElementById('fm-body').innerHTML=`
     <div id="fmt-profil">
@@ -1452,6 +1453,25 @@ function renderPersonneModal(id){
       <div id="task-panel-${id}"></div>
       ${activeC.length?`<div class="fmodal-section" style="margin-top:16px;">Résiliation rapide</div>${activeC.map(c=>{const a=adresseMap[c.adresse_id]||{};return `<div class="todo" style="padding:10px 12px;"><div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':'🔥'}</div><div class="todo-info"><div class="todo-title" style="font-size:11px;">${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div><div class="todo-sub">${[a.rue,a.ville].filter(Boolean).join(', ')}</div></div><button class="abtn r" style="font-size:10px;" onclick="event.stopPropagation();quickResiliation('${id}','${c.id}')">❌ Résilier</button></div>`;}).join('')}`:''}
     </div>
+    ${p.est_agent||p.est_intermediaire?`<div id="fmt-access" style="display:none">
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          <div class="fmodal-section">Compte & Accès</div>
+          ${fmField('fp-login','Login',p.login)}
+          ${fmField('fp-agent-code','Code Agent',p.agent_code)}
+          <div class="fmodal-field"><label>Email</label><div style="padding:6px 0;font-size:13px;">${esc(p.email||'—')}</div></div>
+          <div class="fmodal-field"><label>Rôle</label><div style="padding:6px 0;font-size:13px;">${roles.join(', ')}</div></div>
+        </div>
+        <div class="fmodal-col">
+          <div class="fmodal-section">Changer mot de passe</div>
+          ${fmField('fp-new-pwd','Nouveau mot de passe','')}
+          <button class="abtn primary" onclick="changeAgentPassword('${id}')">🔑 Mettre à jour</button>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);">L'agent devra se reconnecter.</div>
+          <div class="fmodal-section">Statut</div>
+          <button class="abtn ${p.est_agent?'r':'g'}" onclick="toggleAgentStatus('${id}',${!p.est_agent})" style="width:100%;">${p.est_agent?'⚪ Désactiver':'🟢 Activer'} Agent</button>
+        </div>
+      </div>
+    </div>`:''}
   `;
   document.getElementById('fm-actions').innerHTML=`
     <button class="abtn g" onclick="savePersonneFull('${id}')">💾 Sauvegarder</button>
@@ -1486,6 +1506,35 @@ function renderCommModal(id){
     </div>
   `;
   document.getElementById('fm-actions').innerHTML=c.statut!=='paye'?`<button class="abtn g" onclick="markPaid('${c.id}')">✅ Marquer payé</button>`:`<button class="abtn w" onclick="markUnpaid('${c.id}')">↩ Annuler paiement</button>`;
+}
+
+async function changeAgentPassword(personneId){
+  const newPwd=gv('fp-new-pwd');
+  if(!newPwd||newPwd.length<6){showToast('Mot de passe trop court (min 6)',true);return;}
+  const p=personneMap[personneId];if(!p)return;
+  try{
+    // Use admin_change_password RPC
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_change_password`,{method:'POST',headers:H(),body:JSON.stringify({p_email:p.email,p_new_password:newPwd})});
+    if(!r.ok){const t=await r.text();throw new Error(t);}
+    showToast('🔑 Mot de passe mis à jour pour '+esc(p.email));
+    document.getElementById('fp-new-pwd').value='';
+  }catch(e){
+    // Fallback: update password_hash directly
+    try{
+      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({password_hash:newPwd})});
+      showToast('🔑 Mot de passe mis à jour (hash local)');
+      document.getElementById('fp-new-pwd').value='';
+    }catch(e2){showToast('Erreur: '+e.message,true);}
+  }
+}
+
+async function toggleAgentStatus(personneId,newState){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({est_agent:newState})});
+    const p=personneMap[personneId];if(p)p.est_agent=newState;
+    renderPersonneModal(personneId);
+    showToast(newState?'🟢 Agent activé':'⚪ Agent désactivé');
+  }catch(e){showToast('Erreur',true);}
 }
 
 async function assignAgent(contratId){
@@ -2266,6 +2315,9 @@ function editTaskType(id){
         <div class="fmodal-section">Commission & Pénalité</div>
         ${fmField('tt-comm','Commission par défaut (€ HT)',String(tt.commission_default||0))}
         ${fmField('tt-pen','Pénalité abandon (€)',String(tt.penalite_default||0))}
+        <div class="fmodal-section">Délai & Priorité</div>
+        ${fmField('tt-delai','Délai par défaut (heures)',String(tt.delai_heures||24))}
+        <div class="fmodal-field"><label>Priorité par défaut</label><select id="tt-prio-default" class="finput"><option value="normal">Normal</option><option value="moyenne">Moyenne</option><option value="haute">Haute</option></select></div>
         <div class="fmodal-section">Pack automatique</div>
         ${fmField('tt-pack','Sous-tâches (séparées par virgule)',tt.auto_create_pack?tt.auto_create_pack.join(','):'')}
         <div class="fmodal-section">Formulaire</div>
@@ -2287,6 +2339,7 @@ async function saveTaskType(id){
     service_category:document.getElementById('tt-svccat')?.value||'energie',
     commission_default:parseFloat(gv('tt-comm'))||0,
     penalite_default:parseFloat(gv('tt-pen'))||0,
+    delai_heures:parseInt(gv('tt-delai'))||24,
     steps_config_id:gv('tt-steps')||'agent_task_steps',
   };
   const packVal=gv('tt-pack');
@@ -2344,6 +2397,8 @@ function editServiceCat(id){
 }
 
 // Active tasks list
+let taskSelection=new Set();
+
 function renderActiveTasksList(){
   const active=allContrats.filter(c=>c.contrat_status==='en_attente'||c.contrat_status==='en_traitement');
   const byAgent=active.filter(c=>!!c.agent_code);
@@ -2351,17 +2406,17 @@ function renderActiveTasksList(){
   const attente=active.filter(c=>c.contrat_status==='en_attente');
 
   document.getElementById('task-stats').innerHTML=`
-    <div class="scard" onclick="activeTaskFilter='all';renderActiveTasksList()"><div class="scard-val v-orange">${active.length}</div><div class="scard-label">Total actives</div></div>
-    <div class="scard" onclick="activeTaskFilter='no_agent';renderActiveTasksList()"><div class="scard-val v-red">${noAgent.length}</div><div class="scard-label">Sans agent</div></div>
-    <div class="scard" onclick="activeTaskFilter='with_agent';renderActiveTasksList()"><div class="scard-val v-blue">${byAgent.length}</div><div class="scard-label">Agent assigné</div></div>
-    <div class="scard" onclick="activeTaskFilter='en_attente';renderActiveTasksList()"><div class="scard-val v-gold">${attente.length}</div><div class="scard-label">En attente</div></div>
+    <div class="scard" onclick="activeTaskFilter='all';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-orange">${active.length}</div><div class="scard-label">Total actives</div></div>
+    <div class="scard" onclick="activeTaskFilter='no_agent';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-red">${noAgent.length}</div><div class="scard-label">Sans agent</div></div>
+    <div class="scard" onclick="activeTaskFilter='with_agent';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-blue">${byAgent.length}</div><div class="scard-label">Agent assigné</div></div>
+    <div class="scard" onclick="activeTaskFilter='en_attente';taskSelection.clear();renderActiveTasksList()"><div class="scard-val v-gold">${attente.length}</div><div class="scard-label">En attente</div></div>
   `;
 
   // Filter chips by task type
   const types=[{id:'all',label:'Tous'}];
   allTaskTypes.filter(t=>t.actif).forEach(t=>types.push({id:t.id,label:t.icon+' '+t.label}));
   document.getElementById('task-filter-chips').innerHTML=types.map(f=>
-    `<div class="chip ${activeTaskFilter===f.id?'on':''}" onclick="activeTaskFilter='${f.id}';renderActiveTasksList()">${f.label}</div>`
+    `<div class="chip ${activeTaskFilter===f.id?'on':''}" onclick="activeTaskFilter='${f.id}';taskSelection.clear();renderActiveTasksList()">${f.label}</div>`
   ).join('');
 
   let filtered=active;
@@ -2370,22 +2425,64 @@ function renderActiveTasksList(){
   else if(activeTaskFilter==='en_attente')filtered=attente;
   else if(activeTaskFilter!=='all')filtered=active.filter(c=>c.formule===activeTaskFilter);
 
-  document.getElementById('task-active-list').innerHTML=filtered.length?filtered.slice(0,50).map(c=>{
+  // Batch action bar
+  let batchBar='';
+  if(taskSelection.size>0){
+    batchBar=`<div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;font-weight:700;">${taskSelection.size} sélectionné(s)</span>
+      <button class="abtn primary" onclick="batchAssignAgent()">🛡 Assigner Agent</button>
+      <button class="abtn" onclick="batchSetPriority()">🔥 Priorité</button>
+      <button class="abtn" onclick="taskSelection.clear();renderActiveTasksList()">✕ Tout désélectionner</button>
+    </div>`;
+  }
+
+  document.getElementById('task-active-list').innerHTML=batchBar+(filtered.length?filtered.slice(0,50).map(c=>{
     const p=personneMap[c.personne_id]||{};
     const name=[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—';
     const tt=allTaskTypes.find(t=>t.id===c.formule)||{icon:'📋',label:c.formule||'Tâche'};
-    return `<div class="todo" onclick="openEntity('contrat','${c.id}')">
-      <div class="todo-icon" style="font-size:16px;">${tt.icon}</div>
-      <div class="todo-info" style="flex:1;">
+    const checked=taskSelection.has(c.id)?'checked':'';
+    const prioStyle=c.priorite==='haute'?'border-left:3px solid var(--danger);':c.priorite==='moyenne'?'border-left:3px solid var(--warning);':'';
+    return `<div class="todo" style="${prioStyle}">
+      <input type="checkbox" ${checked} onclick="event.stopPropagation();toggleTaskSel('${c.id}',this)" style="margin-right:8px;cursor:pointer;">
+      <div class="todo-icon" style="font-size:16px;" onclick="openEntity('contrat','${c.id}')">${tt.icon}</div>
+      <div class="todo-info" style="flex:1;cursor:pointer;" onclick="openEntity('contrat','${c.id}')">
         <div class="todo-title" style="font-size:12px;">${esc(tt.label)} — ${esc(name)}</div>
-        <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${esc(c.id_service||'')} · ${fmtDate(c.date_debut)}</div>
+        <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${esc(c.id_service||'')} · ${fmtDate(c.date_debut)}${c.priorite&&c.priorite!=='normal'?' · <span style="font-size:10px;font-weight:700;color:'+(c.priorite==='haute'?'var(--danger)':'var(--warning)')+';">'+(c.priorite==='haute'?'🔴':'🟡')+' '+c.priorite+'</span>':''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
         ${tt.commission_default?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${tt.commission_default}€</div>`:''}
         <div style="font-size:10px;color:var(--muted);">${esc(normFourn(c.fournisseur)||'')}</div>
       </div>
     </div>`;
-  }).join(''):'<div style="color:var(--muted);font-size:12px;padding:10px;">Aucune tâche active.</div>';
+  }).join(''):'<div style="color:var(--muted);font-size:12px;padding:10px;">Aucune tâche active.</div>');
+}
+
+function toggleTaskSel(id,cb){if(cb.checked)taskSelection.add(id);else taskSelection.delete(id);renderActiveTasksList();}
+
+async function batchAssignAgent(){
+  const code=prompt(`Assigner ${taskSelection.size} tâche(s) à quel agent ? (ex: A508)`);
+  if(!code)return;
+  const ids=[...taskSelection];
+  for(const id of ids){
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({agent_code:code.toUpperCase(),modifie_par:'ADMIN',agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement'})});
+    const c=contratMap[id];if(c){c.agent_code=code.toUpperCase();c.contrat_status='en_traitement';}
+  }
+  taskSelection.clear();
+  renderActiveTasksList();
+  showToast(`🛡 ${ids.length} tâche(s) → ${code.toUpperCase()}`);
+}
+
+async function batchSetPriority(){
+  const prio=prompt('Priorité pour '+taskSelection.size+' tâche(s) ? (normal / moyenne / haute)','haute');
+  if(!prio||!['normal','moyenne','haute'].includes(prio))return;
+  const ids=[...taskSelection];
+  for(const id of ids){
+    await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({priorite:prio,modifie_par:'ADMIN'})});
+    const c=contratMap[id];if(c)c.priorite=prio;
+  }
+  taskSelection.clear();
+  renderActiveTasksList();
+  showToast(`🔥 ${ids.length} tâche(s) → ${prio}`);
 }
 
 // ══════════════════════════════════════

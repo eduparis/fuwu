@@ -225,7 +225,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
         <!-- ═══ PAGE: INSCRIPTION ═══ -->
         <div class="page" id="pg-inscription">
-          <iframe src="inscription.html" style="flex:1;border:none;width:100%;"></iframe>
+          <iframe id="inscription-frame" style="flex:1;border:none;width:100%;"></iframe>
         </div>
 
       </div>
@@ -302,6 +302,8 @@ async function doLogin(){
     // Get agent_code from personnes
     try{const ra=await fetch(`${SB}/rest/v1/personnes?email=eq.${encodeURIComponent(email)}&select=agent_code`,{headers:fuwuH()});const ad=await ra.json();if(ad&&ad[0]&&ad[0].agent_code)myAgentCode=ad[0].agent_code;}catch(e){}
     if(!myAgentCode)myAgentCode=email.split('@')[0].toUpperCase();
+    // Set inscription iframe with agent context
+    document.getElementById('inscription-frame').src=`inscription.html?agent=${encodeURIComponent(myAgentCode)}&email=${encodeURIComponent(email)}`;
     await loadTasks();
   }catch(e){err.textContent='Erreur: '+e.message;err.style.display='block';}
 }
@@ -462,8 +464,8 @@ function renderTasks(){
     }
     if(currentSort==='temps')return getAgeHours(b)-getAgeHours(a);
     if(currentSort==='commission'){
-      const ca=commMap[a.id]?parseFloat(commMap[a.id].montant||0):(taskTypesMap[a.formule]?.commission_default||0);
-      const cb=commMap[b.id]?parseFloat(commMap[b.id].montant||0):(taskTypesMap[b.formule]?.commission_default||0);
+      const ca=taskTypesMap[a.formule]?.commission_default||0;
+      const cb=taskTypesMap[b.formule]?.commission_default||0;
       return cb-ca;
     }
     return 0;
@@ -478,9 +480,8 @@ function renderTasks(){
     const isClaimed=!!t.agent_code;
     const isMyTask=t.agent_code===myAgentCode;
     const canClaim=!isClaimed&&t.contrat_status==='en_attente';
-    const comm=commMap[t.id];
     const ttDef=taskTypesMap[t.formule];
-    const commAmt=comm?parseFloat(comm.montant||0):(ttDef?parseFloat(ttDef.commission_default||0):0);
+    const commAmt=ttDef?parseFloat(ttDef.commission_default||0):0; // Only task type commission, not intermediaire
     const age=getAgeHours(t);
     const timeLeft=getTimeLeft(t);
 
