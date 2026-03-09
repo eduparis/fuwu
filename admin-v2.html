@@ -896,7 +896,7 @@ async function fetchAll(url){
 }
 async function loadContrats(){
   // Lighter select — drop fields only needed in detail view
-  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent&order=created_at.desc`);
+  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,priorite,date_limite,note_agent,intermediaire_id,commission_ht,commission_ttc_eur,commission_ttc_cny,mode_paiement_intermediaire&order=created_at.desc`);
   const seen=new Set();allContrats=allContrats.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
   allContrats.forEach(c=>contratMap[c.id]=c);
   // Load adresses in batches
@@ -909,7 +909,7 @@ async function loadContrats(){
 async function loadCommissions(){allComm=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);const seen=new Set();allComm=allComm.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});}
 async function loadPersonnes(){
   // Lighter select — drop iban, siret, colocataire fields (only needed in detail)
-  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at&order=created_at.desc`);
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,commission_default_ht,commission_default_ttc_eur,commission_default_cny&order=created_at.desc`);
   allPersonnes.forEach(p=>personneMap[p.id]=p);
 }
 
@@ -1465,6 +1465,19 @@ async function renderContratModal(id){
   const agentsList=Object.values(personneMap).filter(x=>x.est_agent&&x.agent_code);
   const inscritOpts=['','SY',...agentsList.map(a=>a.agent_code),...new Set(allContrats.map(c=>c.inscrit_par).filter(Boolean))].filter((v,i,a)=>v&&a.indexOf(v)===i).sort().map(o=>`<option value="${o}" ${o===c.inscrit_par?'selected':''}>${o}</option>`).join('');
 
+  // Build intermediary options for attribution dropdown
+  const intermList=allPersonnes.filter(p=>p.est_intermediaire).sort((a,b)=>(a.login||a.email||'').localeCompare(b.login||b.email||''));
+  const intermOpts=intermList.map(p=>{
+    const label=[p.login||p.email,p.prenom,p.nom].filter(Boolean).join(' — ');
+    return `<option value="${p.id}" ${p.id===c.intermediaire_id?'selected':''}>${esc(label)}</option>`;
+  }).join('');
+  // Get current intermediary's defaults
+  const curInterm=c.intermediaire_id?personneMap[c.intermediaire_id]:null;
+  const defHT=c.commission_ht||(curInterm?curInterm.commission_default_ht:20);
+  const defTTCeur=c.commission_ttc_eur||(curInterm?curInterm.commission_default_ttc_eur:24);
+  const defTTCcny=c.commission_ttc_cny||(curInterm?curInterm.commission_default_cny:192);
+  const defModePaiement=c.mode_paiement_intermediaire||'Parrainage';
+
   document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">Client ${esc((p.id_client||'—').replace(/^#/,'#'))}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Contrat</div>
@@ -1511,7 +1524,32 @@ async function renderContratModal(id){
           ${fmField('fc-note-agent','Note',c.note_agent,'textarea')}
         </div>
       </div>
-      ${comm?`<div class="fmodal-section" style="margin-top:12px;">Commission intermédiaire</div><div class="fmodal-grid"><div class="fmodal-col">${drow('HT',comm.montant+'€')} ${drow('TTC',(parseFloat(comm.montant)*1.2).toFixed(2)+'€')}</div><div class="fmodal-col">${drow('Statut',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}</div></div>`:''}
+      <div class="fmodal-section" style="margin-top:12px;">💶 Commission intermédiaire</div>
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          <div class="fmodal-field">
+            <label>Attribuer intermédiaire</label>
+            <select id="fc-intermediaire-id" class="finput" onchange="onIntermChange(this.value)">
+              <option value="">— Aucun —</option>
+              ${intermOpts}
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div class="fmodal-field" style="flex:1;"><label>HT €</label><input type="number" step="0.01" id="fc-comm-ht" value="${defHT||''}" onchange="syncCommFields('ht')"></div>
+            <div class="fmodal-field" style="flex:1;"><label>TTC €</label><input type="number" step="0.01" id="fc-comm-ttc-eur" value="${defTTCeur||''}" onchange="syncCommFields('ttc')"></div>
+            <div class="fmodal-field" style="flex:1;"><label>TTC ¥</label><input type="number" step="0.01" id="fc-comm-ttc-cny" value="${defTTCcny||''}"></div>
+          </div>
+        </div>
+        <div class="fmodal-col">
+          <div class="fmodal-field">
+            <label>Mode de paiement intermédiaire</label>
+            <select id="fc-mode-paiement-interm" class="finput">
+              ${['Parrainage','WechatPay','Alipay','Virement','Cash'].map(m=>`<option value="${m}" ${m===defModePaiement?'selected':''}>${m}</option>`).join('')}
+            </select>
+          </div>
+          ${comm?`<div style="margin-top:8px;">${drow('Statut commission',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')} ${drow('Date paiement',comm.date_paiement||'—')}</div>`:''}
+        </div>
+      </div>
     </div>
     <div id="fmt-client" style="display:none">
       <div class="fmodal-section">Client ${p.id_client||''}</div>
@@ -1838,6 +1876,33 @@ function fmTab(el,panelId){
   document.getElementById(panelId).style.display='block';
 }
 
+// When intermediary dropdown changes, fill default commission amounts
+function onIntermChange(intermId){
+  const p=intermId?personneMap[intermId]:null;
+  const htEl=document.getElementById('fc-comm-ht');
+  const ttcEl=document.getElementById('fc-comm-ttc-eur');
+  const cnyEl=document.getElementById('fc-comm-ttc-cny');
+  if(p){
+    htEl.value=p.commission_default_ht||20;
+    ttcEl.value=p.commission_default_ttc_eur||24;
+    cnyEl.value=p.commission_default_cny||192;
+  } else {
+    htEl.value='';ttcEl.value='';cnyEl.value='';
+  }
+}
+// Auto-sync HT↔TTC when one changes
+function syncCommFields(from){
+  const htEl=document.getElementById('fc-comm-ht');
+  const ttcEl=document.getElementById('fc-comm-ttc-eur');
+  if(from==='ht'){
+    const ht=parseFloat(htEl.value)||0;
+    ttcEl.value=(ht*1.2).toFixed(2);
+  } else if(from==='ttc'){
+    const ttc=parseFloat(ttcEl.value)||0;
+    htEl.value=(ttc/1.2).toFixed(2);
+  }
+}
+
 // Full save: contrat + client + adresse in one click
 async function saveContratFull(contratId,personneId,adresseId){
   try{
@@ -1850,7 +1915,12 @@ async function saveContratFull(contratId,personneId,adresseId){
       abonnement_ht:gv('fc-abo-ht'),abonnement_ttc:gv('fc-abo-ttc'),
       choix_paiement:gv('fc-paiement'),mode_facturation:gv('fc-facturation'),envoi_facture:gv('fc-envoi'),
       date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit'),
-      note_agent:gv('fc-note-agent'),modifie_par:'ADMIN'
+      note_agent:gv('fc-note-agent'),modifie_par:'ADMIN',
+      intermediaire_id:gv('fc-intermediaire-id')||null,
+      commission_ht:gv('fc-comm-ht')?parseFloat(gv('fc-comm-ht')):null,
+      commission_ttc_eur:gv('fc-comm-ttc-eur')?parseFloat(gv('fc-comm-ttc-eur')):null,
+      commission_ttc_cny:gv('fc-comm-ttc-cny')?parseFloat(gv('fc-comm-ttc-cny')):null,
+      mode_paiement_intermediaire:gv('fc-mode-paiement-interm')
     };
     // Task management fields
     const agentVal=gv('fc-agent');if(agentVal!==undefined)rawCb.agent_code=agentVal;
