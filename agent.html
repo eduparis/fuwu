@@ -3,1026 +3,1068 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agent — fuwu.fr</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Fuwu Agent — Tâches</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --gold:#c9a84c;--gold-light:#e8c96a;--gold-dim:rgba(201,168,76,0.12);
-  --bg:#0a0c10;--surface:#12151c;--surface2:#1a1e28;--surface3:#1f2333;
-  --border:rgba(201,168,76,0.18);--border2:rgba(255,255,255,0.07);
-  --text:#eef0f4;--muted:#7a8099;--muted2:#4b5263;
-  --red:#e05c5c;--red-dim:rgba(224,92,92,0.12);
-  --green:#4caf82;--green-dim:rgba(76,175,130,0.12);
-  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
-  --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);
-  --radius:10px;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;overflow:hidden;}
+:root{--bg:#f7f6f3;--surface:#fff;--surface2:#f0ede6;--surface3:#e8e4db;--border:#e2ddd3;--accent:#b8922a;--accent2:#d4ad3c;--accent-bg:rgba(184,146,42,0.08);--text:#1a1610;--text2:#4a4540;--muted:#8a8278;--danger:#dc3545;--success:#198754;--warning:#e6a817;--info:#0d6efd;--radius:10px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow:hidden;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
-.shell{display:flex;flex-direction:column;height:100vh;}
+/* ── LOGIN ── */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f7f6f3,#f0ede6);}
+.lbox{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,0.05);}
+.lbox h1{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:2px;}
+.lbox .sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:28px;}
+.lbox label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;}
+.lbox input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);outline:none;margin-bottom:12px;font-family:inherit;}
+.lbox input:focus{border-color:var(--accent);}
+.lbtn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.lbtn:hover{background:var(--accent2);}
+.lerr{background:rgba(220,53,69,0.08);border:1px solid rgba(220,53,69,0.2);border-radius:6px;padding:8px;color:var(--danger);font-size:12px;margin-top:8px;display:none;text-align:center;}
 
-/* Header */
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:14px;height:52px;flex-shrink:0;}
-.logo{font-family:'Noto Serif SC',serif;font-size:19px;color:var(--gold);letter-spacing:2px;white-space:nowrap;}
-.header-tabs{display:flex;gap:2px;}
-.htab{padding:6px 15px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;border:1px solid transparent;user-select:none;white-space:nowrap;}
-.htab:hover{color:var(--text);}
-.htab.active{background:var(--gold-dim);border-color:var(--border);color:var(--gold);}
-.header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
-.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;}
-.conn-label{font-size:11px;color:var(--muted);}
+/* ── APP SHELL ── */
+#app{display:none;height:100vh;overflow:hidden;}
+.shell{display:flex;flex-direction:column;height:100%;}
 
-/* Tab body */
-.tab-body{flex:1;overflow:hidden;position:relative;}
-.tab-panel{display:none;position:absolute;inset:0;overflow-y:auto;}
-.tab-panel.active{display:block;}
-.tab-panel::-webkit-scrollbar{width:5px;}
-.tab-panel::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.topbar-brand{font-size:15px;font-weight:700;color:var(--accent);}
+.topbar-name{font-size:12px;color:var(--muted);margin-left:auto;}
+.topbar-logout{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:inherit;}
+.topbar-logout:hover{border-color:var(--danger);color:var(--danger);}
 
-/* Inscription tab */
-#tab-inscription{padding:0;}
-#tab-inscription iframe{width:100%;height:100%;border:none;display:block;}
+/* ── TABS ── */
+.tabs{display:flex;gap:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0;}
+.tab{padding:12px 18px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.12s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab .tbadge{background:var(--danger);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;}
 
-/* Inner layout */
-.panel-inner{padding:24px 24px 48px;max-width:1080px;margin:0 auto;}
+/* ── WORKSPACE ── */
+.workspace{flex:1;display:flex;overflow:hidden;}
+.wmain{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.page{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.page.active{display:flex;}
 
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px;}
-.card-title{font-family:'Noto Serif SC',serif;font-size:15px;color:var(--gold);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+/* ── STATS ROW ── */
+.stats{display:flex;gap:10px;padding:16px 20px 8px;flex-shrink:0;flex-wrap:wrap;}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:120px;flex:1;cursor:pointer;transition:border-color 0.12s;}
+.scard:hover{border-color:var(--accent);}
+.scard-val{font-size:22px;font-weight:700;}
+.scard-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+.v-orange{color:var(--warning);}
+.v-blue{color:var(--info);}
+.v-red{color:var(--danger);}
+.v-green{color:var(--success);}
+.v-gold{color:var(--accent);}
 
-/* Form */
-.form-row{display:flex;gap:12px;margin-bottom:13px;}
-.form-row .fg{flex:1;margin-bottom:0;}
-.fg{margin-bottom:13px;}
-label{display:block;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-input,select,textarea{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;transition:border-color .2s;}
-input:focus,select:focus,textarea:focus{border-color:var(--gold);}
-input::placeholder,textarea::placeholder{color:var(--muted2);}
-select option{background:#1a1e28;}
-textarea{resize:vertical;}
+/* ── FILTER CHIPS ── */
+.chips{display:flex;gap:6px;padding:8px 20px;flex-wrap:wrap;flex-shrink:0;}
+.chip{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all 0.12s;}
+.chip:hover{border-color:var(--accent);color:var(--text);}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 
-/* Section tag */
-.section-tag{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);margin:14px 0 12px;display:flex;align-items:center;gap:8px;}
-.section-tag::after{content:'';flex:1;height:1px;background:var(--border);}
+/* ── TASK LIST ── */
+.tlist{flex:1;overflow-y:auto;padding:8px 20px 20px;}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all 0.12s;display:flex;gap:12px;align-items:flex-start;}
+.tcard:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.tcard.urgent{border-left:3px solid var(--danger);}
+.tcard-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+.tcard-body{flex:1;min-width:0;}
+.tcard-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.tcard-sub{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.tcard-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.tcard-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.t-attente{background:rgba(230,168,23,0.1);color:var(--warning);}
+.t-encours{background:rgba(13,110,253,0.1);color:var(--info);}
+.t-attclient{background:rgba(138,130,120,0.1);color:var(--muted);}
+.t-termine{background:rgba(25,135,84,0.1);color:var(--success);}
+.t-bloque{background:rgba(220,53,69,0.1);color:var(--danger);}
+.t-annule{background:rgba(138,130,120,0.08);color:var(--muted);}
+.tcard-pack{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-bg);padding:2px 8px;border-radius:10px;}
+.tcard-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.tcard-date{font-size:11px;color:var(--muted);}
+.tcard-progress{font-size:10px;font-weight:700;color:var(--accent);}
+.tcard-client{font-size:11px;font-weight:600;}
+.tcard-addr{font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tcard-pdl{font-family:monospace;font-size:11px;color:var(--text2);}
 
-/* Buttons */
-.btn{padding:9px 18px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
-.btn-primary{background:var(--gold);color:#0a0c10;}
-.btn-primary:hover{background:var(--gold-light);}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
-.btn-ghost{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);}
-.btn-ghost:hover{border-color:var(--border);color:var(--text);}
-.btn-sm{padding:6px 12px;font-size:12px;}
+/* ── STEP WIZARD ── */
+.steps-bar{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 20px;background:var(--surface);flex-shrink:0;}
+.step-tab{flex:1;padding:12px 8px;font-size:11px;font-weight:600;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;position:relative;transition:all 0.12s;}
+.step-tab:hover{color:var(--text);}
+.step-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.step-tab.done{color:var(--success);}
+.step-tab .step-num{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--surface2);align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-right:4px;}
+.step-tab.active .step-num{background:var(--accent);color:#fff;}
+.step-tab.done .step-num{background:var(--success);color:#fff;}
+.step-page{display:none;padding:20px;}
+.step-page.active{display:block;}
+.step-nav{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.step-nav .spacer{flex:1;}
 
-/* Alert */
-.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none;}
-.alert.show{display:block;}
-.alert-error{background:var(--red-dim);border:1px solid rgba(224,92,92,0.3);color:var(--red);}
-.alert-success{background:var(--green-dim);border:1px solid rgba(76,175,130,0.3);color:var(--green);}
+/* ── FULLSCREEN MODAL ── */
+.fmodal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.4);padding:16px;}
+.fmodal.open{display:flex;align-items:stretch;justify-content:center;}
+.fmodal-box{background:var(--bg);border:1px solid var(--border);border-radius:14px;width:100%;max-width:900px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.15);}
+.fmodal-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);flex-shrink:0;}
+.fmodal-icon{font-size:22px;}
+.fmodal-title{font-size:15px;font-weight:700;flex:1;}
+.fmodal-sub{font-size:11px;color:var(--muted);}
+.fmodal-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:4px;}
+.fmodal-close:hover{color:var(--text);}
+.fmodal-body{flex:1;overflow-y:auto;padding:20px;}
+.fmodal-actions{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;background:var(--surface);}
+.fmodal-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.fmodal-col{display:flex;flex-direction:column;gap:2px;}
 
-/* Contrats toolbar */
-.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
-.toolbar input{max-width:240px;}
-.toolbar-refresh{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;}
-.toolbar-refresh:hover{border-color:var(--border);color:var(--text);}
-.list-count{font-size:12px;color:var(--muted);margin-left:auto;}
+/* Sections */
+.dsec{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin:14px 0 6px;padding-top:10px;border-top:1px solid var(--border);}
+.dsec:first-child{border-top:none;margin-top:0;padding-top:0;}
+.drow{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;}
+.drow-k{color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;}
+.drow-v{font-weight:500;text-align:right;max-width:200px;overflow:hidden;text-overflow:ellipsis;}
+.dinstr{background:var(--accent-bg);border:1px solid rgba(184,146,42,0.15);border-radius:8px;padding:12px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px;line-height:1.4;}
+.dpack{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;}
+.dpack-title{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.dpack-task{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;cursor:pointer;}
+.dpack-task:hover{color:var(--accent);}
+.dpack-task.current{font-weight:700;color:var(--accent);}
+.dpack-step{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.dpack-step.done{background:var(--success);border-color:var(--success);color:#fff;}
+.dpack-step.active{border-color:var(--accent);color:var(--accent);}
 
-/* Table */
-.ctable{width:100%;border-collapse:collapse;}
-.ctable th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;}
-.ctable td{padding:8px 12px;border-bottom:1px solid var(--border2);vertical-align:middle;}
-.ctable tr:last-child td{border-bottom:none;}
-.ctable tbody tr:hover td{background:rgba(255,255,255,0.015);}
-.ctable tbody tr.clickable{cursor:pointer;}
-.cell-name{font-weight:500;font-size:13px;}
-.cell-sub{font-size:11px;color:var(--muted);}
-.cell-agent-code{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.5px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:4px;padding:2px 6px;white-space:nowrap;}
-.cell-mono{font-family:monospace;font-size:12px;color:var(--muted);}
-.loading-row td{text-align:center;padding:32px;color:var(--muted);}
+/* Action buttons */
+.abtn{padding:6px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;transition:all 0.12s;}
+.abtn:hover{border-color:var(--accent);}
+.abtn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.abtn.primary:hover{background:var(--accent2);}
+.abtn.g{background:rgba(25,135,84,0.08);color:var(--success);border-color:rgba(25,135,84,0.2);}
+.abtn.g:hover{background:rgba(25,135,84,0.15);}
+.abtn.r{background:rgba(220,53,69,0.08);color:var(--danger);border-color:rgba(220,53,69,0.2);}
+.abtn.w{background:rgba(230,168,23,0.08);color:var(--warning);border-color:rgba(230,168,23,0.2);}
 
-/* Tags */
-.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
-.tag-en_cours,.tag-encore{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.25);}
-.tag-en_attente,.tag-attente{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,0.25);}
-.tag-actif{background:var(--green-dim);color:var(--green);border:1px solid rgba(76,175,130,0.25);}
-.tag-en_traitement,.tag-traitement{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.25);}
-.tag-annule{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,92,92,0.25);}
+/* Note input */
+.note-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:vertical;min-height:50px;font-family:inherit;outline:none;}
+.note-input:focus{border-color:var(--accent);}
 
-/* Status select */
-.status-select{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;transition:border-color .15s;}
-.status-select:focus{border-color:var(--gold);}
-.save-ind{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:5px;vertical-align:middle;opacity:0;transition:opacity .2s;}
-.save-ind.saving{background:var(--amber);opacity:1;animation:blink .7s infinite;}
-.save-ind.saved{background:var(--green);opacity:1;}
-.save-ind.err{background:var(--red);opacity:1;}
-@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
-
-/* Search */
-.stype-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
-.stype-btn{padding:6px 13px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
-.stype-btn.active{background:var(--gold-dim);border-color:var(--border);color:var(--gold);}
-.search-bar{display:flex;gap:10px;margin-bottom:20px;}
-.search-bar input{flex:1;}
-.no-result{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
-
-/* Client result */
-.cr{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:10px;}
-.cr-head{display:flex;align-items:flex-start;gap:11px;margin-bottom:14px;}
-.cr-av{width:38px;height:38px;border-radius:9px;background:var(--gold-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-size:16px;color:var(--gold);flex-shrink:0;}
-.cr-meta{flex:1;}
-.cr-name{font-size:14px;font-weight:600;}
-.cr-id{font-size:11px;color:var(--muted);font-family:monospace;margin-top:2px;}
-.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:7px;}
-.ic{background:var(--surface2);border-radius:7px;padding:8px 10px;}
-.ic-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
-.ic-val{font-size:13px;word-break:break-all;}
-
-/* Modal */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center;}
-.overlay.show{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;width:min(580px,95vw);max-height:88vh;overflow-y:auto;}
-.modal::-webkit-scrollbar{width:4px;}
-.modal::-webkit-scrollbar-thumb{background:var(--surface3);}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.modal-title{font-family:'Noto Serif SC',serif;font-size:15px;color:var(--gold);}
-.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:2px 6px;border-radius:4px;}
-.modal-close:hover{color:var(--text);background:var(--surface2);}
-.modal-footer{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
-
-/* Login screen */
-#agent-login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;}
-.agent-login-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:44px;width:100%;max-width:380px;}
-.agent-login-logo{font-family:'Noto Serif SC',serif;font-size:22px;color:var(--gold);margin-bottom:4px;}
-.agent-login-sub{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
-.agent-login-box label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;}
-.agent-login-box input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;margin-bottom:14px;box-sizing:border-box;transition:border-color .2s;}
-.agent-login-box input:focus{border-color:var(--gold);}
-.agent-login-btn{width:100%;background:var(--gold);color:#0a0c10;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;}
-.agent-login-err{color:#f87171;font-size:12px;margin-top:10px;display:none;text-align:center;}
-
-/* Detail view */
-.detail-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
-.detail-back{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;transition:all .15s;}
-.detail-back:hover{border-color:var(--border);color:var(--text);}
-.detail-client-name{font-family:'Noto Serif SC',serif;font-size:16px;color:var(--gold);}
-.detail-client-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.contrat-detail-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
-.cdc-top{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
-.cdc-id{font-family:monospace;font-size:13px;font-weight:600;color:var(--text);}
-.cdc-energie{font-size:12px;color:var(--muted);}
-.cdc-status-wrap{margin-left:auto;display:flex;align-items:center;gap:8px;}
-.cdc-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.cdc-field label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block;}
-.cdc-save-btn{background:var(--gold);color:#0a0c10;border:none;border-radius:7px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
-.cdc-save-btn:hover{background:var(--gold-light);}
-.cdc-save-btn:disabled{opacity:.5;cursor:not-allowed;}
-.cdc-msg{font-size:12px;margin-left:8px;}
-.cdc-msg.ok{color:var(--green);}
-.cdc-msg.err{color:var(--red);}
-
-/* Historique */
-.hist-row{padding:8px 0;border-bottom:1px solid var(--border2);}
-.hist-row:last-child{border-bottom:none;}
-.hist-meta{display:flex;justify-content:space-between;margin-bottom:3px;}
-.hist-who{font-size:11px;font-weight:600;color:var(--gold);}
-.hist-when{font-size:11px;color:var(--muted);font-family:monospace;}
-.hist-champ{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2,var(--text));margin-bottom:2px;}
-.hist-action{font-size:9px;background:var(--surface3);border-radius:3px;padding:1px 5px;color:var(--muted);vertical-align:middle;margin-left:4px;}
-.hist-val{font-size:12px;color:var(--muted);line-height:1.5;word-break:break-all;}
-
-/* Spinner */
-.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(201,168,76,.25);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-@media(max-width:620px){
-  .header-tabs .htab{padding:5px 10px;font-size:12px;}
-  .panel-inner{padding:14px 12px 36px;}
-  .ctable th:nth-child(3),.ctable td:nth-child(3),
-  .ctable th:nth-child(4),.ctable td:nth-child(4){display:none;}
-}
+/* Toast */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--surface);border:1px solid var(--success);border-radius:8px;padding:10px 18px;font-size:12px;font-weight:600;color:var(--success);z-index:999;transform:translateY(80px);opacity:0;transition:all 0.25s;box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.error{border-color:var(--danger);color:var(--danger);}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top:2px solid var(--accent);border-radius:50%;animation:sp 0.5s linear infinite;vertical-align:middle;}
+@keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<div id="agent-login">
-  <div class="agent-login-box">
-    <div class="agent-login-logo">服务 FUWU</div>
-    <div class="agent-login-sub">Espace Agent</div>
-    <label>Email / Login</label>
-    <input type="text" id="al-login" placeholder="votre@email.com" onkeydown="if(event.key==='Enter')agentLogin()">
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login">
+  <div class="lbox">
+    <h1>Fuwu Agent</h1>
+    <div class="sub">Espace de travail</div>
+    <label>Login / Email</label>
+    <input type="text" id="l-email" placeholder="Votre login" onkeydown="if(event.key==='Enter')doLogin()">
     <label>Mot de passe</label>
-    <input type="password" id="al-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')agentLogin()">
-    <button class="agent-login-btn" onclick="agentLogin()">Accéder</button>
-    <div class="agent-login-err" id="al-err">Identifiants incorrects.</div>
+    <input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lbtn" onclick="doLogin()">Se connecter</button>
+    <div class="lerr" id="l-err"></div>
   </div>
 </div>
-<div class="shell">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo">服务 FUWU</div>
-    <div class="header-tabs">
-      <div class="htab" id="htab-inscription" onclick="switchTab('inscription',this)">✏️ Inscription</div>
-      <div class="htab active" id="htab-contrats" onclick="switchTab('contrats',this)">📋 Contrats</div>
-      <div class="htab" id="htab-search" onclick="switchTab('search',this)">🔍 Clients</div>
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <div class="shell">
+    <div class="topbar">
+      <div class="topbar-brand">FUWU Agent</div>
+      <div class="topbar-name" id="agent-name">—</div>
+      <button class="topbar-logout" onclick="doLogout()">Déconnexion</button>
     </div>
-    <div class="header-right">
-      <div class="conn-dot" id="conn-dot"></div>
-      <div class="conn-label" id="conn-label">Connexion…</div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('taches',this)">📋 Tâches <span class="tbadge" id="tb-taches">0</span></div>
+      <div class="tab" onclick="showTab('resultats',this)">📊 Résultats</div>
+      <div class="tab" onclick="showTab('clients',this)">👥 Clients</div>
+      <div class="tab" onclick="showTab('contrats',this)">📄 Contrats</div>
+      <div class="tab" onclick="showTab('inscription',this)">✏️ Inscription</div>
     </div>
-  </div>
+    <div class="workspace">
+      <div class="wmain">
 
-  <div class="tab-body">
-
-    <!-- TAB 1 : Inscription iframe -->
-    <div class="tab-panel" id="tab-inscription">
-      <iframe src="https://inscription.fuwu.fr/" title="Inscription fuwu.fr"></iframe>
-    </div>
-
-    <!-- TAB 2 : Contrats en cours / en attente -->
-    <div class="tab-panel active" id="tab-contrats">
-      <div id="panel-contrats">
-      <div class="panel-inner">
-        <div class="card">
-          <div class="card-title">📋 Contrats — en attente &amp; en traitement</div>
-          <div class="toolbar">
-            <input type="text" id="contrat-search" placeholder="Filtrer nom, email, PDL, ID…" oninput="filterContrats()">
-            <button class="toolbar-refresh" onclick="loadContrats()">↻ Actualiser</button>
-            <span class="list-count" id="contrat-count"></span>
-            <button class="btn btn-primary btn-sm" onclick="switchTab('inscription',document.getElementById('htab-inscription'))">✏️ Nouvelle inscription</button>
-          </div>
-          <div style="overflow-x:auto;">
-            <table class="ctable">
-              <thead>
-                <tr>
-                  <th style="width:60px">Agent</th>
-                  <th>Client</th>
-                  <th>ID Fuwu</th>
-                  <th>ID Fournisseur</th>
-                  <th>PDL / PCE</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody id="contrat-tbody">
-                <tr class="loading-row"><td colspan="6">Cliquez sur "Contrats" pour charger.</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="alert alert-error" id="err-contrats" style="margin-top:12px;"></div>
+        <!-- ═══ PAGE: TÂCHES ═══ -->
+        <div class="page active" id="pg-taches">
+          <div class="stats" id="task-stats"></div>
+          <div class="chips" id="task-chips"></div>
+          <div class="tlist" id="task-list"><div style="padding:20px;color:var(--muted);font-size:13px;"><span class="spinner"></span> Chargement…</div></div>
         </div>
-      </div>
-      </div>
-    </div>
 
-    <!-- TAB 3 : Recherche clients -->
-    <div class="tab-panel" id="tab-search">
-      <div class="panel-inner">
-        <div class="card">
-          <div class="card-title">🔍 Recherche client</div>
-          <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Uniquement les clients (est_client = true). Intermédiaires et admins exclus.</p>
-
-          <div class="stype-tabs">
-            <div class="stype-btn active" data-type="email" onclick="selSearchType(this)">📧 Email</div>
-            <div class="stype-btn" data-type="id_service" onclick="selSearchType(this)">🆔 ID Fuwu</div>
-            <div class="stype-btn" data-type="id_fournisseur" onclick="selSearchType(this)">🏭 ID Fournisseur</div>
-            <div class="stype-btn" data-type="pdl" onclick="selSearchType(this)">⚡ PDL</div>
-            <div class="stype-btn" data-type="pce" onclick="selSearchType(this)">🔥 PCE</div>
+        <!-- ═══ PAGE: RÉSULTATS ═══ -->
+        <div class="page" id="pg-resultats">
+          <div class="stats" id="res-stats"></div>
+          <div style="padding:16px 20px;flex-shrink:0;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;" id="res-chips"></div>
           </div>
-
-          <div class="search-bar">
-            <input type="text" id="search-input" placeholder="jean@example.com" onkeydown="if(event.key==='Enter')doSearch()">
-            <button class="btn btn-primary" onclick="doSearch()">Rechercher</button>
-          </div>
-
-          <div class="alert alert-error" id="err-search"></div>
-          <div id="search-results"></div>
+          <div style="flex:1;overflow-y:auto;padding:0 20px 20px;" id="res-list"><div style="color:var(--muted);font-size:13px;">Chargement…</div></div>
         </div>
-      </div>
-    </div>
 
+        <!-- ═══ PAGE: CLIENTS ═══ -->
+        <div class="page" id="pg-clients">
+          <div style="padding:16px 20px;flex-shrink:0;">
+            <input type="text" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;outline:none;font-family:inherit;color:var(--text);" id="client-search" placeholder="🔍 Rechercher client…" oninput="searchClients()">
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:0 20px 20px;" id="client-results"><div style="color:var(--muted);font-size:13px;">Tapez pour rechercher.</div></div>
+        </div>
+
+        <!-- ═══ PAGE: CONTRATS ═══ -->
+        <div class="page" id="pg-contrats">
+          <div style="padding:16px 20px;flex-shrink:0;">
+            <input type="text" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;outline:none;font-family:inherit;color:var(--text);" id="contrat-search" placeholder="🔍 Rechercher contrat…" oninput="searchContrats()">
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:0 20px 20px;" id="contrat-results"><div style="color:var(--muted);font-size:13px;">Tapez pour rechercher.</div></div>
+        </div>
+
+        <!-- ═══ PAGE: INSCRIPTION ═══ -->
+        <div class="page" id="pg-inscription">
+          <iframe id="inscription-frame" style="flex:1;border:none;width:100%;"></iframe>
+        </div>
+
+      </div>
+
+    </div>
   </div>
 </div>
 
-<!-- Edit Modal -->
-<div class="overlay" id="edit-overlay">
-  <div class="modal">
-    <div class="modal-head">
-      <div class="modal-title">✏️ Modifier le client</div>
-      <button class="modal-close" onclick="closeModal()">×</button>
+<!-- Fullscreen Modal -->
+<div class="fmodal" id="fmodal" onclick="if(event.target===this)closeFM()">
+  <div class="fmodal-box">
+    <div class="fmodal-header">
+      <div class="fmodal-icon" id="dw-icon">📋</div>
+      <div class="fmodal-title" id="dw-title">—</div>
+      <div class="fmodal-sub" id="dw-sub">—</div>
+      <button class="fmodal-close" onclick="closeFM()">✕</button>
     </div>
-    <input type="hidden" id="edit-id">
-    <input type="hidden" id="edit-contrat-id">
-
-    <div class="section-tag">Identité</div>
-    <div class="form-row">
-      <div class="fg">
-        <label>Civilité</label>
-        <select id="edit-civilite">
-          <option value="">—</option>
-          <option>M.</option><option>Mme</option><option>M. &amp; Mme</option><option>Société</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Type client</label>
-        <select id="edit-type-client" onchange="document.getElementById('siret-row').style.display=this.value==='professionnel'?'block':'none'">
-          <option value="particulier">Particulier</option>
-          <option value="professionnel">Professionnel</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="fg"><label>Prénom</label><input type="text" id="edit-prenom"></div>
-      <div class="fg"><label>Nom</label><input type="text" id="edit-nom"></div>
-    </div>
-    <div class="fg"><label>Date de naissance</label><input type="date" id="edit-naissance"></div>
-    <div class="fg" id="siret-row" style="display:none"><label>SIRET</label><input type="text" id="edit-siret" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'')"></div>
-
-    <div class="section-tag">Contact</div>
-    <div class="form-row">
-      <div class="fg"><label>Email 1</label><input type="email" id="edit-email"></div>
-      <div class="fg"><label>Email 2</label><input type="email" id="edit-email2"></div>
-    </div>
-    <div class="form-row">
-      <div class="fg"><label>Téléphone 1</label><input type="tel" id="edit-telephone" oninput="this.value=this.value.replace(/[^\d+]/g,'')"></div>
-      <div class="fg"><label>Téléphone 2</label><input type="tel" id="edit-telephone2" oninput="this.value=this.value.replace(/[^\d+]/g,'')"></div>
-    </div>
-    <div class="form-row">
-      <div class="fg"><label>WeChat / WA / IG 1</label><input type="text" id="edit-wechat"></div>
-      <div class="fg"><label>WeChat / WA / IG 2</label><input type="text" id="edit-wechat2"></div>
-    </div>
-
-    <div class="section-tag">Finance</div>
-    <div class="fg"><label>IBAN</label><input type="text" id="edit-iban" placeholder="FR76…" oninput="fmtIban(this)"></div>
-
-    <div class="section-tag">Notes</div>
-    <div class="fg" style="margin-bottom:0"><textarea id="edit-note" rows="3" placeholder="Notes internes…"></textarea></div>
-
-    <div class="section-tag" style="margin-top:18px;">Historique</div>
-    <div id="hist-body" style="max-height:200px;overflow-y:auto;padding-right:4px;"></div>
-
-    <div class="alert alert-error" id="err-edit"></div>
-    <div class="alert alert-success" id="ok-edit"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary btn-sm" id="btn-save" onclick="saveEdit()">Enregistrer</button>
-    </div>
+    <div class="steps-bar" id="steps-bar"></div>
+    <div class="fmodal-body" id="dw-body" style="padding:0;"></div>
+    <div class="step-nav" id="dw-actions"></div>
   </div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script src="common.js"></script>
 <script>
-// ── Agent Login ──────────────────────────────────────────────────
-let accessToken = null;
+const SB=SUPABASE_URL;
+let accessToken=null;
+let allTasks=[], personnesMap={}, adressesMap={}, commMap={};
+let currentFilter='a_faire';
+let currentTaskId=null;
+let myAgentCode=''; // Agent's code for claiming tasks
 
-async function agentLogin(){
-  const login=document.getElementById('al-login').value.trim().toLowerCase();
-  const pwd=document.getElementById('al-pwd').value;
-  const err=document.getElementById('al-err');
-  err.style.display='none';
-  if(!login||!pwd){ err.textContent='Remplissez tous les champs.'; err.style.display='block'; return; }
+// ── Task type config ──
+const TASK_TYPES={
+  resiliation:{icon:'❌',label:'Résiliation',instruction:'Traiter la résiliation du contrat énergie.'},
+  mise_en_service:{icon:'⚡',label:'Mise en service',instruction:'Exécuter la mise en service et confirmer le PDL.'},
+  changement_fournisseur:{icon:'🔄',label:'Changement fournisseur',instruction:'Effectuer le changement de fournisseur énergie.'},
+  box_internet:{icon:'📡',label:'Box Internet',instruction:'Traiter l\'installation de la box internet.'},
+  ouverture_banque:{icon:'🏦',label:'Ouverture banque',instruction:'Effectuer l\'ouverture de compte bancaire.'},
+};
+const TASK_STATUS={
+  en_attente:{label:'À faire',cls:'t-attente'},
+  en_traitement:{label:'En cours',cls:'t-encours'},
+  en_attente_client:{label:'Attente client',cls:'t-attclient'},
+  bloque:{label:'Bloqué',cls:'t-bloque'},
+  actif:{label:'Terminé',cls:'t-termine'},
+  annule:{label:'Annulé',cls:'t-annule'},
+};
+
+// ══════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════
+async function doLogin(){
+  const raw=document.getElementById('l-email').value.trim().toLowerCase();
+  const pwd=document.getElementById('l-pass').value;
+  const err=document.getElementById('l-err');err.style.display='none';
+  if(!raw||!pwd){err.textContent='Remplissez tous les champs.';err.style.display='block';return;}
   try{
-    // Resolve email: try login field first
-    let email = await fuwuResolveEmail(login, 'est_agent=eq.true');
-
-    // Authenticate via Supabase Auth
+    const email=await fuwuResolveEmail(raw,'est_agent=eq.true');
     const res=await fuwuAuthLogin(email,pwd);
-    if(!res.ok){
-      err.textContent='Identifiants incorrects ou accès refusé.';
-      err.style.display='block'; return;
-    }
+    if(!res.ok){err.textContent='Identifiants incorrects.';err.style.display='block';return;}
     const data=res.data;
-
-    // Verify agent role
     const meta=data.user?.app_metadata||{};
-    if(meta.fuwu_role!=='agent_interne'){
-      err.textContent='Accès réservé aux agents.';
-      err.style.display='block'; return;
-    }
-
-    // Store token for authenticated requests
+    if(meta.fuwu_role!=='agent_interne'&&meta.role!=='agent_interne'){err.textContent='Accès réservé aux agents.';err.style.display='block';return;}
     accessToken=data.access_token;
-    H['Authorization']=`Bearer ${accessToken}`;
-
-    document.getElementById('agent-login').style.display='none';
-    loadContrats();
-  }catch(e){
-    err.textContent='Erreur : '+e.message;
-    err.style.display='block';
-  }
+    fuwuSetToken(accessToken);
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('agent-name').textContent=email;
+    // Get agent_code from personnes
+    try{const ra=await fetch(`${SB}/rest/v1/personnes?email=eq.${encodeURIComponent(email)}&select=agent_code`,{headers:fuwuH()});const ad=await ra.json();if(ad&&ad[0]&&ad[0].agent_code)myAgentCode=ad[0].agent_code;}catch(e){}
+    if(!myAgentCode)myAgentCode=email.split('@')[0].toUpperCase();
+    // Set inscription iframe with agent context
+    document.getElementById('inscription-frame').src=`inscription.html?agent=${encodeURIComponent(myAgentCode)}&email=${encodeURIComponent(email)}`;
+    await loadTasks();
+  }catch(e){err.textContent='Erreur: '+e.message;err.style.display='block';}
 }
+function doLogout(){location.reload();}
 
-const SB = SUPABASE_URL; // from common.js
-const KEY = SUPABASE_ANON_KEY; // from common.js
-let H = fuwuHA(); // mutable — updated after login
-
-// ── Connection ────────────────────────────────────────────────────
-(async()=>{
+// ══════════════════════════════════════
+// LOAD TASKS
+// ══════════════════════════════════════
+let taskTypesMap={};
+async function loadTasks(){
+  if(!formConfig)await loadFormConfig();
+  // Load task types for commission defaults
+  try{const rt=await fetch(`${SB}/rest/v1/task_types?actif=eq.true&select=id,label,icon,commission_default,penalite_default,description`,{headers:fuwuH()});const d=await rt.json();if(Array.isArray(d))d.forEach(t=>{taskTypesMap[t.id]=t;if(t.label)TASK_TYPES[t.id]={icon:t.icon||'📋',label:t.label,instruction:t.description||'Traiter cette tâche.'};});}catch(e){}
   try{
-    const r=await fetch(`${SB}/rest/v1/personnes?select=id&limit=1`,{headers:H});
-    if(r.ok){ setConn(true,'Supabase connecté'); }
-    else throw 0;
-  }catch{ setConn(false,'Erreur connexion'); }
-})();
-function setConn(ok,msg){
-  const d=document.getElementById('conn-dot');
-  d.style.background=ok?'var(--green)':'var(--red)';
-  d.style.boxShadow=ok?'0 0 6px var(--green)':'none';
-  document.getElementById('conn-label').textContent=msg;
-}
+    // Load contrats that are tasks (en_attente, en_traitement, or with formule indicating task type)
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=in.(en_attente,en_traitement)&select=id,id_service,id_fournisseur,bs_fournisseur,personne_id,adresse_id,fournisseur,energie_type,contrat_status,formule,option_tarifaire,date_debut,created_at,source,inscrit_par,iban,elec_car,agent_code,modifie_par,agent_claimed_at,agent_penalite,priorite,date_limite&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    if(!r.ok)throw new Error(await r.text());
+    allTasks=await r.json();
 
-// ── Tabs ──────────────────────────────────────────────────────────
-let contratLoaded=false;
-// login required before loadContrats
-function switchTab(name,el){
-  document.querySelectorAll('.htab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active');
-  if(name==='contrats'&&!contratLoaded) loadContrats();
-}
-
-// ══════════════════════════════════════════════════════════════════
-// TAB 2 — CONTRATS
-// ══════════════════════════════════════════════════════════════════
-let allContrats=[];
-
-async function loadContrats(){
-  setTbody('<tr class="loading-row"><td colspan="6"><span class="spinner"></span>Chargement…</td></tr>');
-  hideA('err-contrats');
-  try{
-    // Fetch contrats sans embed (ambiguïté de relation)
-    const r=await fetch(
-      `${SB}/rest/v1/contrats`+
-      `?select=id,id_service,energie_type,fournisseur,contrat_status,personne_id,adresse_id,id_fournisseur,bs_fournisseur,inscrit_par`+
-      `&contrat_status=in.(en_attente,en_traitement)`+
-      `&order=created_at.desc&limit=500`,
-      {headers:H}
-    );
-    if(!r.ok) throw new Error(await r.text());
-    const contrats=await r.json();
-
-    // Fetch personnes et adresses en batch
-    const personneIds=[...new Set(contrats.map(c=>c.personne_id).filter(Boolean))];
-    const adresseIds=[...new Set(contrats.map(c=>c.adresse_id).filter(Boolean))];
-
-    const personnesMap={}, adressesMap={};
-    if(personneIds.length){
-      const rP=await fetch(`${SB}/rest/v1/personnes?select=id,prenom,nom,email&id=in.(${personneIds.join(',')})`,{headers:H});
-      if(rP.ok){ const arr=await rP.json(); arr.forEach(p=>personnesMap[p.id]=p); }
+    // Batch load personnes
+    const pids=[...new Set(allTasks.map(t=>t.personne_id).filter(Boolean))];
+    for(let i=0;i<pids.length;i+=200){
+      const batch=pids.slice(i,i+200);
+      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,civilite,prenom,nom,email,email_reel,telephone,whatsapp,wechat,colocataire_prenom,colocataire_nom,date_naissance,siret`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
     }
-    if(adresseIds.length){
-      const rA=await fetch(`${SB}/rest/v1/adresses?select=id,pdl,pce,rue,code_postal,ville&id=in.(${adresseIds.join(',')})`,{headers:H});
-      if(rA.ok){ const arr=await rA.json(); arr.forEach(a=>adressesMap[a.id]=a); }
+    // Batch load adresses
+    const aids=[...new Set(allTasks.map(t=>t.adresse_id).filter(Boolean))];
+    for(let i=0;i<aids.length;i+=200){
+      const batch=aids.slice(i,i+200);
+      try{const ra=await fetch(`${SB}/rest/v1/adresses?id=in.(${batch.join(',')})&select=id,rue,complement,code_postal,ville,pdl,pce,puissance`,{headers:fuwuH()});const d=await ra.json();if(Array.isArray(d))d.forEach(a=>adressesMap[a.id]=a);}catch(e){}
+    }
+    // Load commissions
+    const cids=allTasks.map(t=>t.id);
+    for(let i=0;i<cids.length;i+=200){
+      const batch=cids.slice(i,i+200);
+      try{const rc=await fetch(`${SB}/rest/v1/commissions?contrat_id=in.(${batch.join(',')})&select=id,contrat_id,montant,statut`,{headers:fuwuH()});const d=await rc.json();if(Array.isArray(d))d.forEach(c=>commMap[c.contrat_id]=c);}catch(e){}
     }
 
-    // Build agent email→code map
-    const agentMap={};
-    const rAg=await fetch(`${SB}/rest/v1/personnes?select=email,agent_code&est_agent=eq.true`,{headers:H});
-    if(rAg.ok){ const arr=await rAg.json(); arr.forEach(a=>{ if(a.email&&a.agent_code) agentMap[a.email]=a.agent_code; }); }
-
-    allContrats=contrats.map(c=>({
-      ...c,
-      personnes: personnesMap[c.personne_id]||{},
-      adresses: adressesMap[c.adresse_id]||{},
-      agent_code: agentMap[c.inscrit_par]||c.inscrit_par||''
-    }));
-    contratLoaded=true;
-    renderContrats(allContrats);
-  }catch(e){
-    showA('err-contrats','Erreur : '+e.message);
-    setTbody('<tr class="loading-row"><td colspan="6">Erreur de chargement.</td></tr>');
-  }
+    renderStats();
+    renderChips();
+    renderTasks();
+  }catch(e){document.getElementById('task-list').innerHTML=`<div style="padding:20px;color:var(--danger);">${e.message}</div>`;}
 }
 
-function filterContrats(){
-  const q=document.getElementById('contrat-search').value.toLowerCase();
-  if(!q) return renderContrats(allContrats);
-  renderContrats(allContrats.filter(c=>{
-    const p=c.personnes||{}, a=c.adresses||{};
-    return [p.prenom,p.nom,p.email,c.id_service,a.pdl,a.pce,c.fournisseur]
-      .some(v=>v&&String(v).toLowerCase().includes(q));
-  }));
-}
-
-function renderContrats(list){
-  document.getElementById('contrat-count').textContent=`${list.length} contrat(s)`;
-  if(!list.length){ setTbody('<tr class="loading-row"><td colspan="6">Aucun résultat.</td></tr>'); return; }
-  const tbody=document.getElementById('contrat-tbody');
-  tbody.innerHTML=list.map(c=>{
-    const p=c.personnes||{}, a=c.adresses||{};
-    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||'—';
-    const pdlpce=a.pdl||a.pce||'—';
-    const idS=c.id_service||('…'+c.id.slice(-6));
-    const tCls='tag-'+c.contrat_status;
-    const email=esc(p.email||'');
-    const pid=esc(p.id||'');
-    const namePlain=[p.prenom,p.nom].filter(Boolean).join(' ')||'—';
-    const rue=esc(a.rue||'');
-    const idf=esc(c.id_fournisseur||'—');
-    const bs=esc(c.bs_fournisseur||'');
-    const agCode=esc(c.agent_code||'');
-    return `<tr class="clickable" data-email="${email}" data-pid="${pid}" data-name="${esc(namePlain)}">
-      <td style="text-align:center;vertical-align:middle">${agCode?`<span class="cell-agent-code">${agCode}</span>`:''}</td>
-      <td><div class="cell-name">${esc(name)}</div><div class="cell-sub">${email}</div></td>
-      <td><div class="cell-mono">${esc(idS)}</div><div class="cell-sub" style="font-size:10px">${esc(c.energie_type||'')} · ${esc(c.fournisseur||'')}</div></td>
-      <td><div class="cell-mono">${idf}</div>${bs?`<div class="cell-sub">BS: ${bs}</div>`:''}</td>
-      <td><div class="cell-mono">${esc(pdlpce)}</div>${rue?`<div class="cell-sub">${rue}</div>`:''}</td>
-      <td onclick="event.stopPropagation()">
-        <select class="status-select" onchange="updateStatut('${c.id}',this,'${esc(c.contrat_status)}')">
-          <option value="en_attente" ${c.contrat_status==='en_attente'?'selected':''}>en attente</option>
-          <option value="en_traitement" ${c.contrat_status==='en_traitement'?'selected':''}>en traitement</option>
-          <option value="en_cours" ${c.contrat_status==='en_cours'?'selected':''}>en cours</option>
-          <option value="actif" ${c.contrat_status==='actif'?'selected':''}>actif</option>
-          <option value="annule" ${c.contrat_status==='annule'?'selected':''}>annulé</option>
-        </select>
-        <span class="save-ind" id="ind-${c.id}"></span>
-      </td>
-    </tr>`;
-  }).join('');
-  // Row click → open contrat detail view
-  tbody.querySelectorAll('tr.clickable').forEach(tr=>{
-    tr.addEventListener('click',()=>{
-      const pid=tr.dataset.pid;
-      const email=tr.dataset.email;
-      const name=tr.dataset.name;
-      if(!pid) return;
-      openContratDetail(pid, name, email);
-    });
+// ── Detect task packs (same personne_id + same date_debut + déménagement formules) ──
+function detectPacks(){
+  const packs={};
+  allTasks.forEach(t=>{
+    if(!t.personne_id||!t.formule)return;
+    // Group by personne + date_debut for déménagement
+    if(['resiliation','mise_en_service'].includes(t.formule)){
+      const key=`${t.personne_id}_${t.date_debut||''}`;
+      if(!packs[key])packs[key]=[];
+      packs[key].push(t);
+    }
   });
+  // Only keep packs with 2+ tasks
+  const packMap={};
+  Object.values(packs).forEach(group=>{
+    if(group.length<2)return;
+    const hasRes=group.some(t=>t.formule==='resiliation');
+    const hasMes=group.some(t=>t.formule==='mise_en_service');
+    if(hasRes&&hasMes){
+      const packId=group[0].personne_id+'_demenagement';
+      group.forEach(t=>{packMap[t.id]={packId,total:group.length,tasks:group};});
+    }
+  });
+  return packMap;
 }
 
-async function updateStatut(id,sel,ancien){
-  const nouveau=sel.value;
-  const ind=document.getElementById('ind-'+id);
-  ind.className='save-ind saving';
-  try{
-    const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:H,body:JSON.stringify({contrat_status:nouveau})});
-    if(!r.ok) throw new Error(await r.text());
-    // historique
-    try{
-      await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:H,body:JSON.stringify({
-        table_name:'contrats',record_id:id||null,
-        champ:'contrat_status',ancienne_valeur:ancien,nouvelle_valeur:nouveau,
-        modifie_par:null,action_type:'UPDATE'
-      })});
-    }catch(_){}
-    ind.className='save-ind saved';
-    const c=allContrats.find(x=>x.id===id);
-    if(c) c.contrat_status=nouveau;
-    // remove row if no longer en_cours/en_attente
-    if(!['en_attente','en_traitement'].includes(nouveau)){
-      setTimeout(()=>{allContrats=allContrats.filter(x=>x.id!==id);filterContrats();},1500);
-    }
-    setTimeout(()=>{ind.className='save-ind';},3500);
-  }catch(e){
-    ind.className='save-ind err';
-    sel.value=ancien;
-    setTimeout(()=>{ind.className='save-ind';},3500);
-  }
+// ══════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════
+function renderStats(){
+  // Only count: unclaimed + my tasks
+  const visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
+  const aFaire=visible.filter(t=>t.contrat_status==='en_attente').length;
+  const enCours=visible.filter(t=>t.contrat_status==='en_traitement').length;
+  const myDone=allCompleted.length;
+  document.getElementById('task-stats').innerHTML=`
+    <div class="scard" onclick="setFilter('a_faire')"><div class="scard-val v-orange">${aFaire}</div><div class="scard-label">Missions à prendre</div></div>
+    <div class="scard" onclick="setFilter('en_cours')"><div class="scard-val v-blue">${enCours}</div><div class="scard-label">Vos missions en cours</div></div>
+    <div class="scard" onclick="setFilter('all')"><div class="scard-val">${visible.length}</div><div class="scard-label">Total</div></div>
+    <div class="scard" onclick="setFilter('done')"><div class="scard-val v-green">${myDone}</div><div class="scard-label">Vos missions réalisées</div></div>
+  `;
+  document.getElementById('tb-taches').textContent=aFaire;
 }
 
-// ══════════════════════════════════════════════════════════════════
-// TAB 3 — SEARCH
-// ══════════════════════════════════════════════════════════════════
-let searchType='email';
-const placeholders={email:'jean@example.com',id_service:'F-00123 ou ID…',id_fournisseur:'ID fournisseur',pdl:'14 chiffres PDL',pce:'14 chiffres PCE'};
-
-function selSearchType(el){
-  document.querySelectorAll('.stype-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  searchType=el.dataset.type;
-  document.getElementById('search-input').placeholder=placeholders[searchType]||'…';
-  document.getElementById('search-results').innerHTML='';
-  hideA('err-search');
+function renderChips(){
+  const filters=[
+    {id:'a_faire',label:'Missions à prendre'},
+    {id:'en_cours',label:'Vos missions en cours'},
+    {id:'all',label:'Tous'},
+    {id:'done',label:'✅ Vos missions réalisées'},
+  ];
+  document.getElementById('task-chips').innerHTML=filters.map(f=>
+    `<div class="chip ${currentFilter===f.id?'on':''}" onclick="setFilter('${f.id}')">${f.label}</div>`
+  ).join('') + `<div style="flex:1;"></div><div style="display:flex;gap:4px;align-items:center;font-size:10px;color:var(--muted);">Trier: ${['priorite','temps','commission'].map(s=>
+    `<span class="chip ${currentSort===s?'on':''}" onclick="currentSort='${s}';renderTasks()" style="font-size:10px;padding:3px 8px;">${s==='priorite'?'🔥 Urgence':s==='temps'?'⏰ Temps':s==='commission'?'💰 €':s}</span>`
+  ).join('')}</div>`;
 }
 
-async function doSearch(){
-  const val=document.getElementById('search-input').value.trim();
-  if(!val) return;
-  hideA('err-search');
-  document.getElementById('search-results').innerHTML='<div class="no-result"><span class="spinner"></span>Recherche…</div>';
-  try{
-    const results=await searchClients(searchType,val);
-    renderResults(results);
-  }catch(e){
-    showA('err-search','Erreur : '+e.message);
-    document.getElementById('search-results').innerHTML='';
-  }
+let currentSort='priorite';
+function setFilter(f){currentFilter=f;renderChips();renderTasks();}
+
+// Priority score: haute=3, moyenne=2, normal=1
+function getPriorityScore(t){
+  const p={'haute':3,'moyenne':2,'normal':1};
+  return p[t.priorite]||1;
+}
+// Time alive in hours
+function getAgeHours(t){
+  const created=new Date(t.created_at||t.date_debut||Date.now());
+  return (Date.now()-created.getTime())/3600000;
+}
+// Format duration
+function fmtAge(hours){
+  if(hours<1)return Math.round(hours*60)+'min';
+  if(hours<24)return Math.round(hours)+'h';
+  const d=Math.floor(hours/24);
+  const h=Math.round(hours%24);
+  return d+'j'+h+'h';
+}
+// Time remaining before deadline
+function getTimeLeft(t){
+  if(!t.date_limite)return null;
+  const diff=new Date(t.date_limite).getTime()-Date.now();
+  return diff/3600000; // hours
 }
 
-async function searchClients(type,val){
-  const results=[];
+function renderTasks(){
+  const packMap=detectPacks();
+  let visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
 
-  if(type==='email'){
-    const ps=await sbGet(`/rest/v1/personnes?select=*&email=ilike.*${enc(val)}*&est_client=eq.true&limit=15`);
-    for(const p of ps){
-      const cs=await sbGet(`/rest/v1/contrats?select=*&personne_id=eq.${p.id}&order=created_at.desc&limit=1`);
-      const c=cs[0]||{};
-      const ad=c.adresse_id ? (await sbGet(`/rest/v1/adresses?select=*&id=eq.${c.adresse_id}`))[0]||{} : {};
-      results.push({p,c,ad});
-    }
-    return results;
-  }
-
-  if(type==='id_service'){
-    const cs=await sbGet(`/rest/v1/contrats?select=*&id_service=ilike.*${enc(val)}*&limit=15`);
-    for(const c of cs){
-      const ps=await sbGet(`/rest/v1/personnes?select=*&id=eq.${c.personne_id}&est_client=eq.true`);
-      if(!ps.length) continue;
-      const ad=c.adresse_id ? (await sbGet(`/rest/v1/adresses?select=*&id=eq.${c.adresse_id}`))[0]||{} : {};
-      results.push({p:ps[0],c,ad});
-    }
-    return results;
-  }
-
-  if(type==='id_fournisseur'){
-    const cs=await sbGet(`/rest/v1/contrats?select=*&id_fournisseur=eq.${enc(val)}&limit=15`);
-    for(const c of cs){
-      const ps=await sbGet(`/rest/v1/personnes?select=*&id=eq.${c.personne_id}&est_client=eq.true`);
-      if(!ps.length) continue;
-      const ad=c.adresse_id ? (await sbGet(`/rest/v1/adresses?select=*&id=eq.${c.adresse_id}`))[0]||{} : {};
-      results.push({p:ps[0],c,ad});
-    }
-    return results;
-  }
-
-  if(type==='pdl'||type==='pce'){
-    const ads=await sbGet(`/rest/v1/adresses?select=*&${type}=eq.${enc(val)}&limit=10`);
-    for(const ad of ads){
-      const cs=await sbGet(`/rest/v1/contrats?select=*&adresse_id=eq.${ad.id}&order=created_at.desc&limit=1`);
-      const c=cs[0]||{};
-      if(!c.personne_id) continue;
-      const ps=await sbGet(`/rest/v1/personnes?select=*&id=eq.${c.personne_id}&est_client=eq.true`);
-      if(!ps.length) continue;
-      results.push({p:ps[0],c,ad});
-    }
-    return results;
-  }
-  return results;
-}
-
-// Store results by index — buttons use data-idx + addEventListener
-let _resultStore=[];
-
-function renderResults(list){
-  _resultStore=list;
-  const container=document.getElementById('search-results');
-  if(!list.length){ container.innerHTML='<div class="no-result">Aucun client trouvé.</div>'; return; }
-  container.innerHTML=list.map(({p,c,ad},i)=>{
-    const name=[p.civilite,p.prenom,p.nom].filter(Boolean).join(' ')||'—';
-    const ini=(p.prenom||p.nom||'?')[0].toUpperCase();
-    const addr=[ad.rue,ad.code_postal,ad.ville].filter(Boolean).join(', ')||'—';
-    const statTag=c.contrat_status?`<span class="tag tag-${c.contrat_status}">${c.contrat_status}</span>`:'—';
-    const dateStr=c.date_debut ? new Date(c.date_debut).toLocaleDateString('fr-FR') : (p.created_at ? new Date(p.created_at).toLocaleDateString('fr-FR') : '—');
-    const noteVal=p.note||'—';
-    return `<div class="cr">
-      <div class="cr-head">
-        <div class="cr-av">${ini}</div>
-        <div class="cr-meta">
-          <div class="cr-name">${esc(name)}</div>
-          <div class="cr-id">${esc(c.id_service||p.id||'')}</div>
+  let filtered=visible;
+  if(currentFilter==='a_faire')filtered=visible.filter(t=>t.contrat_status==='en_attente');
+  else if(currentFilter==='en_cours')filtered=visible.filter(t=>t.contrat_status==='en_traitement');
+  else if(currentFilter==='done'){
+    // Show completed tasks (loaded separately)
+    if(!allCompleted.length){loadResults();return;}
+    document.getElementById('task-list').innerHTML=allCompleted.slice(0,30).map(c=>{
+      const p=personnesMap[c.personne_id]||{};
+      const tt=TASK_TYPES[c.formule]||{icon:'📋',label:c.formule||'—'};
+      const cm=resCommMap?.[c.id];
+      const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+      return `<div class="tcard" style="border-left:3px solid var(--success);cursor:pointer;" onclick="reopenDoneTask('${c.id}')">
+        <div class="tcard-icon">${tt.icon}</div>
+        <div class="tcard-body" style="flex:1;">
+          <div class="tcard-title">${tt.label} · ${esc(c.id_service||'')}</div>
+          <div class="tcard-sub">${esc(name)} · ${esc(c.fournisseur||'')}</div>
         </div>
-        <button class="btn btn-ghost btn-sm cr-edit-btn" data-idx="${i}">✏️ Modifier</button>
-      </div>
-      <div class="info-grid">
-        <div class="ic"><div class="ic-label">Email</div><div class="ic-val">${esc(p.email||'—')}</div></div>
-        <div class="ic"><div class="ic-label">Téléphone</div><div class="ic-val">${esc(p.telephone||'—')}</div></div>
-        <div class="ic"><div class="ic-label">WeChat / WA</div><div class="ic-val">${esc(p.wechat||'—')}</div></div>
-        <div class="ic"><div class="ic-label">ID Fournisseur</div><div class="ic-val">${esc(c.id_fournisseur||'—')}</div></div>
-        <div class="ic"><div class="ic-label">Adresse</div><div class="ic-val">${esc(addr)}</div></div>
-        <div class="ic"><div class="ic-label">PDL / PCE</div><div class="ic-val">${esc(ad.pdl||ad.pce||'—')}</div></div>
-        <div class="ic"><div class="ic-label">Fournisseur</div><div class="ic-val">${esc(c.fournisseur||'—')}</div></div>
-        <div class="ic"><div class="ic-label">Statut contrat</div><div class="ic-val">${statTag}</div></div>
-        <div class="ic"><div class="ic-label">Date inscription</div><div class="ic-val">${dateStr}</div></div>
-        <div class="ic" style="grid-column:1/-1"><div class="ic-label">Note</div><div class="ic-val" style="white-space:pre-wrap;font-size:12px">${esc(noteVal)}</div></div>
-      </div>
-    </div>`;
-  }).join('');
-  // Attach listeners after DOM insertion
-  container.querySelectorAll('.cr-edit-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>openModal(parseInt(btn.dataset.idx)));
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// EDIT MODAL
-// ══════════════════════════════════════════════════════════════════
-function openModal(i){
-  const {p,c}=_resultStore[i]||{}; if(!p) return;
-  sv('edit-id',p.id); sv('edit-contrat-id',c.id||'');
-  sv('edit-civilite',p.civilite||'');
-  sv('edit-type-client',p.type_client||'particulier');
-  sv('edit-prenom',p.prenom||''); sv('edit-nom',p.nom||'');
-  sv('edit-naissance',p.date_naissance||'');
-  sv('edit-siret',p.siret||'');
-  document.getElementById('siret-row').style.display=(p.type_client==='professionnel')?'block':'none';
-  sv('edit-email',p.email||''); sv('edit-email2',p.email2||p.email_2||'');
-  sv('edit-telephone',p.telephone||''); sv('edit-telephone2',p.telephone2||p.telephone_2||'');
-  sv('edit-wechat',p.wechat||''); sv('edit-wechat2',p.whatsapp||p.wechat2||'');
-  sv('edit-iban',c.iban||''); sv('edit-note',p.note||'');
-  hideA('err-edit'); hideA('ok-edit');
-  document.getElementById('edit-overlay').classList.add('show');
-  loadHistorique(p.id);
-}
-
-async function loadHistorique(pid){
-  const box=document.getElementById('hist-body');
-  box.innerHTML='<div style="color:var(--muted);font-size:12px">Chargement…</div>';
-  try{
-    const rows=await sbGet(
-      `/rest/v1/historique?nouvelle_valeur=like.personne:${pid}|*&order=created_at.desc&limit=30`
-    );
-    if(!rows.length){ box.innerHTML='<div style="color:var(--muted);font-size:12px">Aucun historique.</div>'; return; }
-    box.innerHTML=rows.map(r=>{
-      const dt=r.created_at ? new Date(r.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-      const valRaw=(r.nouvelle_valeur||'').replace(/^personne:[^|]+\|/,'');
-      let valDisplay=valRaw;
-      try{
-        const obj=JSON.parse(valRaw);
-        valDisplay=Object.entries(obj).filter(([,v])=>v!=null).map(([k,v])=>`<span style="color:var(--gold)">${esc(k)}</span>: ${esc(String(v))}`).join(' · ');
-      }catch{}
-      return `<div class="hist-row">
-        <div class="hist-meta"><span class="hist-who">${esc(r.modifie_par||'—')}</span><span class="hist-when">${dt}</span></div>
-        <div class="hist-champ">${esc(r.champ||'—')} <span class="hist-action">${esc(r.action_type||'')}</span></div>
-        <div class="hist-val">${valDisplay}</div>
+        <div style="text-align:right;">
+          ${cm?`<div style="font-size:12px;font-weight:700;color:${cm.statut==='paye'?'var(--success)':'var(--accent)'};">${parseFloat(cm.montant||0).toFixed(0)}€ ${cm.statut==='paye'?'✅':'⏳'}</div>`:''}
+          <div style="font-size:10px;color:var(--muted);">${fmtDate(c.date_debut)}</div>
+          <div style="font-size:9px;color:var(--info);margin-top:2px;">Cliquer pour rouvrir ↩</div>
+        </div>
       </div>`;
-    }).join('');
-  }catch(e){
-    box.innerHTML=`<div style="color:var(--red);font-size:12px">Erreur : ${esc(e.message)}</div>`;
-  }
-}
-function closeModal(){ document.getElementById('edit-overlay').classList.remove('show'); }
-
-document.getElementById('edit-overlay').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
-
-async function saveEdit(){
-  const btn=document.getElementById('btn-save');
-  btn.disabled=true; btn.textContent='Enregistrement…';
-  hideA('err-edit'); hideA('ok-edit');
-  const pid=gv('edit-id');
-  const cid=gv('edit-contrat-id');
-  // Fetch current values to diff
-  const [currentPArr, currentCArr] = await Promise.all([
-    sbGet(`/rest/v1/personnes?select=civilite,type_client,prenom,nom,date_naissance,siret,email,telephone,wechat,note&id=eq.${pid}`),
-    cid ? sbGet(`/rest/v1/contrats?select=iban&id=eq.${cid}`) : Promise.resolve([])
-  ]);
-  const currentP=currentPArr[0]||{};
-  const currentContrat=currentCArr[0]||{};
-  const newVals={
-    civilite:gv('edit-civilite')||null,
-    type_client:gv('edit-type-client')||null,
-    prenom:gv('edit-prenom')||null, nom:gv('edit-nom')||null,
-    date_naissance:gv('edit-naissance')||null,
-    siret:gv('edit-siret')||null,
-    email:gv('edit-email')||null,
-    telephone:gv('edit-telephone')||null,
-    wechat:gv('edit-wechat')||null,
-    note:gv('edit-note')||null,
-  };
-  // Only include changed fields
-  const pData={};
-  const changed={};
-  for(const [k,v] of Object.entries(newVals)){
-    const cur=currentP[k]||null;
-    const nw=v||null;
-    if(cur!==nw){ pData[k]=nw; changed[k]={de:cur,a:nw}; }
-  }
-  if(Object.keys(pData).length===0 && !gv('edit-iban')){
-    showA('ok-edit','Aucune modification détectée.');
-    btn.disabled=false; btn.textContent='Enregistrer';
+    }).join('')||'<div style="padding:20px;color:var(--muted);">Aucun.</div>';
     return;
   }
-  try{
-    if(Object.keys(pData).length>0){
-      // Update personne
-      const rP=await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:H,body:JSON.stringify(pData)});
-      if(!rP.ok) throw new Error(await rP.text());
-      // Historique — only changed fields
-      try{
-        const changedStr=Object.entries(changed).map(([k,{de,a}])=>`${k}: ${de||'—'} → ${a||'—'}`).join(' | ');
-        await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:H,body:JSON.stringify({
-          table_name:'personnes',record_id:pid||null,
-          champ:Object.keys(changed).join(','),ancienne_valeur:null,
-          nouvelle_valeur:`personne:${pid}|${changedStr}`,
-          modifie_par:null,action_type:'UPDATE'
-        })});
-      }catch(_){}
+
+  // Sort
+  filtered=[...filtered].sort((a,b)=>{
+    if(currentSort==='priorite'){
+      const pa=getPriorityScore(a),pb=getPriorityScore(b);
+      if(pa!==pb)return pb-pa;
+      const ta=getTimeLeft(a),tb=getTimeLeft(b);
+      if(ta!==null&&tb!==null)return ta-tb; // closest deadline first
+      return getAgeHours(b)-getAgeHours(a); // oldest first
     }
-    // IBAN → only update if changed
-    const ibanRaw=gv('edit-iban').replace(/\s/g,'');
-    const ibanCurrent=(currentContrat?.iban||'').replace(/\s/g,'');
-    if(cid && ibanRaw && ibanRaw!==ibanCurrent){
-      const rC=await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:H,body:JSON.stringify({iban:ibanRaw})});
-      if(!rC.ok) throw new Error(await rC.text());
-      try{
-        await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:H,body:JSON.stringify({
-          table_name:'contrats',record_id:cid||null,
-          champ:'iban',ancienne_valeur:ibanCurrent||null,
-          nouvelle_valeur:`personne:${pid}|${ibanRaw}`,
-          modifie_par:null,action_type:'UPDATE'
-        })});
-      }catch(_){}
+    if(currentSort==='temps')return getAgeHours(b)-getAgeHours(a);
+    if(currentSort==='commission'){
+      const ca=taskTypesMap[a.formule]?.commission_default||0;
+      const cb=taskTypesMap[b.formule]?.commission_default||0;
+      return cb-ca;
     }
-    showA('ok-edit','✓ Modifications enregistrées.');
-  }catch(e){
-    showA('err-edit','Erreur : '+e.message);
-  }finally{
-    btn.disabled=false; btn.textContent='Enregistrer';
-  }
+    return 0;
+  });
+
+  if(!filtered.length){document.getElementById('task-list').innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;">Aucune tâche.</div>';return;}
+
+  document.getElementById('task-list').innerHTML=filtered.map(t=>{
+    const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule||'Tâche'};
+    const ts=TASK_STATUS[t.contrat_status]||{label:t.contrat_status||'—',cls:''};
+    const pack=packMap[t.id];
+    const isClaimed=!!t.agent_code;
+    const isMyTask=t.agent_code===myAgentCode;
+    const canClaim=!isClaimed&&t.contrat_status==='en_attente';
+    const ttDef=taskTypesMap[t.formule];
+    const commAmt=ttDef?parseFloat(ttDef.commission_default||0):0; // Only task type commission, not intermediaire
+    const age=getAgeHours(t);
+    const timeLeft=getTimeLeft(t);
+
+    // Priority badge
+    const prioMap={haute:{label:'🔴 Urgent',cls:'background:rgba(220,53,69,0.1);color:var(--danger);'},moyenne:{label:'🟡 Moyen',cls:'background:rgba(230,168,23,0.1);color:var(--warning);'}};
+    const prioBadge=prioMap[t.priorite]?`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;${prioMap[t.priorite].cls}">${prioMap[t.priorite].label}</span>`:'';
+
+    // Deadline badge
+    let deadlineBadge='';
+    if(timeLeft!==null){
+      if(timeLeft<0)deadlineBadge=`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:rgba(220,53,69,0.12);color:var(--danger);">⏰ Dépassé!</span>`;
+      else if(timeLeft<6)deadlineBadge=`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:rgba(230,168,23,0.12);color:var(--warning);">⏰ ${Math.round(timeLeft)}h restantes</span>`;
+    }
+
+    // Pack
+    let packBadge='';
+    if(pack){const done=pack.tasks.filter(x=>x.contrat_status==='actif').length;packBadge=`<span class="tcard-pack">📦 ${done}/${pack.total}</span>`;}
+
+    // Agent
+    let agentBadge='';
+    if(isMyTask)agentBadge='<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:6px;background:rgba(25,135,84,0.1);color:var(--success);">🟢 Moi</span>';
+
+    // Border color by priority
+    const borderColor=t.priorite==='haute'?'var(--danger)':t.priorite==='moyenne'?'var(--warning)':'var(--border)';
+
+    return `<div class="tcard" style="border-left:3px solid ${borderColor};position:relative;" onclick="openTask('${t.id}')">
+      <div class="tcard-icon">${tt.icon}</div>
+      <div class="tcard-body" style="flex:1;">
+        <div class="tcard-title">${tt.label}${t.id_service?' · <span style="font-weight:400;color:var(--muted);font-size:11px;">'+esc(t.id_service)+'</span>':''}</div>
+        <div class="tcard-meta" style="margin-top:4px;">
+          <span class="tcard-tag ${ts.cls}">${ts.label}</span>
+          ${prioBadge}${deadlineBadge}${packBadge}${agentBadge}
+          ${commAmt>0?`<span style="font-size:10px;font-weight:700;color:var(--accent);">💰 ${commAmt.toFixed(0)}€</span>`:''}
+        </div>
+      </div>
+      <div class="tcard-right" style="text-align:right;min-width:80px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);">⏱ ${fmtAge(age)}</div>
+        <div class="tcard-date">${fmtDate(t.created_at)}</div>
+      </div>
+      ${canClaim?`<div onclick="event.stopPropagation();claimTask('${t.id}')" style="background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;align-self:center;">🙋 Prendre</div>`:''}
+    </div>`;
+  }).join('');
 }
 
-// ══════════════════════════════════════════════════════════════════
-// CONTRAT DETAIL VIEW
-// ══════════════════════════════════════════════════════════════════
-async function openContratDetail(pid, clientName, clientEmail){
-  const panel = document.getElementById('panel-contrats');
-  panel.innerHTML = '<div class="panel-inner"><div style="color:var(--muted);padding:40px;text-align:center"><span class="spinner"></span>Chargement…</div></div>';
+// ══════════════════════════════════════
+// TASK DRAWER
+// ══════════════════════════════════════
+function openDrawer(){document.getElementById('fmodal').classList.add('open');}
+function closeDrawer(){document.getElementById('fmodal').classList.remove('open');currentTaskId=null;}
+function closeFM(){closeDrawer();}
 
+// ══════════════════════════════════════
+// DYNAMIC FORM CONFIG
+// ══════════════════════════════════════
+let formConfig=null;
+async function loadFormConfig(){
   try{
-    // Load all contrats for this personne
-    const contrats = await sbGet(
-      `/rest/v1/contrats?select=*&personne_id=eq.${pid}&contrat_status=not.eq.actif&order=created_at.desc`
-    );
-    // Load adresses
-    const adresseIds=[...new Set(contrats.map(c=>c.adresse_id).filter(Boolean))];
-    const adressesMap={};
-    if(adresseIds.length){
-      const ads=await sbGet(`/rest/v1/adresses?select=id,pdl,pce,rue,code_postal,ville&id=in.(${adresseIds.join(',')})`);
-      ads.forEach(a=>adressesMap[a.id]=a);
+    const r=await fetch(`${SB}/rest/v1/form_config?id=eq.agent_task_steps&select=config`,{headers:fuwuH()});
+    const d=await r.json();
+    if(d&&d[0]&&d[0].config)formConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
+  }catch(e){console.warn('Form config load failed',e);}
+}
+
+// Get field value from data objects based on table/col mapping
+function getFieldVal(f,contrat,personne,adresse){
+  if(f.table==='personnes')return personne[f.col]||'';
+  if(f.table==='adresses')return adresse[f.col]||'';
+  if(f.table==='contrats')return contrat[f.col]||'';
+  return '';
+}
+
+// Render a single field
+function renderField(f,val){
+  const id='tf-'+f.id;
+  const v=val||f.default||'';
+  const style='width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;';
+  const roStyle='width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--muted);font-family:inherit;cursor:not-allowed;';
+  // Force readonly for certain agent fields
+  const isRO=f.readonly||f.col==='id_service'||f.col==='inscrit_par'||f.col==='agent_code'||f.col==='source';
+  const lbl=`<label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${f.label}${f.required?' *':''}${isRO?' 🔒':''}</label>`;
+
+  // Readonly: just display value
+  if(isRO){
+    return `<div style="margin-bottom:8px;${f.width==='full'?'grid-column:1/-1;':''}">${lbl}<div style="${roStyle}">${esc(v)||'—'}</div><input type="hidden" id="${id}" value="${esc(v)}"></div>`;
+  }
+
+  if(f.type==='select'){
+    const opts=(f.options||'').split('|').map(o=>`<option value="${o}" ${o===v?'selected':''}>${o||'—'}</option>`).join('');
+    return `<div style="margin-bottom:8px;${f.width==='half'?'':'grid-column:1/-1;'}">${lbl}<select id="${id}" style="${style}cursor:pointer;">${opts}</select></div>`;
+  }
+  if(f.type==='textarea'){
+    return `<div style="margin-bottom:8px;grid-column:1/-1;">${lbl}<textarea id="${id}" style="${style}resize:vertical;min-height:50px;">${esc(v)}</textarea></div>`;
+  }
+  if(f.type==='puissance'){
+    return `<div style="margin-bottom:8px;">${lbl}<div style="display:flex;gap:4px;margin-bottom:4px;">
+      <button class="abtn" onclick="document.getElementById('${id}').value='3'" style="font-size:10px;">3</button>
+      <button class="abtn" onclick="document.getElementById('${id}').value='6'" style="font-size:10px;background:var(--accent-bg);border-color:var(--accent);color:var(--accent);">6</button>
+      <button class="abtn" onclick="document.getElementById('${id}').value='9'" style="font-size:10px;">9</button>
+      <button class="abtn" onclick="document.getElementById('${id}').value='12'" style="font-size:10px;">12</button>
+      <span style="font-size:10px;color:var(--muted);align-self:center;margin-left:2px;">kVA</span>
+    </div><input type="text" id="${id}" value="${esc(v)}" style="${style}"></div>`;
+  }
+  return `<div style="margin-bottom:8px;${f.width==='full'?'grid-column:1/-1;':''}">${lbl}<input type="${f.type||'text'}" id="${id}" value="${esc(v)}" style="${style}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>`;
+}
+
+// Render a full step page from config
+function renderStep(stepCfg,idx,contrat,personne,adresse,extraTop){
+  const hasGaz=contrat.energie_type==='gaz'||contrat.energie_type==='elec+gaz';
+  let html=`<div class="step-page${idx===0?' active':''}" id="step-${idx}">`;
+  if(extraTop)html+=extraTop;
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+  stepCfg.fields.forEach(f=>{
+    if(f.showIf==='hasGaz'&&!hasGaz)return;
+    const val=getFieldVal(f,contrat,personne,adresse);
+    html+=renderField(f,val);
+  });
+  html+='</div></div>';
+  return html;
+}
+
+// Same as renderStep but appends suffix HTML after the grid
+function renderStepWithSuffix(stepCfg,idx,contrat,personne,adresse,extraTop,suffix){
+  const hasGaz=contrat.energie_type==='gaz'||contrat.energie_type==='elec+gaz';
+  let html=`<div class="step-page${idx===0?' active':''}" id="step-${idx}">`;
+  if(extraTop)html+=extraTop;
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+  stepCfg.fields.forEach(f=>{
+    if(f.showIf==='hasGaz'&&!hasGaz)return;
+    const val=getFieldVal(f,contrat,personne,adresse);
+    html+=renderField(f,val);
+  });
+  html+='</div>';
+  if(suffix)html+=suffix;
+  html+='</div>';
+  return html;
+}
+
+// ══════════════════════════════════════
+// OPEN TASK (config-driven)
+// ══════════════════════════════════════
+function openTask(id){
+  const t=allTasks.find(x=>x.id===id);if(!t)return;
+  currentTaskId=id;
+  openDrawer();
+  const p=personnesMap[t.personne_id]||{};
+  const a=adressesMap[t.adresse_id]||{};
+  const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule||'Tâche',instruction:'Traiter cette tâche.'};
+  const ts=TASK_STATUS[t.contrat_status]||{label:t.contrat_status,cls:''};
+  const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+  const packMap=detectPacks();
+  const pack=packMap[id];
+
+  document.getElementById('dw-icon').textContent=tt.icon;
+  document.getElementById('dw-title').textContent=tt.label;
+  document.getElementById('dw-sub').textContent=`${name} · ${ts.label}`;
+
+  // Use config or fallback
+  const steps=formConfig?.steps||[
+    {id:'client',title:'Client',fields:[]},
+    {id:'adresse',title:'Adresse',fields:[]},
+    {id:'technique',title:'Technique',fields:[]},
+    {id:'dossier',title:'Dossier',fields:[]}
+  ];
+
+  // Step tabs
+  document.getElementById('steps-bar').innerHTML=steps.map((s,i)=>
+    `<div class="step-tab${i===0?' active':''}" onclick="goStep(${i})"><span class="step-num">${i+1}</span>${s.title}</div>`
+  ).join('');
+
+  // Pack bar
+  let packHtml='';
+  if(pack){
+    const done=pack.tasks.filter(x=>x.contrat_status==='actif').length;
+    packHtml=`<div class="dpack" style="margin:12px 20px 0;"><div class="dpack-title">📦 Déménagement · ${done}/${pack.total}</div>`;
+    pack.tasks.forEach(pt=>{const ptT=TASK_TYPES[pt.formule]||{icon:'📋',label:pt.formule};const cur=pt.id===id;const dn=pt.contrat_status==='actif';packHtml+=`<div class="dpack-task ${cur?'current':''}" onclick="${cur?'':`openTask('${pt.id}')`}"><div class="dpack-step ${dn?'done':cur?'active':''}">${dn?'✓':cur?'→':' '}</div><span>${ptT.icon} ${ptT.label}</span>${dn?'<span style="font-size:10px;color:var(--success);margin-left:auto;">✓</span>':''}</div>`;});
+    packHtml+='</div>';
+  }
+
+  // Render all steps
+  const extraTop=`<div class="dinstr">${tt.instruction}</div>${packHtml}`;
+  let bodyHtml='';
+  steps.forEach((s,i)=>{
+    let extra=i===0?extraTop:'';
+    // Last step: append system info
+    if(i===steps.length-1){
+      const ttDef=taskTypesMap[t.formule];
+      const commVal=ttDef?parseFloat(ttDef.commission_default||0):0; // Only task type commission for agent
+      extra+=`
+        <div style="margin-top:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Informations système</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;">
+            <div><span style="color:var(--muted);font-size:10px;">INSCRIT PAR</span><br><strong>${esc(t.inscrit_par||t.source||'—')}</strong></div>
+            <div><span style="color:var(--muted);font-size:10px;">AGENT</span><br><strong>${esc(t.agent_code||'Non assigné')}</strong></div>
+            <div><span style="color:var(--muted);font-size:10px;">MODIFIÉ PAR</span><br><strong>${esc(t.modifie_par||'—')}</strong></div>
+            <div><span style="color:var(--muted);font-size:10px;">COMMISSION</span><br><strong style="color:var(--accent);">${commVal>0?commVal.toFixed(0)+' € HT':'—'}</strong></div>
+          </div>
+        </div>`;
+      // Need to wrap properly - the extra goes after the grid close
+      bodyHtml+=renderStepWithSuffix(s,i,t,p,a,i===0?extraTop:'',extra);
+      return;
     }
+    bodyHtml+=renderStep(s,i,t,p,a,extra);
+  });
 
-    const cardsHtml = contrats.map((c,i)=>{
-      const ad=adressesMap[c.adresse_id]||{};
-      const addr=[ad.rue,ad.code_postal,ad.ville].filter(Boolean).join(', ')||'—';
-      const tCls='tag-'+(c.contrat_status||'');
-      return `<div class="contrat-detail-card" id="cdc-${c.id}">
-        <div class="cdc-top">
-          <div>
-            <div class="cdc-id">${esc(c.id_service||c.id)}</div>
-            <div class="cdc-energie">${esc(c.energie_type||'')} · ${esc(c.fournisseur||'—')} · ${esc(addr)}</div>
-          </div>
-          <div class="cdc-status-wrap">
-            <select class="status-select" id="cdc-status-${c.id}">
-              <option value="en_cours" ${c.contrat_status==='en_cours'?'selected':''}>en cours</option>
-              <option value="en_attente" ${c.contrat_status==='en_attente'?'selected':''}>en attente</option>
-              <option value="en_traitement" ${c.contrat_status==='en_traitement'?'selected':''}>en traitement</option>
-              <option value="actif" ${c.contrat_status==='actif'?'selected':''}>actif</option>
-              <option value="annule" ${c.contrat_status==='annule'?'selected':''}>annulé</option>
-            </select>
-            <span class="tag ${tCls}" id="cdc-tag-${c.id}">${esc(c.contrat_status||'—')}</span>
-          </div>
-        </div>
-        <div class="cdc-fields">
-          <div class="cdc-field">
-            <label>ID Fournisseur</label>
-            <input type="text" id="cdc-idf-${c.id}" value="${esc(c.id_fournisseur||'')}">
-          </div>
-          <div class="cdc-field">
-            <label>BS Fournisseur</label>
-            <input type="text" id="cdc-bs-${c.id}" value="${esc(c.bs_fournisseur||'')}">
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="cdc-save-btn cr-save-btn" id="cdc-btn-${c.id}" data-cid="${c.id}" data-pid="${pid}">Enregistrer</button>
-          <span class="cdc-msg" id="cdc-msg-${c.id}"></span>
-        </div>
-      </div>`;
-    }).join('');
+  document.getElementById('dw-body').innerHTML=bodyHtml;
+  window._step=0;
+  window._totalSteps=steps.length;
+  updateNav(id,t);
+}
 
-    panel.innerHTML = `<div class="panel-inner">
-      <div class="detail-header">
-        <button class="detail-back" onclick="backToList()">← Retour</button>
-        <div>
-          <div class="detail-client-name">${esc(clientName)}</div>
-          <div class="detail-client-sub">${esc(clientEmail)}</div>
-        </div>
-        <span style="margin-left:auto;font-size:12px;color:var(--muted)">${contrats.length} contrat(s)</span>
-      </div>
-      ${cardsHtml||'<div class="no-result">Aucun contrat trouvé.</div>'}
-    </div>`;
+let _step=0,_totalSteps=4;
+function goStep(n){
+  _step=n;
+  document.querySelectorAll('.step-page').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.step-tab').forEach((t,i)=>{t.classList.toggle('active',i===n);if(i<n)t.classList.add('done');else t.classList.remove('done');});
+  const t=allTasks.find(x=>x.id===currentTaskId);if(t)updateNav(currentTaskId,t);
+}
 
-    // Save buttons via addEventListener (avoids onclick quoting issues)
-    document.querySelectorAll('.cr-save-btn').forEach(btn=>{
-      btn.addEventListener('click',()=>saveContrat(btn.dataset.cid, btn.dataset.pid));
-    });
-    // Live status tag update on select change
-    contrats.forEach(c=>{
-      const sel=document.getElementById('cdc-status-'+c.id);
-      const tag=document.getElementById('cdc-tag-'+c.id);
-      if(sel&&tag) sel.addEventListener('change',()=>{
-        tag.className='tag tag-'+sel.value;
-        tag.textContent=sel.value;
+function updateNav(id,t){
+  const pid=t.personne_id||'',aid=t.adresse_id||'';
+  const p=personnesMap[pid]||{};
+  const isMyTask=t.agent_code===myAgentCode;
+  const isClaimed=!!t.agent_code;
+  let h='';
+  if(_step>0)h+=`<button class="abtn" onclick="goStep(${_step-1})">← Précédent</button>`;
+  h+='<div style="flex:1;"></div>';
+  // Claim or start
+  if(!isClaimed&&t.contrat_status==='en_attente')h+=`<button class="abtn primary" onclick="claimTask('${id}');goStep(1);">🙋 Prendre & Commencer</button>`;
+  else if(t.contrat_status==='en_attente'&&_step===0)h+=`<button class="abtn primary" onclick="quickStart('${id}');goStep(1);">▶ Commencer</button>`;
+  // Navigation
+  if(_step<_totalSteps-1)h+=`<button class="abtn primary" onclick="goStep(${_step+1})">Suivant →</button>`;
+  if(_step===_totalSteps-1){
+    h+=`<button class="abtn g" onclick="saveAll('${id}','${pid}','${aid}')">💾 Sauvegarder</button>`;
+    if(t.contrat_status==='en_traitement'&&isMyTask)h+=`<button class="abtn g" onclick="saveAndDone('${id}','${pid}','${aid}')">✅ Sauver & Terminer</button>`;
+  }
+  // Abandon (only if I claimed it and it's in progress)
+  if(isMyTask&&t.contrat_status==='en_traitement')h+=`<button class="abtn r" onclick="abandonTask('${id}')" style="font-size:10px;">🚫 Abandonner</button>`;
+  if(p.telephone)h+=`<a class="abtn" href="tel:${p.telephone}">📞</a>`;
+  document.getElementById('dw-actions').innerHTML=h;
+}
+
+// Claim a task (from task list)
+async function claimTask(id){
+  try{
+    const t=allTasks.find(x=>x.id===id);
+    const ttDef=taskTypesMap[t?.formule];
+    const delai=ttDef?.delai_heures||24;
+    const dateLimite=new Date(Date.now()+delai*3600000).toISOString();
+    const body={agent_code:myAgentCode,modifie_par:myAgentCode,agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement',date_limite:dateLimite};
+    if(!t.priorite||t.priorite==='normal'){}// keep default
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
+    if(t)Object.assign(t,body);
+    renderStats();renderTasks();
+    showToast(`🙋 Pris — délai ${delai}h`);
+  }catch(e){showToast('Erreur',true);}
+}
+
+// Start working (from inside modal, step 1)
+async function quickStart(id){
+  const body={agent_code:myAgentCode,modifie_par:myAgentCode,agent_claimed_at:new Date().toISOString(),contrat_status:'en_traitement'};
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(body)});
+  const t=allTasks.find(x=>x.id===id);
+  if(t)Object.assign(t,body);
+  document.getElementById('dw-sub').textContent=document.getElementById('dw-sub').textContent.replace('À faire','En cours');
+  renderStats();renderTasks();showToast('▶ Commencé — Agent '+myAgentCode);
+}
+
+// Abandon a task
+async function reopenDoneTask(id){
+  if(!confirm('Rouvrir cette tâche pour correction ?\nLe statut repassera en "En traitement".'))return;
+  try{
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'en_traitement',modifie_par:myAgentCode})});
+    // Move from completed to active tasks
+    const c=allCompleted.find(x=>x.id===id);
+    if(c){
+      c.contrat_status='en_traitement';
+      c.modifie_par=myAgentCode;
+      c.agent_code=myAgentCode;
+      allTasks.push(c);
+      allCompleted=allCompleted.filter(x=>x.id!==id);
+    }
+    currentFilter='en_cours';
+    renderStats();renderChips();renderTasks();
+    // Open the task modal
+    setTimeout(()=>openTask(id),200);
+    showToast('↩ Tâche rouverte — vous pouvez corriger');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function abandonTask(id){
+  if(!confirm('Abandonner cette tâche ?\nUne pénalité de commission peut s\'appliquer.'))return;
+  const t=allTasks.find(x=>x.id===id);
+  const penalite=parseFloat(t?.agent_penalite||0);
+  try{
+    // Clear agent - send null for nullable fields
+    const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({agent_code:null,modifie_par:myAgentCode,agent_claimed_at:null,contrat_status:'en_attente',date_limite:null})});
+    if(!r.ok){const txt=await r.text();showToast('Erreur: '+txt,true);return;}
+    // Remove from local list (agent can't see unclaimed tasks they abandoned)
+    allTasks=allTasks.filter(x=>x.id!==id);
+    // Record in historique
+    if(penalite>0){
+      try{await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:fuwuH(),body:JSON.stringify({contrat_id:id,champ:'agent_abandon',ancienne_valeur:myAgentCode,nouvelle_valeur:'abandonné',modifie_par:myAgentCode,action_type:'abandon'})});}catch(e){}
+    }
+    renderStats();renderTasks();closeFM();
+    showToast(penalite>0?`⚠️ Abandonnée — Pénalité: ${penalite}€`:'↩ Tâche remise en attente');
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function saveAndDone(id,pid,aid){
+  await saveAll(id,pid,aid);
+  await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:'actif',modifie_par:myAgentCode})});
+  const t=allTasks.find(x=>x.id===id);if(t){t.contrat_status='actif';t.modifie_par=myAgentCode;}
+
+  // Auto-create commission for this agent if task_type has commission_default
+  const ttDef=taskTypesMap[t?.formule];
+  const commAmt=ttDef?parseFloat(ttDef.commission_default||0):0;
+  if(commAmt>0&&t){
+    try{
+      // Check if commission already exists
+      const rc=await fetch(`${SB}/rest/v1/commissions?contrat_id=eq.${id}&select=id`,{headers:fuwuH()});
+      const existing=await rc.json();
+      if(!existing||!existing.length){
+        // Find intermediaire from source
+        let intermId=null;
+        if(t.source){
+          const ri=await fetch(`${SB}/rest/v1/personnes?email=eq.${encodeURIComponent(t.source)}&est_intermediaire=eq.true&select=id`,{headers:fuwuH()});
+          const idata=await ri.json();
+          if(idata&&idata[0])intermId=idata[0].id;
+        }
+        await fetch(`${SB}/rest/v1/commissions`,{method:'POST',headers:fuwuH(),body:JSON.stringify({
+          contrat_id:id,
+          intermediaire_id:intermId,
+          montant:commAmt,
+          statut:'non_paye',
+          type_commission:'agent',
+          business_line:'energie'
+        })});
+      }
+    }catch(e){console.warn('Commission auto-create failed',e);}
+  }
+
+  renderStats();renderTasks();closeFM();showToast('✅ Terminé & commission enregistrée');
+}
+
+// Field helpers
+function ef(id,label,val,type){
+  type=type||'text';
+  return `<div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><input type="${type}" id="${id}" value="${esc(val||'')}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>`;
+}
+function efSel(id,label,val,opts){
+  const options=(opts||'').split('|').map(o=>`<option value="${o}" ${o===(val||'')?'selected':''}>${o||'—'}</option>`).join('');
+  return `<div style="margin-bottom:8px;"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:2px;">${label}</label><select id="${id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit;cursor:pointer;">${options}</select></div>`;
+}
+function gv(id){const el=document.getElementById(id);return el?el.value.trim()||null:null;}
+
+// Dynamic save: reads config to know which fields → which table
+async function saveAll(cid,pid,aid){
+  try{
+    const steps=formConfig?.steps||[];
+    const contratBody={},personneBody={},adresseBody={};
+
+    steps.forEach(step=>{
+      step.fields.forEach(f=>{
+        // Skip readonly fields (they shouldn't overwrite)
+        if(f.readonly||f.col==='id_service'||f.col==='inscrit_par'||f.col==='agent_code'||f.col==='source')return;
+        const el=document.getElementById('tf-'+f.id);
+        if(!el)return;
+        const val=el.value.trim();
+        if(!val)return; // Don't send empty → prevents overwriting existing data with null
+        if(f.table==='contrats')contratBody[f.col]=val;
+        else if(f.table==='personnes')personneBody[f.col]=val;
+        else if(f.table==='adresses')adresseBody[f.col]=val;
       });
     });
 
-  }catch(e){
-    panel.innerHTML=`<div class="panel-inner"><div style="color:var(--red);padding:20px">Erreur : ${esc(e.message)}</div></div>`;
-  }
+    // Always set modifie_par
+    contratBody.modifie_par=myAgentCode;
+
+    // Also grab note if exists
+    const noteEl=document.getElementById('tf-note');
+    if(noteEl&&noteEl.value.trim())contratBody.note_agent=noteEl.value.trim();
+
+    if(Object.keys(contratBody).length){
+      const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${cid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(contratBody)});
+      if(!r.ok){const t=await r.text();throw new Error('Contrat: '+t);}
+      const ct=allTasks.find(x=>x.id===cid);if(ct)Object.assign(ct,contratBody);
+    }
+    if(pid&&Object.keys(personneBody).length){
+      const r=await fetch(`${SB}/rest/v1/personnes?id=eq.${pid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(personneBody)});
+      if(!r.ok){const t=await r.text();throw new Error('Personne: '+t);}
+      if(personnesMap[pid])Object.assign(personnesMap[pid],personneBody);
+    }
+    if(aid&&Object.keys(adresseBody).length){
+      const r=await fetch(`${SB}/rest/v1/adresses?id=eq.${aid}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify(adresseBody)});
+      if(!r.ok){const t=await r.text();throw new Error('Adresse: '+t);}
+      if(adressesMap[aid])Object.assign(adressesMap[aid],adresseBody);
+    }
+
+    renderStats();renderTasks();showToast('💾 Sauvegardé ✅');
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
-function backToList(){
-  const panel=document.getElementById('panel-contrats');
-  panel.innerHTML=`<div class="panel-inner">
-    <div class="card">
-      <div class="card-title">📋 Contrats — en cours &amp; en attente</div>
-      <div class="toolbar">
-        <input type="text" id="contrat-search" placeholder="Filtrer nom, email, PDL, ID…" oninput="filterContrats()">
-        <button class="toolbar-refresh" onclick="loadContrats()">↻ Actualiser</button>
-        <span class="list-count" id="contrat-count"></span>
-        <button class="btn btn-primary btn-sm" onclick="switchTab('inscription',document.getElementById('htab-inscription'))">✏️ Nouvelle inscription</button>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="ctable">
-          <thead><tr>
-            <th>Client</th><th>ID Fuwu</th><th>ID Fournisseur</th><th>PDL / PCE</th><th>Statut actuel</th><th>Modifier</th>
-          </tr></thead>
-          <tbody id="contrat-tbody"></tbody>
-        </table>
-      </div>
-      <div class="alert alert-error" id="err-contrats" style="margin-top:12px;"></div>
-    </div>
-  </div>`;
-  if(allContrats.length) renderContrats(allContrats);
-  else loadContrats();
-}
-
-async function saveContrat(contratId, pid){
-  const btn=document.getElementById('cdc-btn-'+contratId);
-  const msg=document.getElementById('cdc-msg-'+contratId);
-  if(!btn) return;
-  btn.disabled=true; btn.textContent='Enregistrement…';
-  if(msg){ msg.textContent=''; msg.className='cdc-msg'; }
-
-  const newStatus=document.getElementById('cdc-status-'+contratId)?.value;
-  const newIdf=document.getElementById('cdc-idf-'+contratId)?.value?.trim()||null;
-  const newBs=document.getElementById('cdc-bs-'+contratId)?.value?.trim()||null;
-
+async function changeStatus(id,newStatus){
   try{
-    const patchBody={contrat_status:newStatus};
-    if(newIdf!==null) patchBody.id_fournisseur=newIdf;
-    if(newBs!==null) patchBody.bs_fournisseur=newBs;
-    console.log('PATCH body:', JSON.stringify(patchBody));
-    const r=await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{
-      method:'PATCH',headers:H,
-      body:JSON.stringify(patchBody)
-    });
-    const rText=await r.text();
-    if(!r.ok) throw new Error(rText);
+    await fetch(`${SB}/rest/v1/contrats?id=eq.${id}`,{method:'PATCH',headers:fuwuH(),body:JSON.stringify({contrat_status:newStatus})});
+    const t=allTasks.find(x=>x.id===id);if(t)t.contrat_status=newStatus;
+    // If terminé, remove from list (or keep with updated status)
+    renderStats();renderTasks();
+    if(currentTaskId===id)openTask(id);
+    showToast(TASK_STATUS[newStatus]?.label||newStatus);
+  }catch(e){showToast('Erreur',true);}
+}
 
-    // Re-fetch to confirm actual saved values
-    const saved=await sbGet(`/rest/v1/contrats?select=id_fournisseur,bs_fournisseur,contrat_status&id=eq.${contratId}`);
-    const sv0=saved[0]||{};
-    console.log('Saved values:', sv0);
+// saveNote is now part of saveTaskFull
 
-    // historique
+// ══════════════════════════════════════
+// CLIENTS / CONTRATS SEARCH
+// ══════════════════════════════════════
+let _clientTimer=null;
+async function searchClients(){
+  clearTimeout(_clientTimer);
+  const q=(document.getElementById('client-search').value||'').trim();
+  const el=document.getElementById('client-results');
+  if(q.length<2){el.innerHTML='<div style="color:var(--muted)">Tapez au moins 2 caractères.</div>';return;}
+  _clientTimer=setTimeout(async()=>{
+    el.innerHTML='<div style="color:var(--muted)"><span class="spinner"></span> Recherche…</div>';
     try{
-      await fetch(`${SB}/rest/v1/historique`,{method:'POST',headers:H,body:JSON.stringify({
-        table_name:'contrats',record_id:contratId||null,
-        champ:'contrat_edit',ancienne_valeur:null,
-        nouvelle_valeur:`personne:${pid}|status:${newStatus},id_fournisseur:${newIdf||''},bs_fournisseur:${newBs||''}`,
-        modifie_par:null,action_type:'UPDATE'
-      })});
-    }catch(_){}
-
-    // Display actual saved values
-    const idfEl=document.getElementById('cdc-idf-'+contratId);
-    const bsEl=document.getElementById('cdc-bs-'+contratId);
-    if(idfEl) idfEl.value=sv0.id_fournisseur||'';
-    if(bsEl) bsEl.value=sv0.bs_fournisseur||'';
-    const tag=document.getElementById('cdc-tag-'+contratId);
-    if(tag){ tag.textContent=sv0.contrat_status||newStatus; tag.className='tag tag-'+(sv0.contrat_status||newStatus); }
-
-    if(msg){ msg.textContent='✓ Enregistré'; msg.className='cdc-msg ok'; }
-    btn.textContent='✓ Enregistré';
-    btn.style.background='var(--green)';
-    btn.disabled=false;
-    setTimeout(()=>{
-      if(msg) msg.textContent='';
-      btn.textContent='Enregistrer';
-      btn.style.background='';
-    },2500);
-  }catch(e){
-    if(msg){ msg.textContent='Erreur : '+e.message; msg.className='cdc-msg err'; }
-    else{ btn.textContent='Erreur'; }
-    btn.disabled=false;
-    setTimeout(()=>{ btn.textContent='Enregistrer'; btn.style.background=''; },3000);
-  }
+      // Search by email, nom, prenom, telephone, wechat
+      const safe=q.replace(/[%_\\]/g,c=>'\\'+c);
+      const encoded=encodeURIComponent(safe);
+      const r=await fetch(`${SB}/rest/v1/personnes?or=(email.ilike.*${encoded}*,nom.ilike.*${encoded}*,prenom.ilike.*${encoded}*,telephone.ilike.*${encoded}*,wechat.ilike.*${encoded}*)&select=id,civilite,prenom,nom,email,telephone,wechat&limit=20&order=nom.asc`,{headers:fuwuH()});
+      if(!r.ok)throw new Error(r.status);
+      const results=await r.json();
+      // Cache in personnesMap
+      results.forEach(p=>personnesMap[p.id]=p);
+      el.innerHTML=results.length?results.map(p=>`<div class="tcard" onclick="showClientDetail('${p.id}')"><div class="tcard-icon">👤</div><div class="tcard-body"><div class="tcard-title">${esc([p.civilite,p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}</div><div class="tcard-sub">${esc(p.email||'')} · ${esc(p.telephone||'')}${p.wechat?' · '+esc(p.wechat):''}</div></div></div>`).join(''):'<div style="color:var(--muted)">Aucun résultat.</div>';
+    }catch(e){el.innerHTML='<div style="color:var(--danger)">Erreur: '+e.message+'</div>';}
+  },300);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────
-async function sbGet(path){
-  const r=await fetch(SB+path,{headers:H});
-  if(!r.ok) throw new Error(await r.text());
-  return r.json();
+function searchContrats(){
+  const q=(document.getElementById('contrat-search').value||'').trim().toLowerCase();
+  const el=document.getElementById('contrat-results');
+  if(q.length<2){el.innerHTML='<div style="color:var(--muted)">Tapez au moins 2 caractères.</div>';return;}
+  const results=allTasks.filter(t=>{
+    const p=personnesMap[t.personne_id]||{};const a=adressesMap[t.adresse_id]||{};
+    return [p.prenom,p.nom,p.email,a.pdl,a.pce,t.fournisseur,t.id_service].join(' ').toLowerCase().includes(q);
+  }).slice(0,20);
+  el.innerHTML=results.length?results.map(t=>{const p=personnesMap[t.personne_id]||{};return `<div class="tcard" onclick="openTask('${t.id}')"><div class="tcard-icon">📄</div><div class="tcard-body"><div class="tcard-title">${esc(t.fournisseur||'—')}</div><div class="tcard-sub">${esc([p.prenom,p.nom].filter(Boolean).join(' '))}</div></div></div>`;}).join(''):'<div style="color:var(--muted)">Aucun résultat.</div>';
 }
-function enc(v){ return encodeURIComponent(v); }
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function sv(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
-function gv(id){ return document.getElementById(id)?.value?.trim()||''; }
-function showA(id,msg){ const el=document.getElementById(id); if(el){el.textContent=msg;el.classList.add('show');} }
-function hideA(id){ document.getElementById(id)?.classList.remove('show'); }
-function setTbody(html){ document.getElementById('contrat-tbody').innerHTML=html; }
-function fmtIban(el){ let v=el.value.replace(/\s/g,'').toUpperCase(); el.value=v.match(/.{1,4}/g)?.join(' ')||v; }
+
+function showClientDetail(id){
+  const p=personnesMap[id];if(!p)return;
+  openDrawer();
+  document.getElementById('dw-icon').textContent='👤';
+  document.getElementById('dw-title').textContent=[p.prenom,p.nom].filter(Boolean).join(' ');
+  document.getElementById('dw-sub').textContent=p.email||'';
+  const tasks=allTasks.filter(t=>t.personne_id===id);
+  document.getElementById('dw-body').innerHTML=`
+    <div class="dsec">Coordonnées</div>
+    ${dr('Email',esc(p.email||'—'))}
+    ${dr('Téléphone',p.telephone?`<a href="tel:${p.telephone}" style="color:var(--accent)">${esc(p.telephone)}</a>`:'—')}
+    <div class="dsec">Tâches (${tasks.length})</div>
+    ${tasks.map(t=>{const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule};const ts=TASK_STATUS[t.contrat_status]||{label:t.contrat_status,cls:''};return `<div class="tcard" style="margin-bottom:6px;padding:8px 10px;" onclick="openTask('${t.id}')"><div class="tcard-icon" style="font-size:14px;">${tt.icon}</div><div class="tcard-body"><div class="tcard-title" style="font-size:12px;">${tt.label}</div></div><span class="tcard-tag ${ts.cls}">${ts.label}</span></div>`;}).join('')||'<div style="color:var(--muted);font-size:12px;">Aucune tâche.</div>'}
+  `;
+  document.getElementById('dw-actions').innerHTML=p.telephone?`<a class="abtn" href="tel:${p.telephone}">📞 Appeler</a>`:'';
+}
+
+// ══════════════════════════════════════
+// RÉSULTATS (completed tasks stats)
+// ══════════════════════════════════════
+let allCompleted=[];
+let resFilter='all';
+
+let resCommMap={};
+async function loadResults(){
+  try{
+    const r=await fetch(`${SB}/rest/v1/contrats?contrat_status=eq.actif&agent_code=eq.${encodeURIComponent(myAgentCode)}&select=id,id_service,personne_id,fournisseur,energie_type,formule,date_debut,created_at,source&order=created_at.desc&limit=500`,{headers:fuwuH()});
+    if(r.ok)allCompleted=await r.json();
+
+    // Load personnes
+    const pids=[...new Set(allCompleted.map(c=>c.personne_id).filter(Boolean))];
+    for(let i=0;i<pids.length;i+=200){
+      const batch=pids.slice(i,i+200);
+      try{const rp=await fetch(`${SB}/rest/v1/personnes?id=in.(${batch.join(',')})&select=id,prenom,nom,email`,{headers:fuwuH()});const d=await rp.json();if(Array.isArray(d))d.forEach(p=>personnesMap[p.id]=p);}catch(e){}
+    }
+    // Load commissions for completed tasks
+    const cids=allCompleted.map(c=>c.id);
+    resCommMap={};
+    for(let i=0;i<cids.length;i+=200){
+      const batch=cids.slice(i,i+200);
+      try{const rc=await fetch(`${SB}/rest/v1/commissions?contrat_id=in.(${batch.join(',')})&select=id,contrat_id,montant,statut`,{headers:fuwuH()});const d=await rc.json();if(Array.isArray(d))d.forEach(c=>resCommMap[c.contrat_id]=c);}catch(e){}
+    }
+  }catch(e){console.error(e);}
+  renderResults();
+}
+
+function renderResults(){
+  const total=allCompleted.length;
+  const thisMonth=allCompleted.filter(c=>{const d=c.date_debut||c.created_at||'';return d.startsWith(new Date().toISOString().substring(0,7));}).length;
+  const byType={};
+  allCompleted.forEach(c=>{const t=c.formule||'autre';byType[t]=(byType[t]||0)+1;});
+
+  // Calculate total commission earned
+  let totalComm=0,paidComm=0;
+  allCompleted.forEach(c=>{
+    const cm=resCommMap[c.id];
+    if(cm){totalComm+=parseFloat(cm.montant||0);if(cm.statut==='paye')paidComm+=parseFloat(cm.montant||0);}
+  });
+
+  document.getElementById('res-stats').innerHTML=`
+    <div class="scard"><div class="scard-val v-green">${total}</div><div class="scard-label">Total terminés</div></div>
+    <div class="scard"><div class="scard-val v-gold">${thisMonth}</div><div class="scard-label">Ce mois</div></div>
+    <div class="scard"><div class="scard-val" style="color:var(--accent);">${totalComm.toFixed(0)}€</div><div class="scard-label">Commission totale</div></div>
+    <div class="scard"><div class="scard-val v-green">${paidComm.toFixed(0)}€</div><div class="scard-label">Déjà payé</div></div>
+  `;
+
+  const filters=[
+    {id:'all',label:`Tous (${total})`},
+    {id:'mise_en_service',label:`⚡ MES (${byType['mise_en_service']||0})`},
+    {id:'resiliation',label:`❌ Résil (${byType['resiliation']||0})`},
+    {id:'changement_fournisseur',label:`🔄 Chgt (${byType['changement_fournisseur']||0})`},
+    {id:'box_internet',label:`📡 Box (${byType['box_internet']||0})`},
+  ];
+  document.getElementById('res-chips').innerHTML=filters.map(f=>
+    `<div class="chip ${resFilter===f.id?'on':''}" onclick="resFilter='${f.id}';renderResults()">${f.label}</div>`
+  ).join('');
+
+  let filtered=allCompleted;
+  if(resFilter!=='all')filtered=allCompleted.filter(c=>c.formule===resFilter);
+
+  document.getElementById('res-list').innerHTML=filtered.length?filtered.map(c=>{
+    const p=personnesMap[c.personne_id]||{};
+    const name=[p.prenom,p.nom].filter(Boolean).join(' ')||p.email||'—';
+    const tt=TASK_TYPES[c.formule]||{icon:'📋',label:c.formule||'—'};
+    const cm=resCommMap[c.id];
+    const cmAmt=cm?parseFloat(cm.montant||0):0;
+    const cmPaid=cm?.statut==='paye';
+    return `<div class="tcard">
+      <div class="tcard-icon">${tt.icon}</div>
+      <div class="tcard-body">
+        <div class="tcard-title">${tt.label}</div>
+        <div class="tcard-sub">${esc(c.id_service||'')} · ${esc(c.fournisseur||'')}</div>
+      </div>
+      <div class="tcard-right" style="text-align:right;">
+        <div class="tcard-client">${esc(name)}</div>
+        ${cmAmt>0?`<div style="font-size:12px;font-weight:700;color:${cmPaid?'var(--success)':'var(--accent)'};">${cmAmt.toFixed(0)}€ ${cmPaid?'✅':'⏳'}</div>`:''}
+        <div class="tcard-date">${fmtDate(c.date_debut||c.created_at)}</div>
+      </div>
+    </div>`;
+  }).join(''):'<div style="color:var(--muted);font-size:13px;">Aucune tâche terminée.</div>';
+}
+
+// ══════════════════════════════════════
+// TAB NAV
+// ══════════════════════════════════════
+function showTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('pg-'+name).classList.add('active');
+  if(name==='resultats'&&!allCompleted.length)loadResults();
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function fmtDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR');}
+function normFourn(f){if(!f)return'';return f.replace(/totalenergies/i,'TotalEnergies').replace(/^edf$/i,'EDF').replace(/^engie$/i,'Engie');}
+function dr(k,v){return `<div class="drow"><span class="drow-k">${k}</span><span class="drow-v">${v||'—'}</span></div>`;}
+function copyText(t){navigator.clipboard.writeText(t);showToast('Copié: '+t);}
+function showToast(m,err){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(err?' error':'');setTimeout(()=>t.className='toast',3000);}
 </script>
 </body>
 </html>

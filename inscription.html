@@ -30,14 +30,6 @@
   .step-line.done{background:var(--green);}
   .card{background:#ffffff;border:1px solid rgba(184,146,42,0.3);box-shadow:0 2px 12px rgba(0,0,0,0.06);border-radius:18px;padding:32px;margin-bottom:16px;}
   .card-title{font-family:'Noto Serif SC',serif;font-size:16px;color:var(--gold);letter-spacing:1px;margin-bottom:24px;display:flex;align-items:center;gap:8px;}
-  .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .service-btn{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 12px;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--muted);}
-  .service-btn:hover:not(.disabled){border-color:var(--gold);color:var(--text);}
-  .service-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
-  .service-btn.disabled{opacity:0.4;cursor:not-allowed;}
-  .service-icon{font-size:22px;margin-bottom:6px;}
-  .service-name{font-size:13px;font-weight:600;}
-  .service-soon{font-size:10px;color:var(--muted);margin-top:2px;}
   .form-row{display:flex;gap:12px;margin-bottom:16px;}
   .form-row .fg{flex:1;margin-bottom:0;}
   .fg{margin-bottom:16px;}
@@ -51,23 +43,11 @@
   .toggle-btn{flex:1;min-width:60px;background:#f0ede6;border:1.5px solid var(--border);border-radius:8px;padding:9px 8px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all 0.2s;user-select:none;}
   .toggle-btn:hover{border-color:var(--gold);color:var(--text);}
   .toggle-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
-  /* Type souscription cards */
-  .souscription-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .sous-card{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s;color:var(--muted);}
-  .sous-card:hover{border-color:var(--gold);color:var(--text);}
-  .sous-card.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
-  .sous-card-icon{font-size:24px;margin-bottom:8px;}
-  .sous-card-title{font-size:13px;font-weight:700;margin-bottom:4px;}
-  .sous-card-desc{font-size:11px;color:var(--muted);line-height:1.4;}
-  .sous-card.selected .sous-card-desc{color:rgba(201,168,76,0.7);}
-  /* Intermediaire input */
   .interm-wrap{position:relative;display:flex;align-items:center;}
   .interm-wrap input{border-radius:9px 0 0 9px;border-right:none;}
   .interm-suffix{background:var(--surface2);border:1.5px solid var(--border);border-left:none;border-radius:0 9px 9px 0;padding:11px 14px;font-size:13px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
   .interm-wrap input:focus + .interm-suffix{border-color:var(--gold);}
   .divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
-  .section-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-  .section-tag::after{content:'';flex:1;height:1px;background:var(--border);}
   .nav-btns{display:flex;gap:12px;margin-top:24px;}
   .btn{flex:1;padding:14px;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;}
   .btn-primary{background:var(--gold);color:#0a0c10;}
@@ -81,9 +61,8 @@
   .dup-warning{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:none;}
   .dup-warning.show{display:block;}
   .dup-title{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;}
-  .dup-client{font-size:13px;color:var(--text);margin-bottom:10px;}
   .dup-btns{display:flex;gap:8px;}
-  .dup-btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .dup-btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
   .dup-btn-use{background:var(--gold);color:#0a0c10;}
   .dup-btn-new{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
   .success-screen{text-align:center;padding:40px 20px;display:none;}
@@ -100,12 +79,28 @@
   .recap-row:last-child{border-bottom:none;}
   .recap-key{font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);flex-shrink:0;padding-top:2px;}
   .recap-val{font-size:13px;color:var(--text);text-align:right;word-break:break-word;}
+  .pdl-suggest{display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer;}
+  .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .service-btn{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 12px;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--muted);}
+  .service-btn:hover:not(.disabled){border-color:var(--gold);color:var(--text);}
+  .service-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .service-btn.disabled{opacity:0.4;cursor:not-allowed;}
+  .service-icon{font-size:22px;margin-bottom:6px;}
+  .service-name{font-size:13px;font-weight:600;}
+  .service-desc{font-size:10px;color:var(--muted);margin-top:2px;}
+  .sous-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sous-card{background:#f0ede6;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s;color:var(--muted);}
+  .sous-card:hover{border-color:var(--gold);color:var(--text);}
+  .sous-card.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+  .sous-icon{font-size:24px;margin-bottom:8px;}
+  .sous-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+  .sous-desc{font-size:11px;color:var(--muted);line-height:1.4;}
+  .sous-card.selected .sous-desc{color:rgba(201,168,76,0.7);}
   @media(max-width:480px){
     .wrap{padding:24px 16px 40px;}
     .card{padding:20px 16px;}
     .form-row{flex-direction:column;gap:0;}
     .step-line{width:18px;}
-    .souscription-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -115,692 +110,430 @@
     <div class="header-logo">服务 FUWU</div>
     <div class="header-sub">Formulaire d'inscription</div>
   </div>
-
-  <div class="steps">
-    <div class="step active" id="step-1"><div class="step-dot">1</div><div class="step-label">Service</div></div>
-    <div class="step-line" id="line-1"></div>
-    <div class="step" id="step-2"><div class="step-dot">2</div><div class="step-label">Identité</div></div>
-    <div class="step-line" id="line-2"></div>
-    <div class="step" id="step-3"><div class="step-dot">3</div><div class="step-label">Détails</div></div>
-    <div class="step-line" id="line-3"></div>
-    <div class="step" id="step-4"><div class="step-dot">4</div><div class="step-label">Finance</div></div>
-    <div class="step-line" id="line-4"></div>
-    <div class="step" id="step-5"><div class="step-dot">5</div><div class="step-label">Validation</div></div>
-  </div>
-
+  <div class="steps" id="steps-bar"></div>
   <div class="success-screen" id="success-screen">
     <div class="success-icon">✅</div>
     <div class="success-title">Inscription enregistrée</div>
     <div class="success-sub">Votre demande a bien été reçue.<br>Notre équipe vous contactera sous 24h.</div>
     <div class="success-id" id="success-id"></div>
   </div>
-
-  <!-- PAGE 1 : Service + Type client -->
-  <div class="page active" id="page-1">
-    <div class="card">
-      <div class="card-title"><span>⚡</span> Choisissez votre service</div>
-      <div class="service-grid">
-        <div class="service-btn selected" id="svc-energie" onclick="selectService('energie')">
-          <div class="service-icon">⚡</div>
-          <div class="service-name">Énergie</div>
-          <div class="service-soon">Électricité &amp; Gaz</div>
-        </div>
-        <div class="service-btn disabled">
-          <div class="service-icon">📡</div>
-          <div class="service-name">Télécom</div>
-          <div class="service-soon">Bientôt disponible</div>
-        </div>
-        <div class="service-btn disabled">
-          <div class="service-icon">🏦</div>
-          <div class="service-name">Banque</div>
-          <div class="service-soon">Bientôt disponible</div>
-        </div>
-        <div class="service-btn disabled">
-          <div class="service-icon">🛎️</div>
-          <div class="service-name">Services Fuwu</div>
-          <div class="service-soon">Bientôt disponible</div>
-        </div>
-      </div>
-      <hr class="divider">
-      <div class="fg" style="margin-bottom:0">
-        <label>Type de client</label>
-        <div class="toggle-group">
-          <div class="toggle-btn selected" id="tc-particulier" onclick="selectTypeClient('particulier')">👤 Particulier</div>
-          <div class="toggle-btn" id="tc-professionnel" onclick="selectTypeClient('professionnel')">🏢 Professionnel</div>
-        </div>
-      </div>
-    </div>
-    <div class="nav-btns">
-      <button class="btn btn-primary" onclick="goTo(2)">Continuer →</button>
-    </div>
-  </div>
-
-  <!-- PAGE 2 : Identité -->
-  <div class="page" id="page-2">
-    <div class="card">
-      <div class="card-title"><span>👤</span> Informations personnelles</div>
-
-      <div class="fg">
-        <label>Civilité <span class="req">*</span></label>
-        <div class="toggle-group">
-          <div class="toggle-btn" id="civ-m" onclick="selectCiv('M.')">M.</div>
-          <div class="toggle-btn" id="civ-mme" onclick="selectCiv('Mme')">Mme</div>
-          <div class="toggle-btn" id="civ-mrmme" onclick="selectCiv('M. & Mme')">M. &amp; Mme</div>
-          <div class="toggle-btn" id="civ-societe" onclick="selectCiv('Société')">Société</div>
-        </div>
-      </div>
-
-      <!-- Siret (visible si Société) -->
-      <div class="fg" id="fg-siret" style="display:none">
-        <label>Numéro SIRET</label>
-        <input type="text" id="f-siret" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'')">
-      </div>
-
-      <div class="form-row">
-        <div class="fg">
-          <label>Prénom <span class="req">*</span></label>
-          <input type="text" id="f-prenom" placeholder="JEAN" oninput="toUpper(this);checkDuplicate()">
-        </div>
-        <div class="fg">
-          <label>Nom <span class="req">*</span></label>
-          <input type="text" id="f-nom" placeholder="DUPONT" oninput="toUpper(this);checkDuplicate()">
-        </div>
-      </div>
-
-      <div class="fg">
-        <label>Date de naissance</label>
-        <input type="date" id="f-naissance" value="1998-08-08">
-      </div>
-
-      <!-- Colocataire -->
-      <div class="fg">
-        <label>Colocataire — Prénom &amp; Nom</label>
-        <div class="form-row" style="margin-bottom:0">
-          <div class="fg" style="margin-bottom:0">
-            <input type="text" id="f-coloc-prenom" placeholder="PRÉNOM" oninput="toUpper(this)">
-          </div>
-          <div class="fg" style="margin-bottom:0">
-            <input type="text" id="f-coloc-nom" placeholder="NOM" oninput="toUpper(this)">
-          </div>
-        </div>
-      </div>
-
-      <hr class="divider">
-      <div class="section-tag">Contact</div>
-
-      <div class="form-row">
-        <div class="fg">
-          <label>Email 1 <span class="req">*</span></label>
-          <input type="email" id="f-email" placeholder="jean@email.com" oninput="checkDuplicate()">
-        </div>
-        <div class="fg">
-          <label>Email 2</label>
-          <input type="email" id="f-email2" placeholder="autre@email.com">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="fg">
-          <label>Téléphone 1</label>
-          <input type="tel" id="f-telephone" placeholder="0612345678" oninput="onlyDigits(this);checkDuplicate()">
-        </div>
-        <div class="fg">
-          <label>Téléphone 2</label>
-          <input type="tel" id="f-telephone2" placeholder="0612345678" oninput="onlyDigits(this)">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="fg">
-          <label>WeChat / WhatsApp / Instagram 1</label>
-          <input type="text" id="f-wechat" placeholder="ID ou @pseudo" maxlength="30" oninput="checkDuplicate()">
-        </div>
-        <div class="fg">
-          <label>WeChat / WhatsApp / Instagram 2</label>
-          <input type="text" id="f-wechat2" placeholder="ID ou @pseudo" maxlength="30">
-        </div>
-      </div>
-    </div>
-
-    <div class="dup-warning" id="dup-warning">
-      <div class="dup-title">🔍 Client existant détecté</div>
-      <div class="dup-client" id="dup-client-info"></div>
-      <div class="dup-btns">
-        <button class="dup-btn dup-btn-use" onclick="useExistingClient()">Utiliser ce client</button>
-        <button class="dup-btn dup-btn-new" onclick="dismissDuplicate()">C'est un nouveau client</button>
-      </div>
-    </div>
-
-    <div class="alert alert-error" id="err-identity"></div>
-    <div class="nav-btns">
-      <button class="btn btn-secondary" onclick="goTo(1)">←</button>
-      <button class="btn btn-primary" onclick="goTo(3)">Continuer →</button>
-    </div>
-  </div>
-
-  <!-- PAGE 3 : Détails énergie -->
-  <div class="page" id="page-3">
-    <div class="card">
-      <div class="card-title"><span>⚡</span> Détails énergie</div>
-
-      <div class="fg">
-        <label>Type de souscription <span class="req">*</span></label>
-        <div class="souscription-grid">
-          <div class="sous-card selected" id="sous-mise" onclick="selectSouscription('mise_en_service')">
-            <div class="sous-card-icon">🔌</div>
-            <div class="sous-card-title">Mise en service</div>
-            <div class="sous-card-desc">Nouveau compteur ou première activation</div>
-          </div>
-          <div class="sous-card" id="sous-change" onclick="selectSouscription('en_service')">
-            <div class="sous-card-icon">🔄</div>
-            <div class="sous-card-title">Changement fournisseur</div>
-            <div class="sous-card-desc">Compteur actif, changer de fournisseur</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="fg">
-        <label>Type d'énergie <span class="req">*</span></label>
-        <div class="toggle-group">
-          <div class="toggle-btn selected" id="egy-elec" onclick="selectEnergie('elec')">⚡ Électricité</div>
-          <div class="toggle-btn" id="egy-gaz" onclick="selectEnergie('gaz')">🔥 Gaz</div>
-          <div class="toggle-btn" id="egy-both" onclick="selectEnergie('elec+gaz')">⚡🔥 Les deux</div>
-        </div>
-      </div>
-
-      <div class="fg">
-        <label>Fournisseur actuel</label>
-        <select id="f-fournisseur">
-          <option value="TotalEnergies">TotalEnergies</option>
-          <option value="EDF">EDF</option>
-          <option value="Engie">Engie</option>
-          <option value="Eni">Eni</option>
-          <option value="Vattenfall">Vattenfall</option>
-          <option value="Mint Énergies">Mint Énergies</option>
-          <option value="Ohm Énergie">Ohm Énergie</option>
-          <option value="Ekwateur">Ekwateur</option>
-          <option value="Octopus Energy">Octopus Energy</option>
-          <option value="Autre">Autre</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <div class="fg" id="fg-pdl">
-          <label>PDL (élec)</label>
-          <input type="text" id="f-pdl" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'');checkPDL(this.value)">
-          <div id="pdl-suggest" style="display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer" onclick="fillFromPDL()">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse existante trouvée</div>
-            <div id="pdl-suggest-info" style="font-size:13px;font-weight:600"></div>
-          </div>
-        </div>
-        <div class="fg" id="fg-pce" style="display:none">
-          <label>PCE (gaz)</label>
-          <input type="text" id="f-pce" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\D/g,'');checkPCE(this.value)">
-          <div id="pce-suggest" style="display:none;margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:12px;cursor:pointer" onclick="fillFromPCE()">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse existante trouvée</div>
-            <div id="pce-suggest-info" style="font-size:13px;font-weight:600"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="fg">
-          <label>Puissance (kVA)</label>
-          <select id="f-puissance">
-            <option value="6" selected>6 kVA</option>
-            <option value="3">3 kVA</option>
-            <option value="9">9 kVA</option>
-            <option value="12">12 kVA</option>
-            <option value="15">15 kVA</option>
-            <option value="18">18 kVA</option>
-            <option value="24">24 kVA</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Type de logement</label>
-          <select id="f-logement">
-            <option value="appartement" selected>Appartement</option>
-            <option value="maison">Maison</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="fg">
-        <label>Option tarifaire</label>
-        <div class="toggle-group">
-          <div class="toggle-btn selected" id="opt-base" onclick="selectOptionTarifaire('BASE')">📊 BASE</div>
-          <div class="toggle-btn" id="opt-hphc" onclick="selectOptionTarifaire('HPHC')">🌙 HPHC</div>
-        </div>
-      </div>
-
-      <div class="fg" style="margin-bottom:0">
-        <label>Notes</label>
-        <textarea id="f-note" rows="3" placeholder="Informations utiles pour le dossier..."></textarea>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span>🏠</span> Adresse Consommation</div>
-      <div class="fg">
-        <label>Rue <span class="req">*</span></label>
-        <input type="text" id="f-rue" placeholder="12 RUE DE LA PAIX" oninput="toUpper(this)">
-      </div>
-      <div class="fg">
-        <label>Complément d'adresse</label>
-        <input type="text" id="f-complement" placeholder="APT 3B, BÂT C..." oninput="toUpper(this)">
-      </div>
-      <div class="form-row">
-        <div class="fg">
-          <label>Code postal <span class="req">*</span></label>
-          <input type="text" id="f-cp" placeholder="75001" maxlength="5" oninput="this.value=this.value.replace(/\D/g,'')">
-        </div>
-        <div class="fg">
-          <label>Ville <span class="req">*</span></label>
-          <input type="text" id="f-ville" placeholder="PARIS" oninput="toUpper(this)">
-        </div>
-      </div>
-    </div>
-
-    <div class="alert alert-error" id="err-service-detail"></div>
-    <div class="nav-btns">
-      <button class="btn btn-secondary" onclick="goTo(2)">←</button>
-      <button class="btn btn-primary" onclick="goTo(4)">Continuer →</button>
-    </div>
-  </div>
-
-  <!-- PAGE 4 : Finance + Intermédiaire -->
-  <div class="page" id="page-4">
-    <div class="card">
-      <div class="card-title"><span>💳</span> Informations bancaires</div>
-      <div class="fg">
-        <label>IBAN</label>
-        <input type="text" id="f-iban" placeholder="FR76 3000 6000 0112 3456 7890 189" oninput="formatIban(this)">
-      </div>
-      <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:-8px;margin-bottom:0">
-        Nécessaire pour la mise en place du prélèvement automatique. Transmis de manière sécurisée.
-      </p>
-      <hr class="divider">
-      <div class="fg" style="margin-bottom:0">
-        <label>Intermédiaire <span class="req">*</span></label>
-        <div class="interm-wrap" style="position:relative;display:flex;align-items:center">
-          <input type="text" id="f-interm" placeholder="fc305" oninput="this.value=this.value.replace(/\s/g,'').toLowerCase();checkInterm(this.value)" autocomplete="off" style="padding-right:36px">
-          <span id="interm-status" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:16px;display:none"></span>
-          <span class="interm-suffix">@aaaww.top</span>
-        </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:6px">Entrez le code de l'intermédiaire (ex: fc305, ss503…)</p>
-      </div>
-    </div>
-    <div class="alert alert-error" id="err-finance"></div>
-    <div class="nav-btns">
-      <button class="btn btn-secondary" onclick="goTo(3)">←</button>
-      <button class="btn btn-primary" onclick="goTo(5)">Vérifier →</button>
-    </div>
-  </div>
-
-  <!-- PAGE 5 : Récap -->
-  <div class="page" id="page-5">
-    <div class="card">
-      <div class="card-title"><span>📋</span> Récapitulatif</div>
-      <div id="recap-body"></div>
-    </div>
-    <div class="alert alert-error" id="err-submit"></div>
-    <div class="nav-btns">
-      <button class="btn btn-secondary" onclick="goTo(4)">←</button>
-      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()">Confirmer l'inscription</button>
-    </div>
-  </div>
+  <div id="pages-container"></div>
 </div>
 
-<script src="common.js"></script>
 <script>
-// Config from common.js
-const SUPABASE_KEY = SUPABASE_ANON_KEY;
-const H = fuwuHA();
+// Config: use common.js globals if available (loaded via parent page), else fallback
+const SB=(typeof SUPABASE_URL!=='undefined')?SUPABASE_URL:'https://xwcnbgapjkgbtpgfyjeb.supabase.co';
+const AK=(typeof SUPABASE_ANON_KEY!=='undefined')?SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3Y25iZ2FwamtnYnRwZ2Z5amViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDkyMjQsImV4cCI6MjA4Nzk4NTIyNH0.5H9i2BsTFH3UmDFdOnHRnAkF4eVwDExAaXHait4RFbI';
+const H={'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json','Prefer':'return=representation'};
+let formConfig=null,totalSteps=0,currentStep=0;
+let existingPersonne=null,forceNewClient=false;
 
-let selectedService = 'energie';
-let selectedTypeClient = 'particulier';
-let selectedCiv = null;
-let selectedEnergie = 'elec';
-let selectedSouscription = 'mise_en_service';
-let selectedOptionTarifaire = 'BASE';
-let existingPersonne = null;
-let forceNewClient = false;
-let dupCheckTimer = null;
-let allPersonnes = [];
+// Read agent context from URL params (when loaded inside agent iframe)
+const urlParams=new URLSearchParams(window.location.search);
+const agentCode=urlParams.get('agent')||'';
+const agentEmail=urlParams.get('email')||'';
 
-// Date naissance : limiter entre aujourd'hui-100ans et aujourd'hui
-document.addEventListener('DOMContentLoaded', () => {
-  const today = new Date();
-  const maxDate = today.toISOString().split('T')[0];
-  const minDate = new Date(today.getFullYear()-100, today.getMonth(), today.getDate()).toISOString().split('T')[0];
-  const el = document.getElementById('f-naissance');
-  el.max = maxDate;
-  el.min = minDate;
-  // PDL visible par défaut (elec sélectionné)
-  document.getElementById('fg-pdl').style.display = 'block';
-  document.getElementById('fg-pce').style.display = 'none';
-});
-
-// loadPersonnes supprimé (inutile)
-
-// ── Navigation ───────────────────────────────────────────────────
-function goTo(n) {
-  if (n > 1 && !validatePage(n-1)) return;
-  for (let i=1; i<=5; i++) {
-    document.getElementById(`page-${i}`).classList.toggle('active', i===n);
-    const s = document.getElementById(`step-${i}`);
-    s.classList.remove('active','done');
-    if (i<n) s.classList.add('done');
-    else if (i===n) s.classList.add('active');
-    if (i<5) document.getElementById(`line-${i}`).classList.toggle('done', i<n);
+// Load config and render
+async function init(){
+  try{
+    const r=await fetch(`${SB}/rest/v1/form_config?id=eq.inscription_steps&select=config`,{headers:{'apikey':AK}});
+    const d=await r.json();
+    if(d&&d[0])formConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
+  }catch(e){console.error(e);}
+  if(!formConfig||!formConfig.steps){document.getElementById('pages-container').innerHTML='<div class="card"><p>Erreur de chargement du formulaire.</p></div>';return;}
+  totalSteps=formConfig.steps.length;
+  renderStepsBar();
+  renderPages();
+  goTo(1);
+  // If agent context, auto-fill source/intermediaire and show banner
+  if(agentCode){
+    const banner=document.createElement('div');
+    banner.style.cssText='background:rgba(184,146,42,0.08);border:1px solid rgba(184,146,42,0.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:var(--gold);font-weight:600;text-align:center;';
+    banner.textContent='🛡 Agent: '+agentCode+' — Inscription automatiquement liée à votre compte';
+    document.querySelector('.wrap')?.insertBefore(banner,document.querySelector('.steps'));
+    // Pre-fill source field and hide it
+    setTimeout(()=>{
+      const src=document.getElementById('f-source');
+      if(src){
+        src.value=agentCode;
+        // Hide the source field container
+        const fg=src.closest('.fg');
+        if(fg)fg.style.display='none';
+      }
+    },100);
   }
-  if (n===5) buildRecap();
+}
+
+function renderStepsBar(){
+  let html='';
+  formConfig.steps.forEach((s,i)=>{
+    if(i>0)html+=`<div class="step-line" id="line-${i}"></div>`;
+    html+=`<div class="step${i===0?' active':''}" id="step-${i+1}"><div class="step-dot">${i+1}</div><div class="step-label">${esc(s.title)}</div></div>`;
+  });
+  document.getElementById('steps-bar').innerHTML=html;
+}
+
+function renderPages(){
+  let html='';
+  formConfig.steps.forEach((step,si)=>{
+    html+=`<div class="page${si===0?' active':''}" id="page-${si+1}"><div class="card">`;
+    html+=`<div class="card-title"><span>${['⚡','👤','⚡','🏠','💳','📋'][si]||'📋'}</span> ${esc(step.title)}</div>`;
+
+    // Duplicate warning (on identity step)
+    if(step.fields.some(f=>f.col==='email')){
+      html+=`<div class="dup-warning" id="dup-warning"><div class="dup-title">👤 Client existant trouvé</div><div class="dup-client" id="dup-client-info"></div><div class="dup-btns"><button class="dup-btn dup-btn-use" onclick="useExistingClient()">Utiliser ce client</button><button class="dup-btn dup-btn-new" onclick="forceNewClient=true;document.getElementById('dup-warning').classList.remove('show')">Créer nouveau</button></div></div>`;
+    }
+
+    // Render fields in pairs
+    if(step.fields.length===0){
+      // Empty step = recap
+      html+=`<div id="recap-body"></div>`;
+    } else {
+    let i=0;
+    while(i<step.fields.length){
+      const f=step.fields[i];
+      if(f.width==='full'){
+        html+=`<div class="fg">${renderField(f)}</div>`;
+        i++;
+      }else{
+        const next=step.fields[i+1];
+        if(next&&next.width!=='full'){
+          html+=`<div class="form-row"><div class="fg">${renderField(f)}</div><div class="fg">${renderField(next)}</div></div>`;
+          i+=2;
+        }else{
+          html+=`<div class="fg">${renderField(f)}</div>`;
+          i++;
+        }
+      }
+    }
+    }
+
+    html+=`</div><div class="alert alert-error" id="err-${si+1}"></div>`;
+    html+=`<div class="nav-btns">`;
+    if(si>0)html+=`<button class="btn btn-secondary" onclick="goTo(${si})">←</button>`;
+    if(si<totalSteps-1)html+=`<button class="btn btn-primary" onclick="goTo(${si+2})">Continuer →</button>`;
+    else html+=`<button class="btn btn-primary" id="btn-submit" onclick="submitForm()">Confirmer l'inscription</button>`;
+    html+=`</div></div>`;
+  });
+  document.getElementById('pages-container').innerHTML=html;
+}
+
+function renderField(f){
+  const id='f-'+f.id;
+  const req=f.required?'<span class="req">*</span>':'';
+
+  // Service grid (big cards)
+  if(f.type==='service_grid'){
+    const services=[
+      {k:'energie',icon:'⚡',name:'Énergie',desc:'Électricité & Gaz',enabled:true},
+      {k:'telecom',icon:'📡',name:'Télécom',desc:'Bientôt disponible',enabled:false},
+      {k:'banque',icon:'🏦',name:'Banque',desc:'Bientôt disponible',enabled:false},
+      {k:'services',icon:'🛎️',name:'Services Fuwu',desc:'Bientôt disponible',enabled:false},
+    ];
+    return `<label>${esc(f.label)}</label><div class="service-grid">${services.map(s=>
+      `<div class="service-btn ${s.k===(f.default||'energie')?'selected':''}${s.enabled?'':' disabled'}" onclick="${s.enabled?`selectCard('${id}','${s.k}',this)`:''}">`+
+      `<div class="service-icon">${s.icon}</div><div class="service-name">${s.name}</div><div class="service-desc">${s.desc}</div></div>`
+    ).join('')}</div><input type="hidden" id="${id}" value="${f.default||'energie'}">`;
+  }
+
+  // Souscription grid (medium cards)
+  if(f.type==='souscription_grid'){
+    const opts=[
+      {k:'mise_en_service',icon:'🔌',name:'Mise en service',desc:'Nouveau compteur ou première activation'},
+      {k:'en_service',icon:'🔄',name:'Changement fournisseur',desc:'Compteur actif, changer de fournisseur'},
+    ];
+    return `<label>${esc(f.label)}</label><div class="sous-grid">${opts.map(o=>
+      `<div class="sous-card ${o.k===(f.default||'mise_en_service')?'selected':''}" onclick="selectCard('${id}','${o.k}',this)">`+
+      `<div class="sous-icon">${o.icon}</div><div class="sous-title">${o.name}</div><div class="sous-desc">${o.desc}</div></div>`
+    ).join('')}</div><input type="hidden" id="${id}" value="${f.default||'mise_en_service'}">`;
+  }
+
+  // Generic toggle (from options "val:Label|val2:Label2")
+  if(f.type==='toggle'){
+    const opts=(f.options||'').split('|').map(o=>{const[k,l]=o.split(':');return{k,l};});
+    const def=f.default||opts[0]?.k||'';
+    return `<label>${esc(f.label)}</label><div class="toggle-group">${opts.map(o=>
+      `<div class="toggle-btn ${o.k===def?'selected':''}" onclick="selectToggle('${id}','${o.k}',this)">${esc(o.l)}</div>`
+    ).join('')}</div><input type="hidden" id="${id}" value="${def}">`;
+  }
+
+  // Special: civilite → toggle buttons
+  if(f.col==='civilite'){
+    const opts=(f.options||'Monsieur|Madame|M. & Mme').split('|');
+    return `<label>${esc(f.label)} ${req}</label><div class="toggle-group">${opts.map(o=>`<div class="toggle-btn" onclick="selectToggle('${id}','${esc(o)}',this)">${esc(o)}</div>`).join('')}</div><input type="hidden" id="${id}" value="">`;
+  }
+  // Special: type_client → toggle
+  if(f.col==='type_client'){
+    return `<label>${esc(f.label)}</label><div class="toggle-group"><div class="toggle-btn selected" onclick="selectToggle('${id}','particulier',this)">👤 Particulier</div><div class="toggle-btn" onclick="selectToggle('${id}','professionnel',this)">🏢 Professionnel</div></div><input type="hidden" id="${id}" value="particulier">`;
+  }
+  // Special: energie_type → toggle
+  if(f.col==='energie_type'){
+    return `<label>${esc(f.label)} ${req}</label><div class="toggle-group"><div class="toggle-btn selected" onclick="selectToggle('${id}','elec',this)">⚡ Élec</div><div class="toggle-btn" onclick="selectToggle('${id}','gaz',this)">🔥 Gaz</div><div class="toggle-btn" onclick="selectToggle('${id}','elec+gaz',this)">⚡🔥 Les deux</div></div><input type="hidden" id="${id}" value="elec">`;
+  }
+  // Special: PDL with lookup
+  if(f.col==='pdl'){
+    return `<label>${esc(f.label)}</label><input type="text" id="${id}" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\\D/g,'');checkPDL(this.value)"><div class="pdl-suggest" id="pdl-suggest" onclick="fillFromPDL()"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse trouvée</div><div id="pdl-suggest-info" style="font-size:13px;font-weight:600"></div></div>`;
+  }
+  // Special: PCE with lookup
+  if(f.col==='pce'){
+    return `<label>${esc(f.label)}</label><input type="text" id="${id}" placeholder="14 chiffres" maxlength="14" oninput="this.value=this.value.replace(/\\D/g,'');checkPCE(this.value)"><div class="pdl-suggest" id="pce-suggest" onclick="fillFromPCE()"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">📍 Adresse trouvée</div><div id="pce-suggest-info" style="font-size:13px;font-weight:600"></div></div>`;
+  }
+  // Special: IBAN
+  if(f.col==='iban'){
+    return `<label>${esc(f.label)}</label><input type="text" id="${id}" placeholder="FR76 3000 6000 0112 3456 7890 189" oninput="formatIban(this)">`;
+  }
+  // Special: email with duplicate check
+  if(f.col==='email'&&f.required){
+    return `<label>${esc(f.label)} ${req}</label><input type="email" id="${id}" placeholder="email@example.com" oninput="checkDuplicate()">`;
+  }
+  // Special: source (intermediaire)
+  if(f.col==='source'){
+    return `<label>${esc(f.label)} ${req}</label><div class="interm-wrap"><input type="text" id="${id}" placeholder="fc305" oninput="this.value=this.value.replace(/\\s/g,'').toLowerCase();checkInterm(this.value)" autocomplete="off"><span id="interm-status" style="position:absolute;right:60px;font-size:16px;display:none"></span><span class="interm-suffix">@aaaww.top</span></div><p style="font-size:11px;color:var(--muted);margin-top:4px">Code de l'intermédiaire</p>`;
+  }
+  // Select
+  if(f.type==='select'){
+    const opts=(f.options||'').split('|').map(o=>`<option value="${o}"${o===(f.default||'')?'selected':''}>${esc(o)}</option>`).join('');
+    return `<label>${esc(f.label)} ${req}</label><select id="${id}">${opts}</select>`;
+  }
+  // Textarea
+  if(f.type==='textarea'){
+    return `<label>${esc(f.label)}</label><textarea id="${id}" rows="3" placeholder="${esc(f.label)}...">${esc(f.default||'')}</textarea>`;
+  }
+  // Puissance special
+  if(f.type==='puissance'){
+    return `<label>${esc(f.label)}</label><select id="${id}"><option value="3">3 kVA</option><option value="6" selected>6 kVA</option><option value="9">9 kVA</option><option value="12">12 kVA</option><option value="15">15 kVA</option><option value="18">18 kVA</option><option value="24">24 kVA</option></select>`;
+  }
+  // Default: text/email/tel/date
+  const ph=f.type==='date'?'':f.label;
+  const upper=f.col==='prenom'||f.col==='nom'||f.col==='rue'||f.col==='complement'||f.col==='ville';
+  const oninput=upper?'oninput="toUpper(this)"':(f.type==='tel'?'oninput="onlyDigits(this)"':'');
+  return `<label>${esc(f.label)} ${req}</label><input type="${f.type||'text'}" id="${id}" placeholder="${esc(ph)}" value="${esc(f.default||'')}" ${oninput}>`;
+}
+
+// ── Navigation ──
+function goTo(n){
+  if(n>1&&!validate(n-1))return;
+  for(let i=1;i<=totalSteps;i++){
+    document.getElementById('page-'+i)?.classList.toggle('active',i===n);
+    const s=document.getElementById('step-'+i);
+    if(s){s.classList.remove('active','done');if(i<n)s.classList.add('done');else if(i===n)s.classList.add('active');}
+    const ln=document.getElementById('line-'+i);
+    if(ln)ln.classList.toggle('done',i<n);
+  }
+  if(n===totalSteps)buildRecap();
+  currentStep=n;
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// ── Validation ───────────────────────────────────────────────────
-function validatePage(n) {
-  if (n===2) {
-    if (!selectedCiv) { show('err-identity','Veuillez sélectionner une civilité.'); return false; }
-    if (!v('f-prenom')||!v('f-nom')) { show('err-identity','Prénom et nom obligatoires.'); return false; }
-    if (!v('f-email')) { show('err-identity','L\'email est obligatoire.'); return false; }
-    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRe.test(v('f-email'))) { show('err-identity','Email 1 invalide.'); return false; }
-    if (v('f-email2') && !emailRe.test(v('f-email2'))) { show('err-identity','Email 2 invalide.'); return false; }
-    hide('err-identity'); return true;
+function validate(n){
+  const step=formConfig.steps[n-1];if(!step)return true;
+  const errEl=document.getElementById('err-'+n);
+  for(const f of step.fields){
+    if(f.required){
+      const val=v('f-'+f.id);
+      if(!val){if(errEl){errEl.textContent=f.label+' est obligatoire.';errEl.classList.add('show');}return false;}
+    }
+    if(f.col==='email'&&f.required){
+      const email=v('f-'+f.id);
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){if(errEl){errEl.textContent='Email invalide.';errEl.classList.add('show');}return false;}
+    }
   }
-  if (n===3) {
-    if (!v('f-rue')||!v('f-cp')||!v('f-ville')) { show('err-service-detail','Adresse incomplète.'); return false; }
-    if (v('f-cp').length!==5) { show('err-service-detail','Code postal doit contenir 5 chiffres.'); return false; }
-    hide('err-service-detail'); return true;
+  // Special: intermediaire validation (skip if agent context)
+  if(!agentCode&&step.fields.some(f=>f.col==='source')){
+    if(!v('f-source')){if(errEl){errEl.textContent='Code intermédiaire obligatoire.';errEl.classList.add('show');}return false;}
+    if(!window._intermValid){if(errEl){errEl.textContent='Code intermédiaire non reconnu.';errEl.classList.add('show');}return false;}
   }
-  if (n===4) {
-    if (!v('f-interm')) { show('err-finance','Code intermédiaire obligatoire.'); return false; }
-    if (!window._intermValid) { show('err-finance','Code intermédiaire non reconnu.'); return false; }
-    hide('err-finance'); return true;
-  }
+  if(errEl)errEl.classList.remove('show');
   return true;
 }
 
-// ── Sélections ───────────────────────────────────────────────────
-function selectService(s) {
-  selectedService = s;
-  document.querySelectorAll('.service-btn:not(.disabled)').forEach(b=>b.classList.remove('selected'));
-  document.getElementById(`svc-${s}`).classList.add('selected');
+// ── Toggle & Card selectors ──
+function selectToggle(inputId,val,el){
+  document.getElementById(inputId).value=val;
+  el.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  // If civilite = Société, show SIRET
+  if(inputId==='f-civilite'){const fg=document.getElementById('f-siret');if(fg)fg.closest('.fg').style.display=val==='Société'?'block':'none';}
 }
 
-function selectTypeClient(t) {
-  selectedTypeClient = t;
-  ['particulier','professionnel'].forEach(k=>document.getElementById(`tc-${k}`).classList.remove('selected'));
-  document.getElementById(`tc-${t}`).classList.add('selected');
+function selectCard(inputId,val,el){
+  document.getElementById(inputId).value=val;
+  el.parentElement.querySelectorAll('.service-btn,.sous-card').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
 }
 
-function selectCiv(c) {
-  selectedCiv = c;
-  document.querySelectorAll('.toggle-btn[id^="civ-"]').forEach(b=>b.classList.remove('selected'));
-  const map={'M.':'m','Mme':'mme','M. & Mme':'mrmme','Société':'societe'};
-  const el=document.getElementById(`civ-${map[c]}`);
-  if(el) el.classList.add('selected');
-  const fg=document.getElementById('fg-siret');
-  if(fg) fg.style.display = c==='Société' ? 'block' : 'none';
-}
-
-function selectEnergie(e) {
-  selectedEnergie = e;
-  ['elec','gaz','both'].forEach(k=>document.getElementById(`egy-${k}`).classList.remove('selected'));
-  document.getElementById(`egy-${e==='elec+gaz'?'both':e}`).classList.add('selected');
-  document.getElementById('fg-pdl').style.display = e==='gaz' ? 'none' : 'block';
-  document.getElementById('fg-pce').style.display = e==='elec' ? 'none' : 'block';
-}
-
-function selectOptionTarifaire(v){
-  selectedOptionTarifaire=v;
-  const b=document.getElementById('opt-base'); if(b) b.classList.toggle('selected',v==='BASE');
-  const h=document.getElementById('opt-hphc'); if(h) h.classList.toggle('selected',v==='HPHC');
-}
-function selectSouscription(s) {
-  selectedSouscription = s;
-  document.getElementById('sous-mise').classList.toggle('selected', s==='mise_en_service');
-  document.getElementById('sous-change').classList.toggle('selected', s==='en_service');
-}
-
-// ── Helpers input ────────────────────────────────────────────────
-function toUpper(el) { const pos=el.selectionStart; el.value=el.value.toUpperCase(); el.setSelectionRange(pos,pos); }
-function onlyDigits(el){el.value=el.value.replace(/\D/g,'');}
-function noSpace(el) { el.value=el.value.replace(/\s/g,''); }
-function formatIban(el) {
-  let val=el.value.replace(/\s/g,'').toUpperCase();
-  el.value=val.match(/.{1,4}/g)?.join(' ')||val;
-}
-
-// PDL/PCE : préserver les zéros en tête (champ texte, pas number)
-// Les valeurs sont déjà string, pas besoin de traitement spécial
-
-// ── Détection doublon ────────────────────────────────────────────
-function normName(s){return(s||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
-
-let pdlAdresse = null;
-
-function checkDuplicate() {
-  clearTimeout(dupCheckTimer);
-  dupCheckTimer = setTimeout(async ()=>{
-    if(forceNewClient) return;
-    const email = v('f-email').toLowerCase().trim();
-    const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-    if(!emailValid) { hideDup(); return; }
-    try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_check_duplicate`,{method:'POST',headers:H,body:JSON.stringify({p_email:email})});
-      const data = await r.json();
-      const match = Array.isArray(data) && data.length > 0 ? data[0] : null;
+// ── Duplicate check ──
+let dupTimer=null;
+function checkDuplicate(){
+  clearTimeout(dupTimer);
+  dupTimer=setTimeout(async()=>{
+    if(forceNewClient)return;
+    const email=v('f-email').toLowerCase().trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){hideDup();return;}
+    try{
+      const r=await fetch(`${SB}/rest/v1/rpc/inscription_check_duplicate`,{method:'POST',headers:H,body:JSON.stringify({p_email:email})});
+      const data=await r.json();
+      const match=Array.isArray(data)&&data.length>0?data[0]:null;
       if(match){
-        existingPersonne = match;
-        // Get masked IBAN via RPC
-        const rc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_get_masked_iban`,{method:'POST',headers:H,body:JSON.stringify({p_personne_id:match.id})});
-        const cd = await rc.json();
-        existingPersonne._iban = Array.isArray(cd) && cd[0]?.iban_masked ? cd[0].iban_masked : null;
-        const name = [match.prenom, match.nom].filter(Boolean).join(' ');
-        const details = [match.telephone, match.email].filter(Boolean).join(' · ');
-        document.getElementById('dup-client-info').innerHTML=`<strong>${name}</strong><br><span style="color:var(--muted);font-size:12px">${details}</span>`;
+        existingPersonne=match;
+        document.getElementById('dup-client-info').innerHTML=`<strong>${[match.prenom,match.nom].filter(Boolean).join(' ')}</strong><br><span style="color:var(--muted);font-size:12px">${[match.telephone,match.email].filter(Boolean).join(' · ')}</span>`;
         document.getElementById('dup-warning').classList.add('show');
-      } else hideDup();
-    } catch(e){ console.error('checkDuplicate error:',e); hideDup(); }
-  }, 300);
+      }else hideDup();
+    }catch(e){hideDup();}
+  },300);
 }
+function hideDup(){existingPersonne=null;const el=document.getElementById('dup-warning');if(el)el.classList.remove('show');}
 
 function useExistingClient(){
-  const p = existingPersonne; if(!p) return;
-  goTo(2);
-  setTimeout(()=>{
-    if(p.civilite) selectCiv(p.civilite);
-    const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
-    set('f-prenom',p.prenom); set('f-nom',p.nom);
-    set('f-email',p.email); set('f-email2',p.email_reel);
-    set('f-telephone',p.telephone);
-    set('f-wechat',p.wechat);
-    set('f-siret',p.siret);
-    if(p.date_naissance) set('f-naissance',p.date_naissance);
-    if(p._iban){const el=document.getElementById('f-iban');if(el){const raw=p._iban.replace(/\s/g,'').toUpperCase();el.value=raw.match(/.{1,4}/g)?.join(' ')||raw;}}
-    document.getElementById('dup-warning').classList.remove('show');
-    forceNewClient = false;
-  }, 50);
+  const p=existingPersonne;if(!p)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-prenom',p.prenom);set('f-nom',p.nom);set('f-email',p.email);
+  set('f-email_reel',p.email_reel);set('f-telephone',p.telephone);set('f-wechat',p.wechat);
+  if(p.date_naissance)set('f-date_naissance',p.date_naissance);
+  document.getElementById('dup-warning').classList.remove('show');
 }
 
+// ── PDL/PCE lookup ──
+let pdlAddr=null,pceAddr=null;
 async function checkPDL(val){
-  if(!val || val.length < 10) { hidePDLSuggest(); return; }
-  const pdl14 = val.padStart(14,'0');
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_lookup_pdl`,{method:'POST',headers:H,body:JSON.stringify({p_pdl:pdl14})});
-    const data = await r.json();
-    const ad = Array.isArray(data) && data[0] ? data[0] : null;
-    if(ad){
-      pdlAdresse = ad;
-      const adStr = [ad.rue, ad.complement, ad.code_postal+' '+ad.ville].filter(Boolean).join(', ');
-      document.getElementById('pdl-suggest-info').textContent = adStr;
-      document.getElementById('pdl-suggest').style.display = 'block';
-    } else hidePDLSuggest();
-  } catch(e){ hidePDLSuggest(); }
-}
-
-let _intermTimer = null;
-window._intermValid = false;
-async function checkInterm(val){
-  clearTimeout(_intermTimer);
-  const status = document.getElementById('interm-status');
-  if(!val){ window._intermValid=false; if(status){status.style.display='none';} return; }
-  _intermTimer = setTimeout(async()=>{
-    try{
-      const email = val+'@aaaww.top';
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_email_exists`,{method:'POST',headers:H,body:JSON.stringify({p_email:email})});
-      const data = await r.json();
-      const found = Array.isArray(data) && data.length > 0;
-      window._intermValid = found;
-      if(status){
-        status.textContent = found ? '✓' : '✗';
-        status.style.display = 'block';
-        status.style.color = found ? 'var(--green)' : '#e55';
-      }
-    }catch(e){ window._intermValid=false; }
-  }, 400);
-}
-function resetDefaults(puissance, logement){
-  const ep = document.getElementById('f-puissance');
-  if(ep){
-    // Extraire juste le chiffre si valeur du type "6 kVA"
-    const pval = puissance ? String(puissance).replace(/[^0-9]/g,'') : '6';
-    // Vérifier que l'option existe
-    const hasOpt = [...ep.options].some(o=>o.value===pval);
-    ep.value = hasOpt ? pval : '6';
-  }
-  const el = document.getElementById('f-logement');
-  if(el){
-    const lval = logement ? String(logement).toLowerCase().trim() : 'appartement';
-    const hasOpt = [...el.options].some(o=>o.value===lval);
-    el.value = hasOpt ? lval : 'appartement';
-  }
+  if(!val||val.length<10){document.getElementById('pdl-suggest').style.display='none';return;}
+  try{const r=await fetch(`${SB}/rest/v1/rpc/inscription_lookup_pdl`,{method:'POST',headers:H,body:JSON.stringify({p_pdl:val.padStart(14,'0')})});const d=await r.json();const a=Array.isArray(d)&&d[0]?d[0]:null;if(a){pdlAddr=a;document.getElementById('pdl-suggest-info').textContent=[a.rue,a.code_postal+' '+a.ville].filter(Boolean).join(', ');document.getElementById('pdl-suggest').style.display='block';}else{document.getElementById('pdl-suggest').style.display='none';}}catch(e){}
 }
 function fillFromPDL(){
-  const ad = pdlAdresse; if(!ad) return;
-  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
-  set('f-rue',ad.rue); set('f-complement',ad.complement);
-  set('f-cp',ad.code_postal); set('f-ville',ad.ville);
-  set('f-pce',ad.pce);
-  resetDefaults(ad.puissance, ad.type_logement);
-  hidePDLSuggest();
+  if(!pdlAddr)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-rue',pdlAddr.rue);set('f-complement',pdlAddr.complement);set('f-code_postal',pdlAddr.code_postal);set('f-ville',pdlAddr.ville);set('f-pce',pdlAddr.pce);
+  document.getElementById('pdl-suggest').style.display='none';
 }
-
-function hidePDLSuggest(){ pdlAdresse=null; const el=document.getElementById('pdl-suggest'); if(el) el.style.display='none'; }
-
-let pceAdresse = null;
 async function checkPCE(val){
-  if(!val || val.length < 10) { hidePCESuggest(); return; }
-  const pce14 = val.padStart(14,'0');
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_lookup_pce`,{method:'POST',headers:H,body:JSON.stringify({p_pce:pce14})});
-    const data = await r.json();
-    const ad = Array.isArray(data) && data[0] ? data[0] : null;
-    if(ad){
-      pceAdresse = ad;
-      const adStr = [ad.rue, ad.complement, ad.code_postal+' '+ad.ville].filter(Boolean).join(', ');
-      document.getElementById('pce-suggest-info').textContent = adStr;
-      document.getElementById('pce-suggest').style.display = 'block';
-    } else hidePCESuggest();
-  } catch(e){ hidePCESuggest(); }
+  if(!val||val.length<10){document.getElementById('pce-suggest').style.display='none';return;}
+  try{const r=await fetch(`${SB}/rest/v1/rpc/inscription_lookup_pce`,{method:'POST',headers:H,body:JSON.stringify({p_pce:val.padStart(14,'0')})});const d=await r.json();const a=Array.isArray(d)&&d[0]?d[0]:null;if(a){pceAddr=a;document.getElementById('pce-suggest-info').textContent=[a.rue,a.code_postal+' '+a.ville].filter(Boolean).join(', ');document.getElementById('pce-suggest').style.display='block';}else{document.getElementById('pce-suggest').style.display='none';}}catch(e){}
 }
 function fillFromPCE(){
-  const ad = pceAdresse; if(!ad) return;
-  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;};
-  set('f-rue',ad.rue); set('f-complement',ad.complement);
-  set('f-cp',ad.code_postal); set('f-ville',ad.ville);
-  set('f-pdl',ad.pdl);
-  resetDefaults(ad.puissance, ad.type_logement);
-  hidePCESuggest();
+  if(!pceAddr)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  set('f-rue',pceAddr.rue);set('f-complement',pceAddr.complement);set('f-code_postal',pceAddr.code_postal);set('f-ville',pceAddr.ville);set('f-pdl',pceAddr.pdl);
+  document.getElementById('pce-suggest').style.display='none';
 }
-function hidePCESuggest(){ pceAdresse=null; const el=document.getElementById('pce-suggest'); if(el) el.style.display='none'; }
-function dismissDuplicate(){existingPersonne=null;forceNewClient=true;hideDup();}
-function hideDup(){existingPersonne=null;document.getElementById('dup-warning').classList.remove('show');}
 
-// ── Récap ─────────────────────────────────────────────────────────
+// ── Intermediaire check ──
+let _intermTimer=null;window._intermValid=false;
+async function checkInterm(val){
+  clearTimeout(_intermTimer);
+  const status=document.getElementById('interm-status');
+  if(!val){window._intermValid=false;if(status)status.style.display='none';return;}
+  _intermTimer=setTimeout(async()=>{
+    try{const r=await fetch(`${SB}/rest/v1/rpc/inscription_email_exists`,{method:'POST',headers:H,body:JSON.stringify({p_email:val+'@aaaww.top'})});const d=await r.json();const found=Array.isArray(d)&&d.length>0;window._intermValid=found;if(status){status.textContent=found?'✓':'✗';status.style.display='block';status.style.color=found?'var(--green)':'#e55';}}catch(e){window._intermValid=false;}
+  },400);
+}
+
+// ── Helpers ──
+function toUpper(el){const pos=el.selectionStart;el.value=el.value.toUpperCase();el.setSelectionRange(pos,pos);}
+function onlyDigits(el){el.value=el.value.replace(/\D/g,'');}
+function formatIban(el){let val=el.value.replace(/\s/g,'').toUpperCase();el.value=val.match(/.{1,4}/g)?.join(' ')||val;}
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+// ── Recap ──
 function buildRecap(){
-  const iban=v('f-iban').replace(/\s/g,'');
-  const interm=v('f-interm')+'@aaaww.top';
-  const rows=[
-    ['Service','⚡ Énergie'],
-    ['Type client',selectedTypeClient==='particulier'?'👤 Particulier':'🏢 Professionnel'],
-    ['Civilité',selectedCiv||'—'],
-    ['Prénom',v('f-prenom')||'—'],['Nom',v('f-nom')||'—'],
-    ['Date de naissance',v('f-naissance')||'—'],
-    ...(v('f-siret')?[['SIRET',v('f-siret')]]:[] ),
-    ...(v('f-coloc-prenom')||v('f-coloc-nom')?[['Colocataire',[v('f-coloc-prenom'),v('f-coloc-nom')].filter(Boolean).join(' ')]]:[] ),
-    null,
-    ['Email 1',v('f-email')||'—'],
-    ...(v('f-email2')?[['Email 2',v('f-email2')]]:[] ),
-    ['Téléphone 1',v('f-telephone')||'—'],
-    ...(v('f-telephone2')?[['Téléphone 2',v('f-telephone2')]]:[] ),
-    ['WeChat/WA/IG 1',v('f-wechat')||'—'],
-    ...(v('f-wechat2')?[['WeChat/WA/IG 2',v('f-wechat2')]]:[] ),
-    null,
-    ['Adresse',[v('f-rue'),v('f-complement'),v('f-cp')+' '+v('f-ville')].filter(Boolean).join(', ')],
-    ['Énergie',selectedEnergie||'—'],['Fournisseur',v('f-fournisseur')||'—'],
-    ...(selectedEnergie!=='gaz'?[['PDL',v('f-pdl')||'—']]:[] ),
-    ...(selectedEnergie!=='elec'?[['PCE',v('f-pce')||'—']]:[] ),
-    ['Puissance',v('f-puissance')?v('f-puissance')+' kVA':'—'],
-    ['Logement',v('f-logement')||'—'],
-    ['Type souscription',selectedSouscription==='mise_en_service'?'🔌 Mise en service':'🔄 Changement fournisseur'],
-    ['Option tarifaire', selectedOptionTarifaire||'BASE'],
-    ...(v('f-note')?[['Notes',v('f-note')]]:[] ),
-    null,
-    ['IBAN',iban?'•••• •••• •••• '+iban.slice(-4):'—'],
-    ['Intermédiaire',v('f-interm')?interm:'—'],
-  ];
-  document.getElementById('recap-body').innerHTML=rows.map(r=>
-    r===null?`<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">`:
-    `<div class="recap-row"><span class="recap-key">${r[0]}</span><span class="recap-val">${r[1]}</span></div>`
+  let rows=[];
+  formConfig.steps.forEach(step=>{
+    if(!step.fields.length)return;
+    rows.push(null); // separator
+    step.fields.forEach(f=>{
+      let val=v('f-'+f.id);
+      if(!val)return;
+      if(f.col==='iban')val='•••• •••• •••• '+val.replace(/\s/g,'').slice(-4);
+      if(f.col==='source')val=val+'@aaaww.top';
+      rows.push([f.label,val]);
+    });
+  });
+  if(rows[0]===null)rows.shift(); // remove leading separator
+  const recapEl=document.getElementById('recap-body');
+  if(!recapEl)return;
+  recapEl.innerHTML=rows.map(r=>
+    r===null?'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">':
+    `<div class="recap-row"><span class="recap-key">${esc(r[0])}</span><span class="recap-val">${esc(r[1])}</span></div>`
   ).join('');
 }
 
-// ── Soumission ────────────────────────────────────────────────────
+// ── Submit ──
 async function submitForm(){
   const btn=document.getElementById('btn-submit');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Enregistrement...';
-  hide('err-submit');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Enregistrement...';
   try{
-    const pdlRaw=document.getElementById('f-pdl').value.trim();
-    const pceRaw=document.getElementById('f-pce').value.trim();
-    const intermEmail=v('f-interm')+'@aaaww.top';
+    // Collect all field values grouped by table
+    const personneData={},contratData={},adresseData={};
+    formConfig.steps.forEach(step=>{
+      step.fields.forEach(f=>{
+        let val=v('f-'+f.id);if(!val)return;
+        if(f.col==='iban')val=val.replace(/\s/g,'');
+        if(f.col==='source'&&!agentCode)val=val+'@aaaww.top';
+        if(f.col==='source'&&agentCode)val=agentCode; // Agent: use agent code directly
+        if(f.table==='personnes')personneData[f.col]=val;
+        else if(f.table==='contrats')contratData[f.col]=val;
+        else if(f.table==='adresses')adresseData[f.col]=val;
+      });
+    });
 
-    const rpc=await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscription_submit`,{method:'POST',headers:H,body:JSON.stringify({
-      p_civilite:selectedCiv, p_type_client:selectedTypeClient,
-      p_prenom:v('f-prenom'), p_nom:v('f-nom'),
-      p_email:v('f-email')||'', p_telephone:v('f-telephone')||'',
-      p_wechat:v('f-wechat')||'', p_date_naissance:v('f-naissance')||'',
-      p_siret:v('f-siret')||'', p_colocataire_prenom:v('f-coloc-prenom')||'',
-      p_colocataire_nom:v('f-coloc-nom')||'',
+    // Use RPC if available, otherwise direct insert
+    const rpc=await fetch(`${SB}/rest/v1/rpc/inscription_submit`,{method:'POST',headers:H,body:JSON.stringify({
+      p_civilite:personneData.civilite||'',p_type_client:personneData.type_client||'particulier',
+      p_prenom:personneData.prenom||'',p_nom:personneData.nom||'',
+      p_email:personneData.email||'',p_telephone:personneData.telephone||'',
+      p_wechat:personneData.wechat||'',p_date_naissance:personneData.date_naissance||'',
+      p_siret:personneData.siret||'',p_colocataire_prenom:personneData.colocataire_prenom||'',
+      p_colocataire_nom:personneData.colocataire_nom||'',
       p_existing_personne_id:(existingPersonne&&!forceNewClient)?existingPersonne.id:null,
-      p_rue:v('f-rue'), p_complement:v('f-complement')||'',
-      p_code_postal:v('f-cp'), p_ville:v('f-ville'),
-      p_pdl:pdlRaw||'', p_pce:pceRaw||'',
-      p_puissance:v('f-puissance')||'', p_type_logement:v('f-logement')||'',
-      p_energie_type:selectedEnergie||'', p_fournisseur:v('f-fournisseur')||'',
-      p_option_tarifaire:selectedOptionTarifaire||'',
-      p_source:intermEmail, p_iban:v('f-iban').replace(/\s/g,'')||''
+      p_rue:adresseData.rue||'',p_complement:adresseData.complement||'',
+      p_code_postal:adresseData.code_postal||'',p_ville:adresseData.ville||'',
+      p_pdl:adresseData.pdl||'',p_pce:adresseData.pce||'',
+      p_puissance:adresseData.puissance||'',p_type_logement:adresseData.type_logement||'',
+      p_energie_type:contratData.energie_type||'',p_fournisseur:contratData.fournisseur||'',
+      p_option_tarifaire:contratData.option_tarifaire||'',
+      p_source:contratData.source||'',p_iban:personneData.iban||''
     })});
     if(!rpc.ok){const e=await rpc.json();throw new Error(JSON.stringify(e));}
     const result=await rpc.json();
     const newC=Array.isArray(result)?result[0]:result;
 
+    // If existing personne, update with form data (inscription changes override old data)
+    const personneId=(existingPersonne&&!forceNewClient)?existingPersonne.id:(newC?.out_personne_id||null);
+    if(personneId&&Object.keys(personneData).length>1){
+      try{await fetch(`${SB}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(personneData)});}catch(e){console.warn('Personne update failed',e);}
+    }
+
+    // Set formule (task type) on the new contrat based on souscription choice
+    if(newC&&(newC.out_contrat_id||newC.id)){
+      const contratId=newC.out_contrat_id||newC.id;
+      const souscription=v('f-souscription')||'mise_en_service';
+      const formule=souscription==='en_service'?'changement_fournisseur':'mise_en_service';
+      const patchBody={formule};
+      // If agent context: auto-assign agent and set inscrit_par
+      if(agentCode){
+        patchBody.agent_code=agentCode;
+        patchBody.inscrit_par=agentCode;
+        patchBody.modifie_par=agentCode;
+        patchBody.agent_claimed_at=new Date().toISOString();
+        patchBody.contrat_status='en_traitement';
+        // Auto-set deadline (24h default)
+        patchBody.date_limite=new Date(Date.now()+24*3600000).toISOString();
+      }
+      try{const pr=await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(patchBody)});if(!pr.ok)console.warn('Contrat patch failed:',await pr.text());}catch(e){console.warn('Contrat patch error',e);}
+    }
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelector('.steps').style.display='none';
     document.getElementById('success-screen').classList.add('show');
-    document.getElementById('success-id').textContent=newC.out_id_service ? `ID Fuwu : ${newC.out_id_service.replace(/^F/,'#')}` : `Référence : ${newC.out_contrat_id || 'OK'}`;
+    document.getElementById('success-id').textContent=newC.out_id_service?`ID Fuwu : ${newC.out_id_service.replace(/^F/,'#')}`:`Référence : ${newC.out_contrat_id||'OK'}`;
   }catch(e){
-    show('err-submit',`Erreur : ${e.message}`);
-    btn.disabled=false; btn.innerHTML='Confirmer l\'inscription';
+    const errEl=document.getElementById('err-'+totalSteps);
+    if(errEl){errEl.textContent='Erreur : '+e.message;errEl.classList.add('show');}
+    btn.disabled=false;btn.innerHTML="Confirmer l'inscription";
   }
 }
 
-function v(id){return document.getElementById(id)?.value?.trim()||'';}
-function show(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.classList.add('show');}}
-function hide(id){document.getElementById(id)?.classList.remove('show');}
+// Init on load
+init();
 </script>
 </body>
 </html>
