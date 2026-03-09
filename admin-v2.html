@@ -790,7 +790,7 @@ async function fetchAll(url){
   return all;
 }
 async function loadContrats(){
-  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,elec_car,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,agent_penalite,note_agent&order=created_at.desc`);
+  allContrats=await fetchAll(`${SUPABASE_URL}/rest/v1/contrats?select=id,id_service,id_fournisseur,fournisseur,energie_type,contrat_status,source,date_debut,created_at,personne_id,adresse_id,formule,option_tarifaire,iban,elec_car,gaz_car,inscrit_par,bs_fournisseur,agent_code,modifie_par,agent_claimed_at,agent_penalite,note_agent,choix_paiement,mode_facturation,envoi_facture,prix_kwh_ht,prix_kwh_ttc,abonnement_ht,abonnement_ttc,priorite,date_limite&order=created_at.desc`);
   const seen=new Set();allContrats=allContrats.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
   allContrats.forEach(c=>contratMap[c.id]=c);
   // Load adresses in batches
@@ -801,7 +801,7 @@ async function loadContrats(){
   }
 }
 async function loadCommissions(){allComm=await fetchAll(`${SUPABASE_URL}/rest/v1/commissions?select=id,contrat_id,intermediaire_id,montant,statut,date_paiement,notes&order=id.asc`);const seen=new Set();allComm=allComm.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});}
-async function loadPersonnes(){allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,id_fournisseur,note,date_naissance,siret,colocataire_prenom,colocataire_nom,role,auth_user_id,est_agent,agent_code,code_parrainage,id_client&order=created_at.desc`);allPersonnes.forEach(p=>personneMap[p.id]=p);}
+async function loadPersonnes(){allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,whatsapp,wechat,login,est_intermediaire,est_client,categorie,id_fournisseur,note,date_naissance,siret,colocataire_prenom,colocataire_nom,role,auth_user_id,est_agent,agent_code,code_parrainage,id_client,iban&order=created_at.desc`);allPersonnes.forEach(p=>personneMap[p.id]=p);}
 
 function buildMaps(){
   intermMap={};
@@ -1296,9 +1296,13 @@ function renderContratModal(id){
   const comm=allComm.find(cm=>cm.contrat_id===id);
   const tt=c.formule?{resiliation:'❌ Résiliation',mise_en_service:'⚡ Mise en service',changement_fournisseur:'🔄 Changement',box_internet:'📡 Box',ouverture_banque:'🏦 Banque'}[c.formule]||'📄 Contrat':'📄 Contrat';
 
+  // Build inscrit_par options from agents
+  const agentsList=Object.values(personneMap).filter(x=>x.est_agent&&x.agent_code);
+  const inscritOpts=['','SY',...agentsList.map(a=>a.agent_code),...new Set(allContrats.map(c=>c.inscrit_par).filter(Boolean))].filter((v,i,a)=>v&&a.indexOf(v)===i).sort().map(o=>`<option value="${o}" ${o===c.inscrit_par?'selected':''}>${o}</option>`).join('');
+
   document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">Client ${esc((p.id_client||'—').replace(/^#/,'#'))}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
-    <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Détails</div>
+    <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Contrat</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-adresse')">Adresse</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-gestion')">🎯 Gestion tâche</div>
@@ -1310,33 +1314,59 @@ function renderContratModal(id){
         <div class="fmodal-col">
           <div class="fmodal-section">Contrat</div>
           ${fmField('fc-status','Statut',c.contrat_status,'select','en_attente|en_traitement|actif|annule|refuse')}
+          ${fmField('fc-formule','Type de tâche',c.formule,'select','|resiliation|mise_en_service|changement_fournisseur|box_internet|ouverture_banque|demenagement')}
           ${fmField('fc-fournisseur','Fournisseur',c.fournisseur)}
           ${fmField('fc-id_fournisseur','ID Fournisseur',c.id_fournisseur)}
+          ${fmField('fc-bs','BS Fournisseur',c.bs_fournisseur)}
           ${fmField('fc-energie','Énergie',c.energie_type,'select','elec|gaz|elec+gaz')}
-          ${fmField('fc-formule','Formule / Type',c.formule,'select','|resiliation|mise_en_service|changement_fournisseur|box_internet|ouverture_banque')}
         </div>
         <div class="fmodal-col">
-          <div class="fmodal-section">Informations</div>
-          ${fmField('fc-option','Option / Description',c.option_tarifaire,'textarea')}
-          ${fmField('fc-date','Date début',c.date_debut,'date')}
-          ${fmField('fc-source','Source',c.source)}
-          ${fmField('fc-inscrit','Inscrit par',c.inscrit_par)}
+          <div class="fmodal-section">Détails technique</div>
+          ${fmField('fc-option','Option tarifaire',c.option_tarifaire,'select','|BASE|HPHC|EJP|TEMPO')}
+          ${fmField('fc-elec-car','CAR Élec (kWh)',c.elec_car)}
+          ${fmField('fc-gaz-car','CAR Gaz (kWh)',c.gaz_car)}
+          ${fmField('fc-prix-kwh-ht','Prix kWh HT (€)',c.prix_kwh_ht)}
+          ${fmField('fc-prix-kwh-ttc','Prix kWh TTC (€)',c.prix_kwh_ttc)}
+          ${fmField('fc-abo-ht','Abonnement HT (€/mois)',c.abonnement_ht)}
+          ${fmField('fc-abo-ttc','Abonnement TTC (€/mois)',c.abonnement_ttc)}
         </div>
       </div>
-      ${comm?`<div class="fmodal-section">Commission</div><div class="fmodal-grid"><div class="fmodal-col">${drow('HT',comm.montant+'€')} ${drow('TTC',(parseFloat(comm.montant)*1.2).toFixed(2)+'€')}</div><div class="fmodal-col">${drow('Statut',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}</div></div>`:''}
-    </div>
-    <div id="fmt-client" style="display:none">
-      <div class="fmodal-section">Client</div>
-      <div class="fmodal-grid">
+      <div class="fmodal-grid" style="margin-top:12px;">
         <div class="fmodal-col">
-          ${fmField('fc-civ','Civilité',p.civilite,'select','M.|Mme|M. & Mme')}
-          ${fmField('fc-prenom','Prénom',p.prenom)}
-          ${fmField('fc-nom','Nom',p.nom)}
-          ${fmField('fc-email','Email',p.email,'email')}
+          <div class="fmodal-section">Paiement & Facturation</div>
+          ${fmField('fc-paiement','Choix paiement',c.choix_paiement,'select','|prelevement|cheque|virement|carte')}
+          ${fmField('fc-facturation','Mode facturation',c.mode_facturation,'select','|mensuelle|bimestrielle|annuelle')}
+          ${fmField('fc-envoi','Envoi facture',c.envoi_facture,'select','|email|courrier')}
         </div>
         <div class="fmodal-col">
-          ${fmField('fc-tel','Téléphone',p.telephone,'tel')}
-          ${fmField('fc-wechat','WeChat',p.wechat)}
+          <div class="fmodal-section">Traçabilité</div>
+          ${fmField('fc-date','Date début',c.date_debut,'date')}
+          ${fmField('fc-source','Source / Intermédiaire',c.source)}
+          <div class="fmodal-field"><label>Inscrit par</label><select id="fc-inscrit" class="finput">${inscritOpts}</select></div>
+          ${fmField('fc-note-agent','Note',c.note_agent,'textarea')}
+        </div>
+      </div>
+      ${comm?`<div class="fmodal-section" style="margin-top:12px;">Commission intermédiaire</div><div class="fmodal-grid"><div class="fmodal-col">${drow('HT',comm.montant+'€')} ${drow('TTC',(parseFloat(comm.montant)*1.2).toFixed(2)+'€')}</div><div class="fmodal-col">${drow('Statut',comm.statut==='paye'?'<span class="badge b-paye">Payé</span>':'<span class="badge b-non_paye">Non payé</span>')}</div></div>`:''}
+    </div>
+    <div id="fmt-client" style="display:none">
+      <div class="fmodal-section">Client ${p.id_client||''}</div>
+      <div class="fmodal-grid">
+        <div class="fmodal-col">
+          ${fmField('fc-civ','Civilité',p.civilite,'select','|Monsieur|Madame|M. & Mme|Société')}
+          ${fmField('fc-prenom','Prénom',p.prenom)}
+          ${fmField('fc-nom','Nom',p.nom)}
+          ${fmField('fc-dob','Date de naissance',p.date_naissance,'date')}
+          ${fmField('fc-siret','SIRET',p.siret)}
+          ${fmField('fc-coloc-prenom','Colocataire Prénom',p.colocataire_prenom)}
+          ${fmField('fc-coloc-nom','Colocataire Nom',p.colocataire_nom)}
+        </div>
+        <div class="fmodal-col">
+          ${fmField('fc-email','Email 1',p.email,'email')}
+          ${fmField('fc-email2','Email 2',p.email_reel,'email')}
+          ${fmField('fc-tel','Téléphone 1',p.telephone,'tel')}
+          ${fmField('fc-tel2','Téléphone 2 (mobile)',p.whatsapp,'tel')}
+          ${fmField('fc-wechat','WeChat / WA / IG',p.wechat)}
+          ${fmField('fc-iban','IBAN',p.iban)}
           ${fmField('fc-note','Note client',p.note,'textarea')}
         </div>
       </div>
@@ -1627,14 +1657,24 @@ function fmTab(el,panelId){
 // Full save: contrat + client + adresse in one click
 async function saveContratFull(contratId,personneId,adresseId){
   try{
-    // Save contrat
-    const cb={contrat_status:gv('fc-status'),fournisseur:gv('fc-fournisseur'),id_fournisseur:gv('fc-id_fournisseur'),energie_type:gv('fc-energie'),formule:gv('fc-formule'),option_tarifaire:gv('fc-option'),date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit'),modifie_par:'ADMIN'};
+    // Save contrat - all fields
+    const rawCb={
+      contrat_status:gv('fc-status'),fournisseur:gv('fc-fournisseur'),id_fournisseur:gv('fc-id_fournisseur'),
+      bs_fournisseur:gv('fc-bs'),energie_type:gv('fc-energie'),formule:gv('fc-formule'),
+      option_tarifaire:gv('fc-option'),elec_car:gv('fc-elec-car'),gaz_car:gv('fc-gaz-car'),
+      prix_kwh_ht:gv('fc-prix-kwh-ht'),prix_kwh_ttc:gv('fc-prix-kwh-ttc'),
+      abonnement_ht:gv('fc-abo-ht'),abonnement_ttc:gv('fc-abo-ttc'),
+      choix_paiement:gv('fc-paiement'),mode_facturation:gv('fc-facturation'),envoi_facture:gv('fc-envoi'),
+      date_debut:gv('fc-date'),source:gv('fc-source'),inscrit_par:gv('fc-inscrit'),
+      note_agent:gv('fc-note-agent'),modifie_par:'ADMIN'
+    };
     // Task management fields
-    const agentVal=gv('fc-agent');if(agentVal!==undefined)cb.agent_code=agentVal;
-    const penalite=gv('fc-penalite');if(penalite!==undefined)cb.agent_penalite=parseFloat(penalite)||0;
-    const noteAgent=gv('fc-note-agent');if(noteAgent!==undefined)cb.note_agent=noteAgent;
-    const priorite=gv('fc-priorite');if(priorite)cb.priorite=priorite;
-    const dateLimite=gv('fc-date-limite');if(dateLimite)cb.date_limite=dateLimite;
+    const agentVal=gv('fc-agent');if(agentVal!==undefined)rawCb.agent_code=agentVal;
+    const penalite=gv('fc-penalite');if(penalite!==undefined)rawCb.agent_penalite=parseFloat(penalite)||0;
+    const priorite=gv('fc-priorite');if(priorite)rawCb.priorite=priorite;
+    const dateLimite=gv('fc-date-limite');if(dateLimite)rawCb.date_limite=dateLimite;
+    // Filter null to avoid overwriting
+    const cb={};Object.entries(rawCb).forEach(([k,v])=>{if(v!==null&&v!==undefined)cb[k]=v;});
     await fetch(`${SUPABASE_URL}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:H(),body:JSON.stringify(cb)});
     Object.assign(contratMap[contratId],cb);
 
@@ -1648,16 +1688,25 @@ async function saveContratFull(contratId,personneId,adresseId){
       }
     }
 
-    // Save client if fields exist
-    if(document.getElementById('fc-prenom')){
-      const pb={civilite:gv('fc-civ'),prenom:gv('fc-prenom'),nom:gv('fc-nom'),email:gv('fc-email'),telephone:gv('fc-tel'),wechat:gv('fc-wechat'),note:gv('fc-note')};
+    // Save client - all fields
+    if(personneId&&document.getElementById('fc-prenom')){
+      const rawPb={
+        civilite:gv('fc-civ'),prenom:gv('fc-prenom'),nom:gv('fc-nom'),
+        date_naissance:gv('fc-dob'),siret:gv('fc-siret'),
+        colocataire_prenom:gv('fc-coloc-prenom'),colocataire_nom:gv('fc-coloc-nom'),
+        email:gv('fc-email'),email_reel:gv('fc-email2'),
+        telephone:gv('fc-tel'),whatsapp:gv('fc-tel2'),
+        wechat:gv('fc-wechat'),iban:gv('fc-iban'),note:gv('fc-note')
+      };
+      const pb={};Object.entries(rawPb).forEach(([k,v])=>{if(v!==null&&v!==undefined)pb[k]=v;});
       await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify(pb)});
       Object.assign(personneMap[personneId],pb);
     }
 
-    // Save adresse if fields exist and adresseId exists
+    // Save adresse
     if(adresseId&&document.getElementById('fc-rue')){
-      const ab={rue:gv('fc-rue'),complement:gv('fc-complement'),code_postal:gv('fc-cp'),ville:gv('fc-ville'),pdl:gv('fc-pdl'),pce:gv('fc-pce'),puissance:gv('fc-puissance'),type_logement:gv('fc-logement')};
+      const rawAb={rue:gv('fc-rue'),complement:gv('fc-complement'),code_postal:gv('fc-cp'),ville:gv('fc-ville'),pdl:gv('fc-pdl'),pce:gv('fc-pce'),puissance:gv('fc-puissance'),type_logement:gv('fc-logement')};
+      const ab={};Object.entries(rawAb).forEach(([k,v])=>{if(v!==null&&v!==undefined)ab[k]=v;});
       await fetch(`${SUPABASE_URL}/rest/v1/adresses?id=eq.${adresseId}`,{method:'PATCH',headers:H(),body:JSON.stringify(ab)});
       adresseMap[adresseId]={...adresseMap[adresseId],...ab};
     }
