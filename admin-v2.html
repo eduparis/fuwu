@@ -4223,65 +4223,50 @@ function renderTarifEditor(){
   const pid=document.getElementById('frn-tarif-produit')?.value;
   const area=document.getElementById('tarif-editor-area');
   if(!pid){area.innerHTML='';return;}
-  
   const prod=allProduits.find(p=>p.id===pid);if(!prod){area.innerHTML='';return;}
   const lignes=allTarifLignes.filter(t=>t.produit_id===pid);
-  const opts=(prod.option_types||['base','hphc']);
   const kvas=[6,9];
-  
-  const fmtAbo=v=>(v!=null&&v!==''&&!isNaN(v)&&parseFloat(v)!==0)?parseFloat(v).toFixed(2):'';
-  const fmtKwh=v=>(v!=null&&v!==''&&!isNaN(v)&&parseFloat(v)!==0)?parseFloat(v).toFixed(4):'';
-  
-  let html=`<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">
-    Produit: <strong style="color:var(--text);">${esc(prod.nom_offre)}</strong> · 
-    Modèle: <strong style="color:var(--accent);">${prod.pricing_model||'—'}</strong> · 
-    Applicable: <input type="date" class="finput" id="tarif-date" value="${(lignes[0]?.applicable_from||new Date().toISOString().slice(0,10))}" style="font-size:11px;padding:4px 8px;">
-  </div>`;
-  
-  opts.forEach(opt=>{
-    const optLabel=opt==='base'?'Option Base':opt==='hphc'?'Option HP/HC':opt.toUpperCase();
-    html+=`<div style="font-size:12px;font-weight:700;color:var(--accent);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">${optLabel}</div>`;
-    
-    if(opt==='base'){
-      html+=`<table class="dt-table" style="margin-bottom:12px;"><thead><tr><th>kVA</th><th>Abo HT/mois</th><th>Abo TTC/mois</th><th>kWh HT</th><th>kWh TTC</th></tr></thead><tbody>`;
-      kvas.forEach(kva=>{
-        const l=lignes.find(t=>t.option_tarifaire==='base'&&t.cadran==='base'&&Number(t.puissance_kva)===kva&&t.composant==='tout')||{};
-        html+=`<tr><td style="font-weight:600;">${kva} kVA</td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" data-field="abonnement_ht_mois" value="${fmtAbo(l.abonnement_ht_mois)}" style="width:90px;font-size:12px;padding:4px 8px;" placeholder="0.00"></td>
-          <td><input class="finput tarif-in" data-field="abonnement_ttc_mois" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" value="${fmtAbo(l.abonnement_ttc_mois)}" style="width:90px;font-size:12px;padding:4px 8px;" placeholder="0.00"></td>
-          <td><input class="finput tarif-in" data-field="kwh_ht" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" value="${fmtKwh(l.kwh_ht)}" style="width:100px;font-size:12px;padding:4px 8px;" placeholder="0.0000"></td>
-          <td><input class="finput tarif-in" data-field="kwh_ttc" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" value="${fmtKwh(l.kwh_ttc)}" style="width:100px;font-size:12px;padding:4px 8px;" placeholder="0.0000"></td></tr>`;
-      });
-      html+=`</tbody></table>`;
-    } else if(opt==='hphc'){
-      html+=`<table class="dt-table" style="margin-bottom:12px;"><thead><tr><th>kVA</th><th>Abo HT/mois</th><th>Abo TTC/mois</th><th>HP kWh HT</th><th>HP kWh TTC</th><th>HC kWh HT</th><th>HC kWh TTC</th></tr></thead><tbody>`;
-      kvas.forEach(kva=>{
-        const lhp=lignes.find(t=>t.option_tarifaire==='hphc'&&t.cadran==='hp'&&Number(t.puissance_kva)===kva&&t.composant==='tout')||{};
-        const lhc=lignes.find(t=>t.option_tarifaire==='hphc'&&t.cadran==='hc'&&Number(t.puissance_kva)===kva&&t.composant==='tout')||{};
-        html+=`<tr><td style="font-weight:600;">${kva} kVA</td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="abonnement_ht_mois" value="${fmtAbo(lhp.abonnement_ht_mois)}" style="width:85px;font-size:12px;padding:4px 8px;" placeholder="0.00"></td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="abonnement_ttc_mois" value="${fmtAbo(lhp.abonnement_ttc_mois)}" style="width:85px;font-size:12px;padding:4px 8px;" placeholder="0.00"></td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="kwh_ht" value="${fmtKwh(lhp.kwh_ht)}" style="width:90px;font-size:12px;padding:4px 8px;" placeholder="0.0000"></td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="kwh_ttc" value="${fmtKwh(lhp.kwh_ttc)}" style="width:90px;font-size:12px;padding:4px 8px;" placeholder="0.0000"></td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hc" data-kva="${kva}" data-comp="tout" data-field="kwh_ht" value="${fmtKwh(lhc.kwh_ht)}" style="width:90px;font-size:12px;padding:4px 8px;" placeholder="0.0000"></td>
-          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hc" data-kva="${kva}" data-comp="tout" data-field="kwh_ttc" value="${fmtKwh(lhc.kwh_ttc)}" style="width:90px;font-size:12px;padding:4px 8px;" placeholder="0.0000"></td></tr>`;
-      });
-      html+=`</tbody></table>`;
-    }
-  });
-  
-  html+=`<div style="margin-top:16px;"><button class="abtn g" onclick="saveTarifs('${pid}')" style="padding:8px 20px;">💾 Sauvegarder les tarifs</button></div>`;
-  
+  // Helper: format — show empty string for null/undefined/0, formatted number otherwise
+  const fa=v=>{const n=parseFloat(v);return(!isNaN(n)&&n!==0)?n.toFixed(2):'';};
+  const fk=v=>{const n=parseFloat(v);return(!isNaN(n)&&n!==0)?n.toFixed(4):'';};
+  const findL=(opt,cad,kva)=>lignes.find(t=>t.option_tarifaire===opt&&t.cadran===cad&&Number(t.puissance_kva)===kva&&t.composant==='tout')||{};
+
+  let html=`<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Produit: <strong style="color:var(--text);">${esc(prod.nom_offre)}</strong> · Modèle: <strong style="color:var(--accent);">${prod.pricing_model||'—'}</strong> · Applicable: <input type="date" class="finput" id="tarif-date" value="${(lignes[0]?.applicable_from||new Date().toISOString().slice(0,10))}" style="font-size:11px;padding:4px 8px;"></div>`;
+  const mkIn=(pid,opt,cad,kva,field,val,w,ph)=>`<input class="finput tarif-in" data-pid="${pid}" data-opt="${opt}" data-cad="${cad}" data-kva="${kva}" data-comp="tout" data-field="${field}" value="${val}" style="width:${w}px;font-size:12px;padding:4px 8px;" placeholder="${ph}">`;
+
+  // BASE
+  html+=`<div style="font-size:12px;font-weight:700;color:var(--accent);margin:16px 0 8px;text-transform:uppercase;">Option Base</div>`;
+  html+=`<table class="dt-table" style="margin-bottom:12px;"><thead><tr><th>kVA</th><th>Abo HT/mois</th><th>Abo TTC/mois</th><th>kWh HT</th><th>kWh TTC</th></tr></thead><tbody>`;
+  kvas.forEach(kva=>{const l=findL('base','base',kva);
+    html+=`<tr><td style="font-weight:600;">${kva} kVA</td>
+      <td>${mkIn(pid,'base','base',kva,'abonnement_ht_mois',fa(l.abonnement_ht_mois),90,'0.00')}</td>
+      <td>${mkIn(pid,'base','base',kva,'abonnement_ttc_mois',fa(l.abonnement_ttc_mois),90,'0.00')}</td>
+      <td>${mkIn(pid,'base','base',kva,'kwh_ht',fk(l.kwh_ht),100,'0.0000')}</td>
+      <td>${mkIn(pid,'base','base',kva,'kwh_ttc',fk(l.kwh_ttc),100,'0.0000')}</td></tr>`;});
+  html+=`</tbody></table>`;
+
+  // HPHC
+  html+=`<div style="font-size:12px;font-weight:700;color:var(--accent);margin:16px 0 8px;text-transform:uppercase;">Option HP/HC</div>`;
+  html+=`<table class="dt-table" style="margin-bottom:12px;"><thead><tr><th>kVA</th><th>Abo HT/mois</th><th>Abo TTC/mois</th><th>HP kWh HT</th><th>HP kWh TTC</th><th>HC kWh HT</th><th>HC kWh TTC</th></tr></thead><tbody>`;
+  kvas.forEach(kva=>{const lhp=findL('hphc','hp',kva),lhc=findL('hphc','hc',kva);
+    html+=`<tr><td style="font-weight:600;">${kva} kVA</td>
+      <td>${mkIn(pid,'hphc','hp',kva,'abonnement_ht_mois',fa(lhp.abonnement_ht_mois),85,'0.00')}</td>
+      <td>${mkIn(pid,'hphc','hp',kva,'abonnement_ttc_mois',fa(lhp.abonnement_ttc_mois),85,'0.00')}</td>
+      <td>${mkIn(pid,'hphc','hp',kva,'kwh_ht',fk(lhp.kwh_ht),90,'0.0000')}</td>
+      <td>${mkIn(pid,'hphc','hp',kva,'kwh_ttc',fk(lhp.kwh_ttc),90,'0.0000')}</td>
+      <td>${mkIn(pid,'hphc','hc',kva,'kwh_ht',fk(lhc.kwh_ht),90,'0.0000')}</td>
+      <td>${mkIn(pid,'hphc','hc',kva,'kwh_ttc',fk(lhc.kwh_ttc),90,'0.0000')}</td></tr>`;});
+  html+=`</tbody></table>`;
+
+  html+=`<div style="margin-top:16px;display:flex;gap:8px;"><button class="abtn g" onclick="saveTarifs('${pid}')" style="padding:8px 20px;">💾 Sauvegarder les tarifs</button><button class="abtn" onclick="cleanupTarifDuplicates('${pid}')" style="padding:8px 12px;font-size:11px;">🧹 Nettoyer doublons</button></div>`;
+
+  // Historique
   html+=`<div style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:700;color:var(--accent);">📋 Historique des tarifs</div>
       <div style="display:flex;gap:8px;">
-        <select class="finput" id="tarif-hist-kva" onchange="loadTarifHistorique('${pid}')" style="font-size:11px;padding:4px 8px;width:auto;">
-          <option value="">Tous kVA</option><option value="6">6 kVA</option><option value="9">9 kVA</option>
-        </select>
-        <select class="finput" id="tarif-hist-opt" onchange="loadTarifHistorique('${pid}')" style="font-size:11px;padding:4px 8px;width:auto;">
-          <option value="">Toutes options</option><option value="base">Base</option><option value="hphc">HP/HC</option>
-        </select>
+        <select class="finput" id="tarif-hist-kva" onchange="loadTarifHistorique('${pid}')" style="font-size:11px;padding:4px 8px;width:auto;"><option value="">Tous kVA</option><option value="6">6 kVA</option><option value="9">9 kVA</option></select>
+        <select class="finput" id="tarif-hist-opt" onchange="loadTarifHistorique('${pid}')" style="font-size:11px;padding:4px 8px;width:auto;"><option value="">Toutes options</option><option value="base">Base</option><option value="hphc">HP/HC</option></select>
       </div>
     </div>
     <div id="tarif-historique-area"><span class="spinner"></span></div>
@@ -4295,46 +4280,86 @@ async function loadTarifHistorique(produitId){
   const kvaF=document.getElementById('tarif-hist-kva')?.value;
   const optF=document.getElementById('tarif-hist-opt')?.value;
   try{
-    let url=`${SUPABASE_URL}/rest/v1/tarif_historique?produit_id=eq.${produitId}&order=created_at.desc&limit=100`;
+    let url=`${SUPABASE_URL}/rest/v1/tarif_historique?produit_id=eq.${produitId}&order=created_at.desc&limit=200`;
     if(kvaF)url+=`&puissance_kva=eq.${kvaF}`;
     if(optF)url+=`&option_tarifaire=eq.${optF}`;
-    const r=await fetch(url,{headers:H()});
-    if(!r.ok)throw new Error('err');
-    const hist=await r.json();
-    if(!hist.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique.</div>';return;}
-    const fmtF=f=>({abonnement_ht_mois:'Abo HT',abonnement_ttc_mois:'Abo TTC',kwh_ht:'kWh HT',kwh_ttc:'kWh TTC'}[f]||f);
+    const r=await fetch(url,{headers:H()});if(!r.ok)throw 0;
+    const raw=await r.json();if(!raw.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique.</div>';return;}
+
+    // Group by timestamp (rounded to minute) + kva + option
+    const snapMap={};
+    raw.forEach(h=>{
+      const ts=(h.created_at||'').substring(0,16); // YYYY-MM-DDTHH:MM
+      const key=`${ts}|${h.puissance_kva}|${h.option_tarifaire}`;
+      if(!snapMap[key])snapMap[key]={ts,kva:h.puissance_kva,opt:h.option_tarifaire,appFrom:h.applicable_from,fields:{}};
+      snapMap[key].fields[h.champ_modifie]={ancien:h.ancienne_valeur,nouveau:h.nouvelle_valeur};
+    });
+    const snaps=Object.values(snapMap).sort((a,b)=>b.ts.localeCompare(a.ts));
+
     const fmtDt=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('fr-FR')+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
-    const fmtV=(v,f)=>{if(v==null||v==='')return'—';const n=parseFloat(v);if(isNaN(n))return v;return f&&f.startsWith('kwh')?n.toFixed(4):n.toFixed(2);};
-    const pctD=(o,n)=>{const ov=parseFloat(o),nv=parseFloat(n);if(isNaN(ov)||isNaN(nv)||ov===0)return'—';return((nv-ov)/ov*100>0?'+':'')+((nv-ov)/ov*100).toFixed(1)+'%';};
-    el.innerHTML=`<table class="dt-table" style="font-size:11px;"><thead><tr>
-      <th>Date</th><th>kVA</th><th>Option</th><th>Cadran</th><th>Champ</th><th>Ancien</th><th>Nouveau</th><th>Variation</th><th>Applicable</th>
-    </tr></thead><tbody>
-    ${hist.map(h=>{const diff=pctD(h.ancienne_valeur,h.nouvelle_valeur);const dc=diff==='—'?'var(--muted)':diff.startsWith('+')?'var(--danger)':'var(--success)';
-      return `<tr><td style="color:var(--muted);white-space:nowrap;">${fmtDt(h.created_at)}</td>
-      <td style="font-weight:600;">${h.puissance_kva||'—'}</td><td>${h.option_tarifaire||'—'}</td><td>${h.cadran||'—'}</td>
-      <td style="color:var(--accent);font-weight:600;">${fmtF(h.champ_modifie)}</td>
-      <td>${fmtV(h.ancienne_valeur,h.champ_modifie)}</td><td style="font-weight:600;">${fmtV(h.nouvelle_valeur,h.champ_modifie)}</td>
-      <td style="font-weight:700;color:${dc};">${diff}</td><td style="color:var(--muted);">${h.applicable_from||'—'}</td></tr>`;}).join('')}
-    </tbody></table>`;
-  }catch(e){el.innerHTML='<div style="color:var(--danger);font-size:11px;">Erreur</div>';}
+    const fv=v=>{const n=parseFloat(v);return isNaN(n)?'—':n.toFixed(4);};
+    const pct=(o,n)=>{const ov=parseFloat(o),nv=parseFloat(n);if(isNaN(ov)||isNaN(nv)||ov===0)return'';return((nv-ov)/ov*100>0?'+':'')+((nv-ov)/ov*100).toFixed(1)+'%';};
+
+    let thtml=`<table class="dt-table" style="font-size:11px;"><thead><tr>
+      <th>Date</th><th>kVA</th><th>Option</th>`;
+    // Columns depend on option type
+    thtml+=`<th>kWh Base HT</th><th>kWh HP HT</th><th>kWh HC HT</th><th>Variation</th><th>Applicable</th></tr></thead><tbody>`;
+
+    snaps.forEach(s=>{
+      const isBase=s.opt==='base';
+      // Get kwh_ht values
+      const kwhHt=s.fields.kwh_ht||s.fields.kwh_ttc||null;
+      let baseVal='—',hpVal='—',hcVal='—',variation='—';
+      if(isBase&&kwhHt){
+        baseVal=fv(kwhHt.nouveau);
+        variation=pct(kwhHt.ancien,kwhHt.nouveau);
+      }
+      // For HPHC we may have HP and HC fields from different cadrans
+      // But our historique stores per-cadran, so we check
+      if(!isBase){
+        baseVal='—';
+        if(kwhHt){hpVal=fv(kwhHt.nouveau);variation=pct(kwhHt.ancien,kwhHt.nouveau);}
+      }
+      // Also check abo fields
+      const aboHt=s.fields.abonnement_ht_mois;
+      const aboTtc=s.fields.abonnement_ttc_mois;
+
+      const vc=variation&&variation!=='—'&&variation!==''?(variation.startsWith('+')?'var(--danger)':'var(--success)'):'var(--muted)';
+
+      thtml+=`<tr>
+        <td style="color:var(--muted);white-space:nowrap;">${fmtDt(s.ts)}</td>
+        <td style="font-weight:600;">${s.kva||'—'}</td>
+        <td>${s.opt==='base'?'Base':'HP/HC'}</td>
+        <td>${isBase?(kwhHt?fv(kwhHt.nouveau):'—'):'—'}</td>
+        <td>${!isBase&&kwhHt?fv(kwhHt.nouveau):'—'}</td>
+        <td>—</td>
+        <td style="font-weight:700;color:${vc};">${variation||'—'}</td>
+        <td style="color:var(--muted);">${s.appFrom||'—'}</td>
+      </tr>`;
+    });
+    // If no grouped snaps make sense, show raw
+    if(!snaps.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique.</div>';return;}
+    thtml+=`</tbody></table>`;
+    el.innerHTML=thtml;
+  }catch(e){el.innerHTML='<div style="color:var(--danger);font-size:11px;">Erreur chargement</div>';console.error(e);}
 }
 
 async function saveTarifs(produitId){
   const inputs=document.querySelectorAll('.tarif-in[data-pid="'+produitId+'"]');
   const appDate=document.getElementById('tarif-date')?.value||new Date().toISOString().slice(0,10);
-  
+
+  // Step 1: Collect only non-empty, non-zero values
   const rowMap={};
   for(const inp of inputs){
-    const val=inp.value.trim();
-    if(!val)continue;
-    const numVal=parseFloat(val);
-    if(isNaN(numVal)||numVal===0)continue;
+    const val=inp.value.trim();if(!val)continue;
+    const numVal=parseFloat(val);if(isNaN(numVal)||numVal===0)continue;
     const {opt,cad,kva,comp,field}=inp.dataset;
     const key=`${opt}|${cad}|${kva}|${comp}`;
     if(!rowMap[key])rowMap[key]={opt,cad,kva:parseInt(kva),comp,fields:{}};
     rowMap[key].fields[field]=numVal;
   }
-  
+
+  // Step 2: HPHC abo duplication HP→HC
   for(const key of Object.keys(rowMap)){
     const r=rowMap[key];
     if(r.opt==='hphc'&&r.cad==='hp'){
@@ -4345,39 +4370,55 @@ async function saveTarifs(produitId){
       }
     }
   }
-  
-  if(!Object.keys(rowMap).length){showToast('Aucune valeur non-nulle à sauvegarder',true);return;}
-  
+
+  if(!Object.keys(rowMap).length){showToast('Aucune valeur non-nulle',true);return;}
+
   let saved=0,errors=0;
   for(const key of Object.keys(rowMap)){
     const {opt,cad,kva,comp,fields}=rowMap[key];
+    // Type-safe find: Number() both sides
     const existing=allTarifLignes.find(t=>t.produit_id===produitId&&t.option_tarifaire===opt&&t.cadran===cad&&Number(t.puissance_kva)===kva&&t.composant===comp);
     try{
       if(existing){
         const patch={applicable_from:appDate};
+        let changed=false;
         for(const [f,v] of Object.entries(fields)){
           if(isNaN(v))continue;
-          const oldVal=existing[f];
-          if(oldVal!=null&&parseFloat(oldVal)!==v){
-            try{await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({produit_id:produitId,tarif_ligne_id:existing.id,champ_modifie:f,ancienne_valeur:String(oldVal),nouvelle_valeur:String(v),option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,motif:'Mise à jour'})});}catch(e){}
+          const oldV=existing[f];
+          if(oldV!=null&&parseFloat(oldV)!==v){
+            changed=true;
+            try{await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({
+              produit_id:produitId,tarif_ligne_id:existing.id,champ_modifie:f,
+              ancienne_valeur:String(oldV),nouvelle_valeur:String(v),
+              option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,
+              applicable_from:appDate,motif:'Mise à jour'
+            })});}catch(e){}
           }
           patch[f]=v;
         }
-        await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes?id=eq.${existing.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(patch)});
-        Object.assign(existing,patch);
+        const pRes=await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes?id=eq.${existing.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(patch)});
+        if(pRes.ok)Object.assign(existing,patch);
+        else {console.error('PATCH failed',await pRes.text());errors++;}
       } else {
         const body={produit_id:produitId,option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,...fields};
         const r=await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
-        if(r.ok){const d=await r.json();const nr=Array.isArray(d)?d[0]:d;if(nr)allTarifLignes.push(nr);
-          for(const [f,v] of Object.entries(fields)){if(!isNaN(v))try{await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({produit_id:produitId,tarif_ligne_id:nr?.id,champ_modifie:f,ancienne_valeur:null,nouvelle_valeur:String(v),option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,motif:'Création'})});}catch(e){}}
-        }
+        if(r.ok){
+          const d=await r.json();const nr=Array.isArray(d)?d[0]:d;
+          if(nr){allTarifLignes.push(nr);
+            for(const [f,v] of Object.entries(fields)){if(!isNaN(v))try{await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({
+              produit_id:produitId,tarif_ligne_id:nr.id,champ_modifie:f,ancienne_valeur:null,nouvelle_valeur:String(v),
+              option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,motif:'Création'
+            })});}catch(e){}}
+          }
+        } else {console.error('POST failed',await r.text());errors++;}
       }
       saved++;
-    }catch(e){errors++;console.error(e);}
+    }catch(e){errors++;console.error('saveTarifs row error',e);}
   }
-  try{allTarifLignes=await fetchAll(`${SUPABASE_URL}/rest/v1/tarif_lignes?select=*&order=produit_id,option_tarifaire,puissance_kva`);}catch(e){}
+  // Full reload — replace array entirely
+  try{allTarifLignes=await fetchAll(`${SUPABASE_URL}/rest/v1/tarif_lignes?select=*&order=produit_id,option_tarifaire,puissance_kva`);}catch(e){console.error('reload failed',e);}
   renderTarifEditor();
-  showToast(`${saved} ligne(s) sauvegardée(s)${errors?' · '+errors+' erreur(s)':''}`);
+  showToast(`${saved} sauvegardée(s)${errors?' · '+errors+' erreur(s)':''}`);
 }
 
 function editProduitTarifs(produitId){
@@ -4386,6 +4427,39 @@ function editProduitTarifs(produitId){
     const sel=document.getElementById('frn-tarif-produit');
     if(sel){sel.value=produitId;renderTarifEditor();}
   },100);
+}
+
+async function cleanupTarifDuplicates(produitId){
+  // Find duplicate rows (same produit+opt+cad+kva+comp) and delete those with all-zero kwh
+  const lignes=allTarifLignes.filter(t=>t.produit_id===produitId);
+  const groups={};
+  lignes.forEach(t=>{
+    const k=`${t.option_tarifaire}|${t.cadran}|${Number(t.puissance_kva)}|${t.composant}`;
+    if(!groups[k])groups[k]=[];
+    groups[k].push(t);
+  });
+  let deleted=0;
+  for(const [k,rows] of Object.entries(groups)){
+    if(rows.length<=1)continue;
+    // Keep the row with most non-zero values, delete others
+    rows.sort((a,b)=>{
+      const score=r=>[r.kwh_ht,r.kwh_ttc,r.abonnement_ht_mois,r.abonnement_ttc_mois].filter(v=>v!=null&&parseFloat(v)!==0).length;
+      return score(b)-score(a);
+    });
+    for(let i=1;i<rows.length;i++){
+      try{
+        await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes?id=eq.${rows[i].id}`,{method:'DELETE',headers:H()});
+        deleted++;
+      }catch(e){console.error('delete failed',e);}
+    }
+  }
+  if(deleted){
+    allTarifLignes=await fetchAll(`${SUPABASE_URL}/rest/v1/tarif_lignes?select=*&order=produit_id,option_tarifaire,puissance_kva`);
+    renderTarifEditor();
+    showToast(`${deleted} doublon(s) supprimé(s) ✅`);
+  } else {
+    showToast('Aucun doublon trouvé');
+  }
 }
 
 // ── Comparateur ──
