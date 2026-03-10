@@ -758,6 +758,17 @@ svg.lc circle{r:3;}
   </div>
 </div>
 
+<div class="fmodal" id="frn-modal" onclick="if(event.target===this)closeFrnModal()">
+  <div class="fmodal-box" style="max-width:640px;">
+    <div class="fmodal-header">
+      <div class="fmodal-title" id="frn-modal-title">—</div>
+      <button class="fmodal-close" onclick="closeFrnModal()">✕</button>
+    </div>
+    <div class="fmodal-body" id="frn-modal-body" style="padding:20px 24px;overflow-y:auto;"></div>
+    <div class="fmodal-actions" id="frn-modal-actions"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════ JAVASCRIPT ═══════════ -->
@@ -3775,6 +3786,13 @@ function updateAlertBadge(){
 }
 
 // ═══════════════════════════════════════
+// DRAWER
+// ═══════════════════════════════════════
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+}
+
+// ═══════════════════════════════════════
 // FOURNISSEUR MODULE
 // ═══════════════════════════════════════
 let allProduits=[], allTarifLignes=[], frnTab='list', frnLoaded=false;
@@ -3801,86 +3819,75 @@ async function toggleFrnCat(personneId, cat){
   }catch(e){showToast('Erreur',true);}
 }
 
+function closeFrnModal(){document.getElementById('frn-modal').classList.remove('open');}
+
 function openNewFournisseurModal(){
-  const dTitle=document.getElementById('drawer-title');
-  const dTabs=document.getElementById('drawer-tabs');
-  const dBody=document.getElementById('drawer-body');
-  const dAct=document.getElementById('drawer-actions');
-  
-  dTitle.innerHTML='＋ Nouveau Fournisseur';
-  dTabs.innerHTML='';
-  dBody.innerHTML=`
-    <div class="fmodal-section">Identité</div>
-    <div class="fmodal-field"><label>Nom (société)</label><input class="finput" id="nf-nom" style="width:100%;" placeholder="TotalEnergies, EDF, Mint…"></div>
-    <div class="fmodal-field"><label>Prénom (contact)</label><input class="finput" id="nf-prenom" style="width:100%;"></div>
-    <div class="fmodal-field"><label>Email</label><input class="finput" id="nf-email" type="email" style="width:100%;"></div>
-    <div class="fmodal-field"><label>Téléphone</label><input class="finput" id="nf-tel" type="tel" style="width:100%;"></div>
-    <div class="fmodal-field"><label>Téléphone 2 (mobile)</label><input class="finput" id="nf-tel2" type="tel" style="width:100%;"></div>
-    <div class="fmodal-field"><label>Email 2</label><input class="finput" id="nf-email2" type="email" style="width:100%;"></div>
-    <div class="fmodal-field"><label>WeChat</label><input class="finput" id="nf-wechat" style="width:100%;"></div>
-    <div class="fmodal-section" style="margin-top:12px;">Société</div>
-    <div class="fmodal-field"><label>SIRET</label><input class="finput" id="nf-siret" style="width:100%;"></div>
-    <div class="fmodal-field"><label>N° TVA Intracommunautaire</label><input class="finput" id="nf-tva" style="width:100%;"></div>
-    <div class="fmodal-field"><label>IBAN</label><input class="finput" id="nf-iban" style="width:100%;"></div>
-    <div class="fmodal-section" style="margin-top:12px;">Adresse (siège)</div>
-    <div class="fmodal-field"><label>Rue</label><input class="finput" id="nf-rue" style="width:100%;" placeholder="2 bis, rue Louis Armand"></div>
-    <div class="fmodal-field"><label>Complément</label><input class="finput" id="nf-complement" style="width:100%;"></div>
-    <div style="display:flex;gap:8px;">
-      <div class="fmodal-field" style="flex:1;"><label>Code postal</label><input class="finput" id="nf-cp" style="width:100%;" placeholder="75015"></div>
-      <div class="fmodal-field" style="flex:2;"><label>Ville</label><input class="finput" id="nf-ville" style="width:100%;" placeholder="Paris"></div>
+  document.getElementById('frn-modal-title').innerHTML='🏢 Nouveau Fournisseur';
+  document.getElementById('frn-modal-body').innerHTML=`
+    <div class="fmodal-grid">
+      <div class="fmodal-col">
+        <div class="fmodal-section">Identité</div>
+        ${fmField('nf-nom','Nom (société)','')}
+        ${fmField('nf-prenom','Prénom (contact)','')}
+        ${fmField('nf-email','Email','','email')}
+        ${fmField('nf-tel','Téléphone','','tel')}
+        ${fmField('nf-tel2','Téléphone 2 (mobile)','','tel')}
+        ${fmField('nf-email2','Email 2','','email')}
+        ${fmField('nf-wechat','WeChat','')}
+      </div>
+      <div class="fmodal-col">
+        <div class="fmodal-section">Société</div>
+        ${fmField('nf-siret','SIRET','')}
+        ${fmField('nf-tva','N° TVA Intracommunautaire','')}
+        ${fmField('nf-iban','IBAN','')}
+        <div class="fmodal-section" style="margin-top:8px;">Adresse (siège)</div>
+        ${fmField('nf-rue','Rue','')}
+        ${fmField('nf-complement','Complément','')}
+        <div style="display:flex;gap:8px;">
+          <div class="fmodal-field" style="flex:1;"><label>Code postal</label><input class="finput" id="nf-cp" style="width:100%;"></div>
+          <div class="fmodal-field" style="flex:2;"><label>Ville</label><input class="finput" id="nf-ville" style="width:100%;"></div>
+        </div>
+        <div class="fmodal-section" style="margin-top:8px;">Catégorie</div>
+        <div class="fmodal-field"><div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-energie" checked> Énergie</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-telecom"> Télécom</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-banque"> Banque</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-assurance"> Assurance</label>
+        </div></div>
+      </div>
     </div>
-    <div class="fmodal-section" style="margin-top:12px;">Catégorie</div>
-    <div class="fmodal-field"><div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-energie" checked> Énergie</label>
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-telecom"> Télécom</label>
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-banque"> Banque</label>
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-assurance"> Assurance</label>
-    </div></div>
   `;
-  
-  dAct.innerHTML=`
+  document.getElementById('frn-modal-actions').innerHTML=`
     <button class="abtn g" onclick="saveNewFournisseur()" style="flex:1;">💾 Créer Fournisseur</button>
-    <button class="abtn" onclick="closeDrawer()">Annuler</button>
+    <button class="abtn" onclick="closeFrnModal()">Annuler</button>
   `;
-  
-  document.getElementById('drawer').classList.add('open');
+  document.getElementById('frn-modal').classList.add('open');
 }
 
 async function saveNewFournisseur(){
-  const nom=document.getElementById('nf-nom').value.trim();
+  const nom=(document.getElementById('nf-nom')?.value||'').trim();
   if(!nom){showToast('Le nom est requis',true);return;}
   
   const cats=[];
-  if(document.getElementById('nf-cat-energie').checked)cats.push('energie');
-  if(document.getElementById('nf-cat-telecom').checked)cats.push('telecom');
-  if(document.getElementById('nf-cat-banque').checked)cats.push('banque');
-  if(document.getElementById('nf-cat-assurance').checked)cats.push('assurance');
+  if(document.getElementById('nf-cat-energie')?.checked)cats.push('energie');
+  if(document.getElementById('nf-cat-telecom')?.checked)cats.push('telecom');
+  if(document.getElementById('nf-cat-banque')?.checked)cats.push('banque');
+  if(document.getElementById('nf-cat-assurance')?.checked)cats.push('assurance');
   
-  const rue=document.getElementById('nf-rue').value.trim()||null;
-  const complement=document.getElementById('nf-complement').value.trim()||null;
-  const cp=document.getElementById('nf-cp').value.trim()||null;
-  const ville=document.getElementById('nf-ville').value.trim()||null;
+  const gv=id=>(document.getElementById(id)?.value||'').trim()||null;
+  const rue=gv('nf-rue'),complement=gv('nf-complement'),cp=gv('nf-cp'),ville=gv('nf-ville');
   const adresseText=[rue,complement,cp,ville].filter(Boolean).join(', ');
   
   const body={
-    nom:nom,
-    prenom:document.getElementById('nf-prenom').value.trim()||null,
-    email:document.getElementById('nf-email').value.trim()||null,
-    telephone:document.getElementById('nf-tel').value.trim()||null,
-    whatsapp:document.getElementById('nf-tel2').value.trim()||null,
-    email_reel:document.getElementById('nf-email2').value.trim()||null,
-    wechat:document.getElementById('nf-wechat').value.trim()||null,
-    siret:document.getElementById('nf-siret').value.trim()||null,
-    tva_intracom:document.getElementById('nf-tva').value.trim()||null,
-    iban:document.getElementById('nf-iban').value.trim()||null,
+    nom:nom,prenom:gv('nf-prenom'),email:gv('nf-email'),telephone:gv('nf-tel'),
+    whatsapp:gv('nf-tel2'),email_reel:gv('nf-email2'),wechat:gv('nf-wechat'),
+    siret:gv('nf-siret'),tva_intracom:gv('nf-tva'),iban:gv('nf-iban'),
     adresse_intermediaire:adresseText||null,
-    type_client:'professionnel',
-    est_fournisseur:true,
+    type_client:'professionnel',est_fournisseur:true,
     fournisseur_categorie:cats.length?cats:null,
   };
   
   try{
-    // 1. Create personne
     const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
     if(!r.ok)throw new Error(await r.text());
     const d=await r.json();
@@ -3890,7 +3897,7 @@ async function saveNewFournisseur(){
     allPersonnes.unshift(newP);
     personneMap[newP.id]=newP;
     
-    // 2b. Auto-generate fournisseur IDs based on id_client
+    // Auto-generate fournisseur IDs
     if(newP.id_client){
       const idBody={};
       if(cats.includes('energie'))idBody.id_fournisseur_fe='FE'+newP.id_client;
@@ -3903,19 +3910,17 @@ async function saveNewFournisseur(){
       }
     }
     
-    // 2. Create adresse if rue or ville provided
+    // Create adresse record
     if(rue||ville){
       try{
-        const addrBody={personne_id:newP.id,rue:rue,complement:complement,code_postal:cp,ville:ville};
-        const ra=await fetch(`${SUPABASE_URL}/rest/v1/adresses`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(addrBody)});
-        if(ra.ok){
-          const ad=await ra.json();
-          if(Array.isArray(ad)&&ad.length)adresseMap[ad[0].id]=ad[0];
-        }
+        const ab={};
+        if(rue)ab.rue=rue;if(complement)ab.complement=complement;if(cp)ab.code_postal=cp;if(ville)ab.ville=ville;
+        const ra=await fetch(`${SUPABASE_URL}/rest/v1/adresses`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(ab)});
+        if(ra.ok){const ad=await ra.json();if(Array.isArray(ad)&&ad.length)adresseMap[ad[0].id]=ad[0];}
       }catch(e){console.warn('Adresse creation failed',e);}
     }
     
-    closeDrawer();
+    closeFrnModal();
     frnLoaded=false;
     loadFrnPage();
     showToast('Fournisseur créé ✓ — '+nom);
@@ -4270,15 +4275,9 @@ function openProduitModal(produitId){
   const p=isEdit?allProduits.find(x=>x.id===produitId):{};
   const fournisseurs=allPersonnes.filter(x=>x.est_fournisseur);
   
-  const title=isEdit?'✏️ Modifier produit':'＋ Nouveau produit';
-  const dTitle=document.getElementById('drawer-title');
-  const dTabs=document.getElementById('drawer-tabs');
-  const dBody=document.getElementById('drawer-body');
-  const dAct=document.getElementById('drawer-actions');
-  
-  dTitle.innerHTML=title;
-  dTabs.innerHTML='';
-  dBody.innerHTML=`
+  const title=isEdit?'✏️ Modifier produit':'📦 Nouveau produit';
+  document.getElementById('frn-modal-title').innerHTML=title;
+  document.getElementById('frn-modal-body').innerHTML=`
     <div class="fmodal-field"><label>Fournisseur</label>
       <select class="finput" id="np-fourn" style="width:100%;" ${isEdit?'disabled':''}>
         <option value="">— Choisir —</option>
@@ -4326,13 +4325,13 @@ function openProduitModal(produitId){
     <div class="fmodal-field"><label>Notes</label><textarea class="finput" id="np-notes" rows="2" style="width:100%;">${esc(p.notes||'')}</textarea></div>
   `;
   
-  dAct.innerHTML=`
+  document.getElementById('frn-modal-actions').innerHTML=`
     <button class="abtn g" onclick="saveProduit('${produitId||''}')" style="flex:1;">💾 ${isEdit?'Sauvegarder':'Créer'}</button>
     ${isEdit?'<button class="abtn r" onclick="toggleProduitStatut(\''+produitId+'\')">'+((p.statut==='actif')?'⏸ Désactiver':'▶ Activer')+'</button>':''}
-    <button class="abtn" onclick="closeDrawer()">Fermer</button>
+    <button class="abtn" onclick="closeFrnModal()">Fermer</button>
   `;
   
-  document.getElementById('drawer').classList.add('open');
+  document.getElementById('frn-modal').classList.add('open');
 }
 
 function toggleEnergieFields(){
@@ -4374,7 +4373,7 @@ async function saveProduit(existingId){
       const d=await r.json();if(Array.isArray(d)&&d.length)allProduits.unshift(d[0]);
       showToast('Produit créé ✓');
     }
-    closeDrawer();
+    closeFrnModal();
     showFrnTab(frnTab);
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
@@ -4386,7 +4385,7 @@ async function toggleProduitStatut(produitId){
   try{
     await fetch(`${SUPABASE_URL}/rest/v1/produits_services?id=eq.${produitId}`,{method:'PATCH',headers:H(),body:JSON.stringify({statut:newStat})});
     p.statut=newStat;
-    closeDrawer();showFrnTab(frnTab);
+    closeFrnModal();showFrnTab(frnTab);
     showToast('Statut mis à jour');
   }catch(e){showToast('Erreur',true);}
 }
