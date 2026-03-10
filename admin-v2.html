@@ -4678,7 +4678,7 @@ async function saveProduit(existingId){
   
   try{
     if(isEdit){
-      delete body.fournisseur_id; // don't change fournisseur
+      // Keep fournisseur_id for edit (allow reassignment)
       await fetch(`${SUPABASE_URL}/rest/v1/produits_services?id=eq.${existingId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
       const idx=allProduits.findIndex(p=>p.id===existingId);
       if(idx>=0)Object.assign(allProduits[idx],body);
@@ -4704,6 +4704,9 @@ async function saveProduit(existingId){
     }
     closeFrnModal();
     showFrnTab(frnTab);
+    // Refresh personne produits tab if open
+    const fid=body.fournisseur_id||document.getElementById('np-fourn')?.value;
+    if(fid&&document.getElementById('frn-person-produits'))loadPersonneProduits(fid);
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
