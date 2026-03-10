@@ -2144,7 +2144,7 @@ async function loadPersonneProduits(personneId){
     const tc=tarifCount(p.id);
     html+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
       <div style="flex:1;">
-        <div style="font-weight:600;font-size:13px;">${esc(p.nom_offre||'—')}</div>
+        <div style="font-weight:600;font-size:13px;">${esc(p.nom_offre||'—')} ${p.id_produit?'<span style="font-family:monospace;font-size:10px;color:var(--accent);margin-left:6px;">'+esc(p.id_produit)+'</span>':''}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">${esc(p.sous_categorie||p.categorie||'')} · ${esc(p.pricing_model||'')} · <span style="color:${statColor};font-weight:600;">${p.statut||'actif'}</span></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Commission: ${p.commission_ht||0}€ HT · ${tc} tarif${tc>1?'s':''}</div>
       </div>
@@ -4184,7 +4184,7 @@ function renderFrnProduits(){
     const nTarifs=allTarifLignes.filter(t=>t.produit_id===p.id).length;
     return `<tr>
       <td>${esc(fname)}</td>
-      <td><div style="font-weight:600;">${esc(p.nom_offre)}</div><div style="font-size:10px;color:var(--muted);">${p.code_offre||''} · ${nTarifs} lignes tarif</div></td>
+      <td><div style="font-weight:600;">${esc(p.nom_offre)}</div><div style="font-size:10px;color:var(--muted);">${p.id_produit?'<span style="font-family:monospace;color:var(--accent);">'+p.id_produit+'</span> · ':'' }${p.code_offre||''} · ${nTarifs} lignes tarif</div></td>
       <td>${p.categorie}${p.sous_categorie?' / '+p.sous_categorie:''}</td>
       <td>${p.pricing_model||'—'}</td>
       <td>${p.green_percentage?p.green_percentage+'%':'—'}</td>
@@ -4469,97 +4469,113 @@ function renderFrnCompare(){
   const el=document.getElementById('frn-content');
   const fMap={};allPersonnes.filter(p=>p.est_fournisseur).forEach(p=>fMap[p.id]=p);
   const energieProds=allProduits.filter(p=>p.categorie==='energie'&&p.sous_categorie==='electricite'&&p.statut==='actif');
-  
   if(!energieProds.length){el.innerHTML='<div style="color:var(--muted);">Aucun produit énergie électricité actif.</div>';return;}
-  
-  const conso=10000; // kWh/an
-  const hpRatio=0.6, hcRatio=0.4;
-  
-  let html=`<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Simulation: <strong style="color:var(--text);">${conso.toLocaleString()} kWh/an</strong> · HP 60% / HC 40% · Hors taxes & contributions communes</div>`;
-  
-  // Build comparison for 6kVA and 9kVA
+
+  const conso=parseInt(document.getElementById('cmp-conso')?.value)||10000;
+  const hpPct=parseInt(document.getElementById('cmp-hp')?.value)||60;
+  const hcPct=100-hpPct;
+  const hpR=hpPct/100,hcR=hcPct/100;
+
+  let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+    <div class="fmodal-field" style="margin:0;"><label style="font-size:10px;">Conso annuelle (kWh)</label>
+      <input class="finput" id="cmp-conso" type="number" value="${conso}" style="width:120px;font-size:12px;padding:6px 8px;" onchange="renderFrnCompare()"></div>
+    <div class="fmodal-field" style="margin:0;"><label style="font-size:10px;">Répartition HP %</label>
+      <input class="finput" id="cmp-hp" type="number" value="${hpPct}" min="0" max="100" style="width:80px;font-size:12px;padding:6px 8px;" onchange="renderFrnCompare()"></div>
+    <div style="font-size:11px;color:var(--muted);padding-top:14px;">HP ${hpPct}% / HC ${hcPct}% · ${conso.toLocaleString()} kWh/an</div>
+  </div>`;
+
+  // Find TRV reference (pricing_model==='regulated')
+  const trvProd=energieProds.find(p=>p.pricing_model==='regulated');
+
   [6,9].forEach(kva=>{
     html+=`<div style="font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 10px;">⚡ ${kva} kVA</div>`;
-    
-    // Base
-    html+=`<div style="font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;letter-spacing:0.5px;">Option Base</div>`;
+
+    // ── BASE ──
+    html+=`<div style="font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;">Option Base</div>`;
     html+=`<table class="dt-table" style="margin-bottom:16px;"><thead><tr>
-      <th>Fournisseur / Offre</th><th>Abo/mois HT</th><th>Abo/mois TTC</th><th>kWh HT</th><th>kWh TTC</th><th>Coût/an HT</th><th>Coût/an TTC</th><th>Commission</th>
+      <th>Fournisseur / Offre</th><th>ID</th><th>Abo HT</th><th>Abo TTC</th><th>kWh HT</th><th>kWh TTC</th><th>Coût/an HT</th><th>Coût/an TTC</th><th>Économie/an</th><th>Commission</th>
     </tr></thead><tbody>`;
-    
+
     const baseRows=[];
+    let trvBaseCoutTtc=null;
     energieProds.forEach(p=>{
       const f=fMap[p.fournisseur_id]||{};
       const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'?';
-      const l=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='base'&&t.cadran==='base'&&t.puissance_kva===kva&&t.composant==='tout');
+      const l=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='base'&&t.cadran==='base'&&Number(t.puissance_kva)===kva&&t.composant==='tout');
       if(!l)return;
-      const aboHt=l.abonnement_ht_mois?parseFloat(l.abonnement_ht_mois):null;
-      const aboTtc=l.abonnement_ttc_mois?parseFloat(l.abonnement_ttc_mois):null;
-      const kwhHt=l.kwh_ht?parseFloat(l.kwh_ht):null;
-      const kwhTtc=l.kwh_ttc?parseFloat(l.kwh_ttc):null;
-      const coutHt=(aboHt!==null&&kwhHt!==null)?(aboHt*12+kwhHt*conso):null;
-      const coutTtc=(aboTtc!==null&&kwhTtc!==null)?(aboTtc*12+kwhTtc*conso):null;
-      baseRows.push({fname,offre:p.nom_offre,aboHt,aboTtc,kwhHt,kwhTtc,coutHt,coutTtc,comm:p.commission_ht||60});
+      const aH=l.abonnement_ht_mois?parseFloat(l.abonnement_ht_mois):null;
+      const aT=l.abonnement_ttc_mois?parseFloat(l.abonnement_ttc_mois):null;
+      const kH=l.kwh_ht?parseFloat(l.kwh_ht):null;
+      const kT=l.kwh_ttc?parseFloat(l.kwh_ttc):null;
+      const cH=(aH!=null&&kH!=null)?(aH*12+kH*conso):null;
+      const cT=(aT!=null&&kT!=null)?(aT*12+kT*conso):null;
+      if(p.pricing_model==='regulated'&&cT!=null)trvBaseCoutTtc=cT;
+      baseRows.push({fname,offre:p.nom_offre,idP:p.id_produit||'',aH,aT,kH,kT,cH,cT,comm:p.commission_ht||60,isTrv:p.pricing_model==='regulated'});
     });
-    baseRows.sort((a,b)=>(a.coutTtc||99999)-(b.coutTtc||99999));
-    
+    baseRows.sort((a,b)=>(a.cT||99999)-(b.cT||99999));
+
     baseRows.forEach((r,i)=>{
       const best=i===0?'style="background:rgba(34,197,94,0.06);"':'';
+      const eco=(trvBaseCoutTtc!=null&&r.cT!=null&&!r.isTrv)?(trvBaseCoutTtc-r.cT):null;
+      const ecoStr=eco!=null?(eco>0?'<span style="color:var(--success);font-weight:700;">-'+eco.toFixed(0)+'€</span>':'<span style="color:var(--danger);">+'+Math.abs(eco).toFixed(0)+'€</span>'):(r.isTrv?'<span style="font-size:10px;color:var(--muted);">TRV réf.</span>':'—');
       html+=`<tr ${best}>
         <td><div style="font-weight:600;font-size:12px;">${esc(r.fname)}</div><div style="font-size:10px;color:var(--muted);">${esc(r.offre)}</div></td>
-        <td>${r.aboHt!==null?r.aboHt.toFixed(2):'—'}</td>
-        <td>${r.aboTtc!==null?r.aboTtc.toFixed(2):'—'}</td>
-        <td>${r.kwhHt!==null?r.kwhHt.toFixed(4):'—'}</td>
-        <td>${r.kwhTtc!==null?r.kwhTtc.toFixed(4):'—'}</td>
-        <td style="font-weight:600;">${r.coutHt!==null?r.coutHt.toFixed(2)+'€':'—'}</td>
-        <td style="font-weight:700;color:var(--accent);">${r.coutTtc!==null?r.coutTtc.toFixed(2)+'€':'—'}</td>
-        <td>${r.comm}€</td>
-      </tr>`;
+        <td style="font-family:monospace;font-size:10px;color:var(--accent);">${esc(r.idP)}</td>
+        <td>${r.aH!=null?r.aH.toFixed(2):'—'}</td><td>${r.aT!=null?r.aT.toFixed(2):'—'}</td>
+        <td>${r.kH!=null?r.kH.toFixed(4):'—'}</td><td>${r.kT!=null?r.kT.toFixed(4):'—'}</td>
+        <td style="font-weight:600;">${r.cH!=null?r.cH.toFixed(2)+'€':'—'}</td>
+        <td style="font-weight:700;color:var(--accent);">${r.cT!=null?r.cT.toFixed(2)+'€':'—'}</td>
+        <td>${ecoStr}</td>
+        <td>${r.comm}€</td></tr>`;
     });
     html+=`</tbody></table>`;
-    
-    // HPHC
-    html+=`<div style="font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;letter-spacing:0.5px;">Option HP/HC</div>`;
+
+    // ── HPHC ──
+    html+=`<div style="font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;">Option HP/HC</div>`;
     html+=`<table class="dt-table" style="margin-bottom:16px;"><thead><tr>
-      <th>Fournisseur / Offre</th><th>Abo/mois TTC</th><th>HP TTC</th><th>HC TTC</th><th>Coût/an HT</th><th>Coût/an TTC</th><th>Commission</th>
+      <th>Fournisseur / Offre</th><th>ID</th><th>Abo TTC</th><th>HP HT</th><th>HP TTC</th><th>HC HT</th><th>HC TTC</th><th>Coût/an HT</th><th>Coût/an TTC</th><th>Économie/an</th><th>Commission</th>
     </tr></thead><tbody>`;
-    
+
     const hphcRows=[];
+    let trvHphcCoutTtc=null;
     energieProds.forEach(p=>{
       const f=fMap[p.fournisseur_id]||{};
       const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'?';
-      const lhp=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hp'&&t.puissance_kva===kva&&t.composant==='tout');
-      const lhc=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hc'&&t.puissance_kva===kva&&t.composant==='tout');
+      const lhp=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hp'&&Number(t.puissance_kva)===kva&&t.composant==='tout');
+      const lhc=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hc'&&Number(t.puissance_kva)===kva&&t.composant==='tout');
       if(!lhp||!lhc)return;
-      const aboTtc=lhp.abonnement_ttc_mois?parseFloat(lhp.abonnement_ttc_mois):null;
-      const aboHt=lhp.abonnement_ht_mois?parseFloat(lhp.abonnement_ht_mois):null;
-      const hpTtc=parseFloat(lhp.kwh_ttc||0);
-      const hcTtc=parseFloat(lhc.kwh_ttc||0);
-      const hpHt=parseFloat(lhp.kwh_ht||0);
-      const hcHt=parseFloat(lhc.kwh_ht||0);
-      const coutTtc=aboTtc!==null?(aboTtc*12+hpTtc*conso*hpRatio+hcTtc*conso*hcRatio):null;
-      const coutHt=aboHt!==null?(aboHt*12+hpHt*conso*hpRatio+hcHt*conso*hcRatio):null;
-      hphcRows.push({fname,offre:p.nom_offre,aboTtc,hpTtc,hcTtc,coutHt,coutTtc,comm:p.commission_ht||60});
+      const aT=lhp.abonnement_ttc_mois?parseFloat(lhp.abonnement_ttc_mois):null;
+      const aH=lhp.abonnement_ht_mois?parseFloat(lhp.abonnement_ht_mois):null;
+      const hpT=parseFloat(lhp.kwh_ttc||0),hcT=parseFloat(lhc.kwh_ttc||0);
+      const hpH=parseFloat(lhp.kwh_ht||0),hcH=parseFloat(lhc.kwh_ht||0);
+      const cT=aT!=null?(aT*12+hpT*conso*hpR+hcT*conso*hcR):null;
+      const cH=aH!=null?(aH*12+hpH*conso*hpR+hcH*conso*hcR):null;
+      if(p.pricing_model==='regulated'&&cT!=null)trvHphcCoutTtc=cT;
+      hphcRows.push({fname,offre:p.nom_offre,idP:p.id_produit||'',aT,hpH,hpT,hcH,hcT,cH,cT,comm:p.commission_ht||60,isTrv:p.pricing_model==='regulated'});
     });
-    hphcRows.sort((a,b)=>(a.coutTtc||99999)-(b.coutTtc||99999));
-    
+    hphcRows.sort((a,b)=>(a.cT||99999)-(b.cT||99999));
+
     hphcRows.forEach((r,i)=>{
       const best=i===0?'style="background:rgba(34,197,94,0.06);"':'';
+      const eco=(trvHphcCoutTtc!=null&&r.cT!=null&&!r.isTrv)?(trvHphcCoutTtc-r.cT):null;
+      const ecoStr=eco!=null?(eco>0?'<span style="color:var(--success);font-weight:700;">-'+eco.toFixed(0)+'€</span>':'<span style="color:var(--danger);">+'+Math.abs(eco).toFixed(0)+'€</span>'):(r.isTrv?'<span style="font-size:10px;color:var(--muted);">TRV réf.</span>':'—');
       html+=`<tr ${best}>
         <td><div style="font-weight:600;font-size:12px;">${esc(r.fname)}</div><div style="font-size:10px;color:var(--muted);">${esc(r.offre)}</div></td>
-        <td>${r.aboTtc!==null?r.aboTtc.toFixed(2):'—'}</td>
-        <td>${r.hpTtc.toFixed(4)}</td>
-        <td>${r.hcTtc.toFixed(4)}</td>
-        <td style="font-weight:600;">${r.coutHt!==null?r.coutHt.toFixed(2)+'€':'—'}</td>
-        <td style="font-weight:700;color:var(--accent);">${r.coutTtc!==null?r.coutTtc.toFixed(2)+'€':'—'}</td>
-        <td>${r.comm}€</td>
-      </tr>`;
+        <td style="font-family:monospace;font-size:10px;color:var(--accent);">${esc(r.idP)}</td>
+        <td>${r.aT!=null?r.aT.toFixed(2):'—'}</td>
+        <td>${r.hpH?r.hpH.toFixed(4):'—'}</td><td>${r.hpT?r.hpT.toFixed(4):'—'}</td>
+        <td>${r.hcH?r.hcH.toFixed(4):'—'}</td><td>${r.hcT?r.hcT.toFixed(4):'—'}</td>
+        <td style="font-weight:600;">${r.cH!=null?r.cH.toFixed(2)+'€':'—'}</td>
+        <td style="font-weight:700;color:var(--accent);">${r.cT!=null?r.cT.toFixed(2)+'€':'—'}</td>
+        <td>${ecoStr}</td>
+        <td>${r.comm}€</td></tr>`;
     });
     html+=`</tbody></table>`;
   });
-  
+
   el.innerHTML=html;
 }
+
 
 // ── Produit Modal ──
 function openProduitModal(produitId,forPersonneId){
@@ -4663,8 +4679,21 @@ async function saveProduit(existingId){
     } else {
       const r=await fetch(`${SUPABASE_URL}/rest/v1/produits_services`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
       if(!r.ok)throw new Error(await r.text());
-      const d=await r.json();if(Array.isArray(d)&&d.length)allProduits.unshift(d[0]);
-      showToast('Produit créé ✓');
+      const d=await r.json();const newP=Array.isArray(d)?d[0]:d;
+      if(newP){
+        allProduits.unshift(newP);
+        // Auto-generate id_produit: E10000001 / T10000001 / B10000001 / A10000001
+        if(!newP.id_produit){
+          const prefixMap={energie:'E',telecom:'T',banque:'B',assurance:'A'};
+          const prefix=prefixMap[body.categorie]||'E';
+          const existing=allProduits.filter(p=>p.id_produit&&p.id_produit.startsWith(prefix));
+          const maxNum=existing.reduce((mx,p)=>{const n=parseInt(p.id_produit.substring(1));return(!isNaN(n)&&n>mx)?n:mx;},10000000);
+          const idProduit=prefix+(maxNum+1);
+          await fetch(`${SUPABASE_URL}/rest/v1/produits_services?id=eq.${newP.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({id_produit:idProduit})});
+          newP.id_produit=idProduit;
+        }
+      }
+      showToast('Produit créé ✓ — '+(newP?.id_produit||''));
     }
     closeFrnModal();
     showFrnTab(frnTab);
