@@ -2121,7 +2121,6 @@ async function saveContratFull(contratId,personneId,adresseId){
 
 async function loadPersonneProduits(personneId){
   const el=document.getElementById('frn-person-produits');if(!el)return;
-  // Ensure produits loaded
   if(!allProduits.length){
     try{allProduits=await fetchAll(`${SUPABASE_URL}/rest/v1/produits_services?select=*&order=created_at.desc`);}catch(e){}
   }
@@ -2154,20 +2153,13 @@ async function loadPersonneProduits(personneId){
   });
   el.innerHTML=html;
 }
-
-function openProduitModalForPerson(personneId){
-  openProduitModal(null,personneId);
-}
-
+function openProduitModalForPerson(personneId){openProduitModal(null,personneId);}
 async function cloneProduit(produitId){
   const src=allProduits.find(p=>p.id===produitId);if(!src)return;
-  const body={
-    fournisseur_id:src.fournisseur_id,categorie:src.categorie,sous_categorie:src.sous_categorie,
-    nom_offre:(src.nom_offre||'')+'(copie)',code_offre:src.code_offre,
-    pricing_model:src.pricing_model,green_percentage:src.green_percentage,
-    engagement_mois:src.engagement_mois,commission_ht:src.commission_ht,
-    commission_structure:src.commission_structure,statut:'brouillon'
-  };
+  const body={fournisseur_id:src.fournisseur_id,categorie:src.categorie,sous_categorie:src.sous_categorie,
+    nom_offre:(src.nom_offre||'')+' (copie)',code_offre:src.code_offre,pricing_model:src.pricing_model,
+    green_percentage:src.green_percentage,engagement_mois:src.engagement_mois,commission_ht:src.commission_ht,
+    commission_structure:src.commission_structure,statut:'brouillon'};
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/produits_services`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
     if(!r.ok)throw new Error(await r.text());
@@ -2669,6 +2661,9 @@ function openCreate(type){
     <div class="fmodal-grid"><div class="fmodal-col">
       <div class="fmodal-section">Identité</div>
       ${fmField('nc-civ','Civilité','','select','|Monsieur|Madame|M. & Mme|Société')}
+      <div id="nc-societe-name-wrap" style="display:none;">
+        ${fmField('nc-societe-nom','Nom de la société','')}
+      </div>
       ${fmField('nc-type','Type','particulier','select','particulier|professionnel|proprietaire|airbnb')}
       ${fmField('nc-prenom','Prénom','')}
       ${fmField('nc-nom','Nom','')}
@@ -2719,10 +2714,8 @@ function openCreate(type){
   `;
   openFModal();
   ncRoleChanged();
-  // Auto-show société if type=Société or fournisseur
-  document.getElementById('nc-civ').addEventListener('change',ncTypeChanged);
-  document.getElementById('nc-type').addEventListener('change',ncTypeChanged);
-  ncTypeChanged();
+  document.getElementById('nc-civ').addEventListener('change',ncCivChanged);
+  ncCivChanged();
 }
 function ncRoleChanged(){
   const isFrn=document.getElementById('nc-est_fournisseur')?.checked;
@@ -2731,43 +2724,54 @@ function ncRoleChanged(){
   const el=id=>document.getElementById(id);
   el('nc-frn-cats').style.display=isFrn?'block':'none';
   el('nc-auth-block').style.display=(isAgent||isInterm)?'block':'none';
-  ncTypeChanged();
+  // Société block: only if Civilité=Société OR Fournisseur checked
+  ncCivChanged();
 }
-function ncTypeChanged(){
+function ncCivChanged(){
   const civ=(document.getElementById('nc-civ')?.value||'');
-  const typ=(document.getElementById('nc-type')?.value||'');
   const isFrn=document.getElementById('nc-est_fournisseur')?.checked;
-  const show=(civ==='Société'||typ==='professionnel'||isFrn);
-  document.getElementById('nc-societe-block').style.display=show?'block':'none';
+  const isSociete=(civ==='Société');
+  // Show société name field when Civilité=Société
+  document.getElementById('nc-societe-name-wrap').style.display=isSociete?'block':'none';
+  // Show SIRET/TVA/IBAN only when Civilité=Société OR Fournisseur
+  document.getElementById('nc-societe-block').style.display=(isSociete||isFrn)?'block':'none';
+  // Auto-set type to professionnel when Société
+  if(isSociete){document.getElementById('nc-type').value='professionnel';}
 }
 
 async function submitCreateUnified(){
   const gvl=id=>(document.getElementById(id)?.value||'').trim()||null;
   const chk=id=>document.getElementById(id)?.checked||false;
-  const nom=gvl('nc-nom'),email=gvl('nc-email');
+  const civ=gvl('nc-civ');
+  const isSociete=(civ==='Société');
+  const nom=isSociete?(gvl('nc-societe-nom')||gvl('nc-nom')):gvl('nc-nom');
+  const email=gvl('nc-email');
   if(!email&&!nom){showToast('Email ou Nom requis',true);return;}
 
   const isClient=chk('nc-est_client'),isInterm=chk('nc-est_intermediaire'),isAgent=chk('nc-est_agent'),isFrn=chk('nc-est_fournisseur');
 
   // Fournisseur categories
   const cats=[];
-  if(isFrn){
-    ['energie','telecom','banque','assurance'].forEach(c=>{if(chk('nc-cat-'+c))cats.push(c);});
-  }
+  if(isFrn){['energie','telecom','banque','assurance'].forEach(c=>{if(chk('nc-cat-'+c))cats.push(c);});}
 
-  // Build société address text
+  // Address
   const rue=gvl('nc-rue'),complement=gvl('nc-complement'),cp=gvl('nc-cp'),ville=gvl('nc-ville');
   const adresseText=[rue,complement,cp,ville].filter(Boolean).join(', ');
 
   const body={
-    civilite:gvl('nc-civ'),type_client:gvl('nc-type'),prenom:gvl('nc-prenom'),nom:nom,
+    civilite:civ,type_client:gvl('nc-type'),
+    prenom:isSociete?gvl('nc-prenom'):gvl('nc-prenom'),
+    nom:nom,
     email:email,telephone:gvl('nc-tel'),whatsapp:gvl('nc-tel2'),email_reel:gvl('nc-email2'),
     wechat:gvl('nc-wechat'),login:gvl('nc-login'),note:gvl('nc-note'),
     est_client:isClient,est_intermediaire:isInterm,est_agent:isAgent,est_fournisseur:isFrn,
-    siret:gvl('nc-siret'),tva_intracom:gvl('nc-tva'),iban:gvl('nc-iban'),
     adresse_intermediaire:adresseText||null,
     fournisseur_categorie:cats.length?cats:null,
   };
+  // Société fields only when relevant
+  if(isSociete||isFrn){
+    body.siret=gvl('nc-siret');body.tva_intracom=gvl('nc-tva');body.iban=gvl('nc-iban');
+  }
   if(isAgent)body.agent_code=gvl('nc-agent-code');
 
   // Clean nulls
@@ -4542,9 +4546,6 @@ async function saveProduit(existingId){
     }
     closeFrnModal();
     showFrnTab(frnTab);
-    // Refresh personne produits tab if open
-    const fournId=body.fournisseur_id;
-    if(fournId&&document.getElementById('frn-person-produits'))loadPersonneProduits(fournId);
   }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
