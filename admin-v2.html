@@ -4280,68 +4280,70 @@ async function loadTarifHistorique(produitId){
   const kvaF=document.getElementById('tarif-hist-kva')?.value;
   const optF=document.getElementById('tarif-hist-opt')?.value;
   try{
-    let url=`${SUPABASE_URL}/rest/v1/tarif_historique?produit_id=eq.${produitId}&order=created_at.desc&limit=200`;
+    let url=`${SUPABASE_URL}/rest/v1/tarif_historique?produit_id=eq.${produitId}&order=created_at.desc&limit=300`;
     if(kvaF)url+=`&puissance_kva=eq.${kvaF}`;
     if(optF)url+=`&option_tarifaire=eq.${optF}`;
     const r=await fetch(url,{headers:H()});if(!r.ok)throw 0;
-    const raw=await r.json();if(!raw.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique.</div>';return;}
+    const raw=await r.json();
+    if(!raw.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique.</div>';return;}
 
-    // Group by timestamp (rounded to minute) + kva + option
+    // Group by timestamp (minute) + kva + option to build snapshot rows
     const snapMap={};
     raw.forEach(h=>{
-      const ts=(h.created_at||'').substring(0,16); // YYYY-MM-DDTHH:MM
+      const ts=(h.created_at||'').substring(0,16);
       const key=`${ts}|${h.puissance_kva}|${h.option_tarifaire}`;
-      if(!snapMap[key])snapMap[key]={ts,kva:h.puissance_kva,opt:h.option_tarifaire,appFrom:h.applicable_from,fields:{}};
-      snapMap[key].fields[h.champ_modifie]={ancien:h.ancienne_valeur,nouveau:h.nouvelle_valeur};
+      if(!snapMap[key])snapMap[key]={ts,kva:h.puissance_kva,opt:h.option_tarifaire,appFrom:h.applicable_from,motif:h.motif,
+        base_ht:null,base_ht_old:null,hp_ht:null,hp_ht_old:null,hc_ht:null,hc_ht_old:null};
+      const s=snapMap[key];
+      if(h.champ_modifie==='kwh_ht'){
+        if(h.option_tarifaire==='base'||(h.option_tarifaire==='hphc'&&h.cadran==='base')){
+          s.base_ht=h.nouvelle_valeur;s.base_ht_old=h.ancienne_valeur;
+        } else if(h.cadran==='hp'){
+          s.hp_ht=h.nouvelle_valeur;s.hp_ht_old=h.ancienne_valeur;
+        } else if(h.cadran==='hc'){
+          s.hc_ht=h.nouvelle_valeur;s.hc_ht_old=h.ancienne_valeur;
+        }
+      }
+      // Also capture base cadran for base option
+      if(h.champ_modifie==='kwh_ht'&&h.option_tarifaire==='base'&&h.cadran==='base'){
+        s.base_ht=h.nouvelle_valeur;s.base_ht_old=h.ancienne_valeur;
+      }
     });
     const snaps=Object.values(snapMap).sort((a,b)=>b.ts.localeCompare(a.ts));
+    if(!snaps.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique kWh HT.</div>';return;}
 
     const fmtDt=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('fr-FR')+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
-    const fv=v=>{const n=parseFloat(v);return isNaN(n)?'—':n.toFixed(4);};
-    const pct=(o,n)=>{const ov=parseFloat(o),nv=parseFloat(n);if(isNaN(ov)||isNaN(nv)||ov===0)return'';return((nv-ov)/ov*100>0?'+':'')+((nv-ov)/ov*100).toFixed(1)+'%';};
+    const fv=v=>{if(v==null||v==='')return'—';const n=parseFloat(v);return isNaN(n)?'—':n.toFixed(4);};
+    const pct=(o,n)=>{if(o==null||n==null)return'';const ov=parseFloat(o),nv=parseFloat(n);if(isNaN(ov)||isNaN(nv)||ov===0)return'—';const d=(nv-ov)/ov*100;return(d>0?'+':'')+d.toFixed(1)+'%';};
 
     let thtml=`<table class="dt-table" style="font-size:11px;"><thead><tr>
-      <th>Date</th><th>kVA</th><th>Option</th>`;
-    // Columns depend on option type
-    thtml+=`<th>kWh Base HT</th><th>kWh HP HT</th><th>kWh HC HT</th><th>Variation</th><th>Applicable</th></tr></thead><tbody>`;
+      <th>Date</th><th>kVA</th><th>Option</th><th>kWh Base HT</th><th>kWh HP HT</th><th>kWh HC HT</th><th>Variation</th><th>Applicable</th><th>Par</th>
+    </tr></thead><tbody>`;
 
     snaps.forEach(s=>{
-      const isBase=s.opt==='base';
-      // Get kwh_ht values
-      const kwhHt=s.fields.kwh_ht||s.fields.kwh_ttc||null;
-      let baseVal='—',hpVal='—',hcVal='—',variation='—';
-      if(isBase&&kwhHt){
-        baseVal=fv(kwhHt.nouveau);
-        variation=pct(kwhHt.ancien,kwhHt.nouveau);
-      }
-      // For HPHC we may have HP and HC fields from different cadrans
-      // But our historique stores per-cadran, so we check
-      if(!isBase){
-        baseVal='—';
-        if(kwhHt){hpVal=fv(kwhHt.nouveau);variation=pct(kwhHt.ancien,kwhHt.nouveau);}
-      }
-      // Also check abo fields
-      const aboHt=s.fields.abonnement_ht_mois;
-      const aboTtc=s.fields.abonnement_ttc_mois;
-
-      const vc=variation&&variation!=='—'&&variation!==''?(variation.startsWith('+')?'var(--danger)':'var(--success)'):'var(--muted)';
+      // Compute variation from the main field that changed
+      let variation='';
+      if(s.opt==='base'&&s.base_ht!=null) variation=pct(s.base_ht_old,s.base_ht);
+      else if(s.opt==='hphc'&&s.hp_ht!=null) variation=pct(s.hp_ht_old,s.hp_ht);
+      else if(s.opt==='hphc'&&s.hc_ht!=null) variation=pct(s.hc_ht_old,s.hc_ht);
+      const vc=(!variation||variation==='—')?'var(--muted)':variation.startsWith('+')?'var(--danger)':'var(--success)';
+      const par=s.motif||'—';
 
       thtml+=`<tr>
         <td style="color:var(--muted);white-space:nowrap;">${fmtDt(s.ts)}</td>
         <td style="font-weight:600;">${s.kva||'—'}</td>
         <td>${s.opt==='base'?'Base':'HP/HC'}</td>
-        <td>${isBase?(kwhHt?fv(kwhHt.nouveau):'—'):'—'}</td>
-        <td>${!isBase&&kwhHt?fv(kwhHt.nouveau):'—'}</td>
-        <td>—</td>
+        <td style="font-weight:${s.base_ht!=null?'600':'400'};">${fv(s.base_ht)}</td>
+        <td style="font-weight:${s.hp_ht!=null?'600':'400'};">${fv(s.hp_ht)}</td>
+        <td style="font-weight:${s.hc_ht!=null?'600':'400'};">${fv(s.hc_ht)}</td>
         <td style="font-weight:700;color:${vc};">${variation||'—'}</td>
         <td style="color:var(--muted);">${s.appFrom||'—'}</td>
+        <td style="font-size:10px;color:var(--muted);">${esc(par)}</td>
       </tr>`;
     });
-    // If no grouped snaps make sense, show raw
-    if(!snaps.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Aucun historique.</div>';return;}
     thtml+=`</tbody></table>`;
     el.innerHTML=thtml;
-  }catch(e){el.innerHTML='<div style="color:var(--danger);font-size:11px;">Erreur chargement</div>';console.error(e);}
+  }catch(e){el.innerHTML='<div style="color:var(--danger);font-size:11px;">Erreur</div>';console.error(e);}
 }
 
 async function saveTarifs(produitId){
@@ -4391,7 +4393,7 @@ async function saveTarifs(produitId){
               produit_id:produitId,tarif_ligne_id:existing.id,champ_modifie:f,
               ancienne_valeur:String(oldV),nouvelle_valeur:String(v),
               option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,
-              applicable_from:appDate,motif:'Mise à jour'
+              applicable_from:appDate,motif:(fuwuLoadSession('fuwu_admin_session')?.email||'admin')+' MAJ'
             })});}catch(e){}
           }
           patch[f]=v;
@@ -4407,7 +4409,7 @@ async function saveTarifs(produitId){
           if(nr){allTarifLignes.push(nr);
             for(const [f,v] of Object.entries(fields)){if(!isNaN(v))try{await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({
               produit_id:produitId,tarif_ligne_id:nr.id,champ_modifie:f,ancienne_valeur:null,nouvelle_valeur:String(v),
-              option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,motif:'Création'
+              option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,motif:(fuwuLoadSession('fuwu_admin_session')?.email||'admin')+' Créé'
             })});}catch(e){}}
           }
         } else {console.error('POST failed',await r.text());errors++;}
