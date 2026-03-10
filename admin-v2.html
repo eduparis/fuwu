@@ -514,13 +514,14 @@ svg.lc circle{r:3;}
               <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('client')"><div class="scard-val v-blue" id="crm-c-client">—</div><div class="scard-label">Clients</div></div>
               <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('agent')"><div class="scard-val v-orange" id="crm-c-agent">—</div><div class="scard-label">Agents</div></div>
               <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('intermediaire')"><div class="scard-val v-gold" id="crm-c-interm">—</div><div class="scard-label">Intermédiaires</div></div>
+              <div class="scard" style="flex:1;min-width:120px;cursor:pointer;" onclick="crmQuickFilter('fournisseur')"><div class="scard-val v-blue" id="crm-c-fourn">—</div><div class="scard-label">Fournisseurs</div></div>
             </div>
             <div class="fbar">
               <div style="flex:1;min-width:200px;position:relative;">
                 <input type="text" class="finput" style="width:100%;padding-right:30px;" id="crm-search" placeholder="🔍 Rechercher…" oninput="filterCRM()">
                 <span onclick="document.getElementById('crm-search').value='';filterCRM();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted);font-size:14px;display:none;" id="crm-search-x">✕</span>
               </div>
-              <select class="finput" id="crm-role" onchange="filterCRM()"><option value="">Tous rôles</option><option value="client">Client</option><option value="intermediaire">Intermédiaire</option><option value="agent">Agent</option></select>
+              <select class="finput" id="crm-role" onchange="filterCRM()"><option value="">Tous rôles</option><option value="client">Client</option><option value="intermediaire">Intermédiaire</option><option value="agent">Agent</option><option value="fournisseur">Fournisseur</option></select>
               <select class="finput" id="crm-cat" onchange="filterCRM()"><option value="">Toutes catégories</option></select>
             </div>
           </div>
@@ -1292,12 +1293,12 @@ function toggleAllCT(cb){const start=(ctPage-1)*PAGE;fContrats.slice(start,start
 // ══════════════════════════════════════
 // CRM PAGE
 // ══════════════════════════════════════
-let _crmQuick=''; // '', 'recent', 'client', 'agent', 'intermediaire'
+let _crmQuick=''; // '', 'recent', 'client', 'agent', 'intermediaire', 'fournisseur'
 
 function crmQuickFilter(type){
   _crmQuick=_crmQuick===type?'':type; // toggle
   document.getElementById('crm-role').value=
-    type==='client'?'client':type==='agent'?'agent':type==='intermediaire'?'intermediaire':'';
+    type==='client'?'client':type==='agent'?'agent':type==='intermediaire'?'intermediaire':type==='fournisseur'?'fournisseur':'';
   filterCRM();
 }
 
@@ -1315,6 +1316,7 @@ function filterCRM(){
     if(role==='client'&&!p.est_client)return false;
     if(role==='intermediaire'&&!p.est_intermediaire)return false;
     if(role==='agent'&&!p.est_agent)return false;
+    if(role==='fournisseur'&&!p.est_fournisseur)return false;
     if(_crmQuick==='recent'){
       // created_at is loaded in desc order; check if within 3 days
       // personnes may not have created_at in lightweight load, use position heuristic
@@ -1337,11 +1339,13 @@ function updateCRMCards(){
   const clients=allPersonnes.filter(p=>p.est_client).length;
   const agents=allPersonnes.filter(p=>p.est_agent).length;
   const interms=allPersonnes.filter(p=>p.est_intermediaire).length;
+  const fournisseurs=allPersonnes.filter(p=>p.est_fournisseur).length;
   const el=id=>document.getElementById(id);
   if(el('crm-c-recent'))el('crm-c-recent').textContent=recent;
   if(el('crm-c-client'))el('crm-c-client').textContent=clients;
   if(el('crm-c-agent'))el('crm-c-agent').textContent=agents;
   if(el('crm-c-interm'))el('crm-c-interm').textContent=interms;
+  if(el('crm-c-fourn'))el('crm-c-fourn').textContent=fournisseurs;
 }
 function renderCRMTable(){
   const start=(crmPage-1)*PAGE,page=fCRM.slice(start,start+PAGE);
@@ -1349,7 +1353,7 @@ function renderCRMTable(){
   if(!page.length){tbody.innerHTML=`<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--muted)">Aucune personne</td></tr>`;return;}
   tbody.innerHTML=page.map(p=>{
     const name=[p.prenom,p.nom].filter(Boolean).join(' ')||'—';
-    const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Interm');if(p.est_agent)roles.push('Agent');
+    const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Interm');if(p.est_agent)roles.push('Agent');if(p.est_fournisseur)roles.push('Fourn');
     const nContrats=(window._contratsByPerson||{})[p.id]?.length||0;
     const sel=crmSelected.has(p.id)?'selected':'';
     return `<tr class="${sel}" onclick="openEntity('personne','${p.id}')">
@@ -1672,7 +1676,7 @@ function renderPersonneModal(id){
   const p=personneMap[id];if(!p){closeFModal();return;}
   const contrats=(window._contratsByPerson||{})[id]||[];
   const activeC=contrats.filter(c=>c.contrat_status==='actif'||c.contrat_status==='en_traitement'||c.contrat_status==='en_attente');
-  const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');
+  const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');if(p.est_fournisseur)roles.push('Fournisseur');
   const isInterm=p.est_intermediaire;
   // Contrats attributed to this intermediary
   const intermContrats=isInterm?allContrats.filter(c=>c.intermediaire_id===id||c.source===p.email||c.source===p.login):[];
@@ -2271,7 +2275,7 @@ function renderContratDrawer(id){
 function renderPersonneDrawer(id){
   const p=personneMap[id];if(!p){closeDrawer();return;}
   const contrats=(window._contratsByPerson||{})[id]||[];
-  const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');
+  const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Intermédiaire');if(p.est_agent)roles.push('Agent');if(p.est_fournisseur)roles.push('Fournisseur');
 
   document.getElementById('drawer-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)}`;
   document.getElementById('drawer-tabs').innerHTML=`
@@ -2621,7 +2625,7 @@ function exportComm(){
 }
 function exportCRM(){
   const h=['Nom','Email','Tél','Rôle','Contrats','Cat'].join(',');
-  const rows=fCRM.map(p=>{const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Interm');if(p.est_agent)roles.push('Agent');return [[p.prenom,p.nom].join(' '),p.email,p.telephone,roles.join('/'),((window._contratsByPerson||{})[p.id]||[]).length,p.categorie||''].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');});
+  const rows=fCRM.map(p=>{const roles=[];if(p.est_client)roles.push('Client');if(p.est_intermediaire)roles.push('Interm');if(p.est_agent)roles.push('Agent');if(p.est_fournisseur)roles.push('Fourn');return [[p.prenom,p.nom].join(' '),p.email,p.telephone,roles.join('/'),((window._contratsByPerson||{})[p.id]||[]).length,p.categorie||''].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');});
   downloadCSV('\uFEFF'+h+'\n'+rows.join('\n'),'crm.csv');
 }
 function downloadCSV(csv,fn){const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);}
