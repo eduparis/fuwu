@@ -654,6 +654,16 @@ tr:hover td { background: var(--surface2); }
             <div class="ins-toggle" id="ins-opt-hphc" onclick="insSelectOptionTarifaire('HPHC')">🌙 HPHC</div>
           </div>
         </div>
+        <div class="ins-fg">
+          <label class="ins-label-txt">Offre</label>
+          <select class="ins-input" id="ins-f-offre" onchange="insUpdateOffreDisplay()">
+            <option value="">— Chargement… —</option>
+          </select>
+          <div id="ins-offre-abo" style="margin-top:8px;padding:10px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:8px;font-size:12px;color:#aaa;display:none;">
+            <div style="font-weight:600;color:#eef0f4;margin-bottom:4px;">📋 Tarif applicable</div>
+            <div id="ins-offre-abo-detail"></div>
+          </div>
+        </div>
         <div class="ins-fg" style="margin-bottom:0">
           <label class="ins-label-txt">Notes</label>
           <textarea class="ins-input" id="ins-f-note" rows="3" placeholder="Informations utiles pour le dossier..." style="resize:vertical"></textarea>
@@ -1536,14 +1546,65 @@ let insSelectedEnergie='elec', insSelectedSouscription='mise_en_service', insSel
 let insExistingPersonne=null, insForceNewClient=false, insDupCheckTimer=null;
 let insPdlAdresse=null, insPceAdresse=null;
 let _insIntermTimer=null; window._insIntermValid=false;
+let insProduits=[], insTarifLignes=[];
+
+async function insLoadProducts(){
+  try{
+    const rp=await fetch(`${INS_URL}/rest/v1/produits_services?select=*&statut=eq.actif&categorie=eq.energie&order=id_produit`,{headers:{'apikey':INS_KEY}});
+    insProduits=await rp.json();
+    const rt=await fetch(`${INS_URL}/rest/v1/tarif_lignes?select=*&composant=eq.tout&order=produit_id,puissance_kva`,{headers:{'apikey':INS_KEY}});
+    insTarifLignes=await rt.json();
+    // Populate offre dropdown
+    const sel=document.getElementById('ins-f-offre');if(!sel)return;
+    sel.innerHTML='<option value="">— Choisir une offre —</option>'+insProduits.map(p=>{
+      const label=(p.nom_offre||'—')+' — '+(p.id_produit||'');
+      return `<option value="${p.id_produit||p.id}" ${p.id_produit==='E10000003'?'selected':''}>${label}</option>`;
+    }).join('');
+    insUpdateOffreDisplay();
+  }catch(e){console.error('Products load error',e);}
+}
+
+function insUpdateOffreDisplay(){
+  const box=document.getElementById('ins-offre-abo');
+  const detail=document.getElementById('ins-offre-abo-detail');
+  if(!box||!detail)return;
+  const selVal=document.getElementById('ins-f-offre')?.value;
+  if(!selVal){box.style.display='none';return;}
+  const prod=insProduits.find(p=>p.id_produit===selVal||p.id===selVal);
+  if(!prod){box.style.display='none';return;}
+  const kva=parseInt(document.getElementById('ins-f-puissance')?.value)||6;
+  const opt=insSelectedOptionTarifaire||'BASE';
+  const isBase=opt==='BASE';
+  if(isBase){
+    const l=insTarifLignes.find(t=>t.produit_id===prod.id&&t.option_tarifaire==='base'&&t.cadran==='base'&&Number(t.puissance_kva)===kva);
+    if(l){
+      const aH=l.abonnement_ht_mois?parseFloat(l.abonnement_ht_mois).toFixed(2):'—';
+      const aT=l.abonnement_ttc_mois?parseFloat(l.abonnement_ttc_mois).toFixed(2):'—';
+      const kH=l.kwh_ht?parseFloat(l.kwh_ht).toFixed(4):'—';
+      const kT=l.kwh_ttc?parseFloat(l.kwh_ttc).toFixed(4):'—';
+      detail.innerHTML=`<b>Base ${kva} kVA</b> — Abo: ${aH}€ HT / ${aT}€ TTC/mois · kWh: ${kH}€ HT / ${kT}€ TTC`;
+      box.style.display='block';
+    } else {detail.innerHTML=`Pas de tarif Base ${kva} kVA`;box.style.display='block';}
+  } else {
+    const lhp=insTarifLignes.find(t=>t.produit_id===prod.id&&t.option_tarifaire==='hphc'&&t.cadran==='hp'&&Number(t.puissance_kva)===kva);
+    const lhc=insTarifLignes.find(t=>t.produit_id===prod.id&&t.option_tarifaire==='hphc'&&t.cadran==='hc'&&Number(t.puissance_kva)===kva);
+    if(lhp&&lhc){
+      const aT=lhp.abonnement_ttc_mois?parseFloat(lhp.abonnement_ttc_mois).toFixed(2):'—';
+      const hpT=lhp.kwh_ttc?parseFloat(lhp.kwh_ttc).toFixed(4):'—';
+      const hcT=lhc.kwh_ttc?parseFloat(lhc.kwh_ttc).toFixed(4):'—';
+      detail.innerHTML=`<b>HP/HC ${kva} kVA</b> — Abo: ${aT}€ TTC/mois · HP: ${hpT}€ TTC · HC: ${hcT}€ TTC`;
+      box.style.display='block';
+    } else {detail.innerHTML=`Pas de tarif HP/HC ${kva} kVA`;box.style.display='block';}
+  }
+}
 
 function showInscription(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('inscription-screen').style.display='block';
-  // init date naissance
   const today=new Date();
   const el=document.getElementById('ins-f-naissance');
   if(el){el.max=today.toISOString().split('T')[0];el.min=new Date(today.getFullYear()-100,today.getMonth(),today.getDate()).toISOString().split('T')[0];}
+  insLoadProducts();
 }
 
 function showInscriptionFromDashboard(){
@@ -1556,6 +1617,23 @@ function showInscriptionFromDashboard(){
   const today=new Date();
   const el=document.getElementById('ins-f-naissance');
   if(el){el.max=today.toISOString().split('T')[0];el.min=new Date(today.getFullYear()-100,today.getMonth(),today.getDate()).toISOString().split('T')[0];}
+  // Auto-fill intermédiaire with logged-in user's login
+  if(currentUser){
+    const intermField=document.getElementById('ins-f-interm');
+    if(intermField){
+      const login=(currentUser.login||currentUser.email||'').replace(/@aaaww\.top$/i,'');
+      intermField.value=login;
+      intermField.readOnly=true;
+      intermField.style.opacity='0.7';
+      window._insIntermValid=true;
+      const st=document.getElementById('ins-interm-status');if(st){st.textContent='✅';st.style.display='inline';}
+    }
+  }
+  // Load products
+  insLoadProducts();
+  // Update puissance onchange
+  const puisEl=document.getElementById('ins-f-puissance');
+  if(puisEl)puisEl.addEventListener('change',insUpdateOffreDisplay);
 }
 
 function hideInscriptionToDashboard(){
@@ -1640,7 +1718,7 @@ function insSelectService(s){insSelectedService=s;document.querySelectorAll('.in
 function insSelectTypeClient(t){insSelectedTypeClient=t;['particulier','professionnel'].forEach(k=>document.getElementById(`ins-tc-${k}`).classList.remove('ins-selected'));document.getElementById(`ins-tc-${t}`).classList.add('ins-selected');}
 function insSelectCiv(c){insSelectedCiv=c;document.querySelectorAll('[id^="ins-civ-"]').forEach(b=>b.classList.remove('ins-selected'));const map={'M.':'m','Mme':'mme','M. & Mme':'mrmme','Société':'societe'};const el=document.getElementById(`ins-civ-${map[c]}`);if(el)el.classList.add('ins-selected');const fg=document.getElementById('ins-fg-siret');if(fg)fg.style.display=c==='Société'?'block':'none';}
 function insSelectEnergie(e){insSelectedEnergie=e;['elec','gaz','both'].forEach(k=>document.getElementById(`ins-egy-${k}`).classList.remove('ins-selected'));document.getElementById(`ins-egy-${e==='elec+gaz'?'both':e}`).classList.add('ins-selected');document.getElementById('ins-fg-pdl').style.display=e==='gaz'?'none':'block';document.getElementById('ins-fg-pce').style.display=e==='elec'?'none':'block';}
-function insSelectOptionTarifaire(v){insSelectedOptionTarifaire=v;const b=document.getElementById('ins-opt-base');if(b)b.classList.toggle('ins-selected',v==='BASE');const h=document.getElementById('ins-opt-hphc');if(h)h.classList.toggle('ins-selected',v==='HPHC');}
+function insSelectOptionTarifaire(v){insSelectedOptionTarifaire=v;const b=document.getElementById('ins-opt-base');if(b)b.classList.toggle('ins-selected',v==='BASE');const h=document.getElementById('ins-opt-hphc');if(h)h.classList.toggle('ins-selected',v==='HPHC');insUpdateOffreDisplay();}
 function insSelectSouscription(s){insSelectedSouscription=s;document.getElementById('ins-sous-mise').classList.toggle('ins-selected',s==='mise_en_service');document.getElementById('ins-sous-change').classList.toggle('ins-selected',s==='en_service');}
 
 // Helpers
@@ -1794,8 +1872,9 @@ async function insSubmitForm(){
     const rA=await fetch(`${INS_URL}/rest/v1/adresses`,{method:'POST',headers:INS_H,body:JSON.stringify(aData)});
     if(!rA.ok){const e=await rA.json();throw new Error(JSON.stringify(e));}
     const[newA]=await rA.json();
-    const intermEmail=insV('ins-f-interm')+'@aaaww.top';
-    const cData={personne_id:personneId,adresse_id:newA.id,energie_type:insSelectedEnergie||null,fournisseur:insV('ins-f-fournisseur')||null,option_tarifaire:insSelectedOptionTarifaire||null,contrat_status:'en_attente',date_debut:new Date().toISOString().slice(0,10),source:intermEmail,iban:insV('ins-f-iban').replace(/\s/g,'')||null};
+    const intermEmail=currentUser?(currentUser.email||currentUser.login||''):(insV('ins-f-interm')+'@aaaww.top');
+    const intermId=currentUser?currentUser.id:null;
+    const cData={personne_id:personneId,adresse_id:newA.id,energie_type:insSelectedEnergie||null,fournisseur:insV('ins-f-fournisseur')||null,option_tarifaire:insSelectedOptionTarifaire||null,contrat_status:'en_attente',date_debut:new Date().toISOString().slice(0,10),source:intermEmail,inscrit_par:intermEmail,intermediaire_id:intermId,iban:insV('ins-f-iban').replace(/\s/g,'')||null};
     const rC=await fetch(`${INS_URL}/rest/v1/contrats`,{method:'POST',headers:INS_H,body:JSON.stringify(cData)});
     if(!rC.ok){const e=await rC.json();throw new Error(JSON.stringify(e));}
     const[newC]=await rC.json();
