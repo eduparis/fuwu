@@ -127,6 +127,7 @@ const AK=(typeof SUPABASE_ANON_KEY!=='undefined')?SUPABASE_ANON_KEY:'eyJhbGciOiJ
 const H={'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json','Prefer':'return=representation'};
 let formConfig=null,totalSteps=0,currentStep=0;
 let existingPersonne=null,forceNewClient=false;
+let inscProduits=[],inscTarifLignes=[];
 
 // Read agent context from URL params (when loaded inside agent iframe)
 const urlParams=new URLSearchParams(window.location.search);
@@ -140,11 +141,19 @@ async function init(){
     const d=await r.json();
     if(d&&d[0])formConfig=typeof d[0].config==='string'?JSON.parse(d[0].config):d[0].config;
   }catch(e){console.error(e);}
+  // Load products and tarifs for offre selector
+  try{
+    const rp=await fetch(`${SB}/rest/v1/produits_services?select=*&statut=eq.actif&categorie=eq.energie&order=id_produit`,{headers:{'apikey':AK}});
+    inscProduits=await rp.json();
+    const rt=await fetch(`${SB}/rest/v1/tarif_lignes?select=*&composant=eq.tout&order=produit_id,puissance_kva`,{headers:{'apikey':AK}});
+    inscTarifLignes=await rt.json();
+  }catch(e){console.error('Products load error',e);}
   if(!formConfig||!formConfig.steps){document.getElementById('pages-container').innerHTML='<div class="card"><p>Erreur de chargement du formulaire.</p></div>';return;}
   totalSteps=formConfig.steps.length;
   renderStepsBar();
   renderPages();
   goTo(1);
+  setTimeout(updateOffreDisplay,200);
   // If agent context, auto-fill source/intermediaire and show banner
   if(agentCode){
     const banner=document.createElement('div');
@@ -299,9 +308,25 @@ function renderField(f){
   if(f.type==='textarea'){
     return `<label>${esc(f.label)}</label><textarea id="${id}" rows="3" placeholder="${esc(f.label)}...">${esc(f.default||'')}</textarea>`;
   }
-  // Puissance special
+  // Puissance special — trigger product refresh on change
   if(f.type==='puissance'){
-    return `<label>${esc(f.label)}</label><select id="${id}"><option value="3">3 kVA</option><option value="6" selected>6 kVA</option><option value="9">9 kVA</option><option value="12">12 kVA</option><option value="15">15 kVA</option><option value="18">18 kVA</option><option value="24">24 kVA</option></select>`;
+    return `<label>${esc(f.label)}</label><select id="${id}" onchange="updateOffreDisplay()"><option value="3">3 kVA</option><option value="6" selected>6 kVA</option><option value="9">9 kVA</option><option value="12">12 kVA</option><option value="15">15 kVA</option><option value="18">18 kVA</option><option value="24">24 kVA</option></select>`;
+  }
+  // Special: offre → product selector from produits_services
+  if(f.col==='offre'||f.label?.toLowerCase().includes('offre')){
+    const defaultId='E10000003';
+    const opts=inscProduits.map(p=>{
+      const label=(p.nom_offre||'—')+' — '+( p.id_produit||'');
+      return `<option value="${p.id_produit||p.id}" ${(p.id_produit===defaultId)?'selected':''}>${esc(label)}</option>`;
+    }).join('');
+    return `<label>${esc(f.label)}</label>
+      <select id="${id}" onchange="updateOffreDisplay()" style="width:100%;">
+        <option value="">— Choisir une offre —</option>${opts}
+      </select>
+      <div id="offre-abo-display" style="margin-top:8px;padding:10px 12px;background:rgba(184,156,100,0.08);border:1px solid rgba(184,156,100,0.2);border-radius:8px;font-size:12px;display:none;">
+        <div style="font-weight:600;margin-bottom:4px;">📋 Tarif applicable</div>
+        <div id="offre-abo-detail" style="color:#666;"></div>
+      </div>`;
   }
   // Default: text/email/tel/date
   const ph=f.type==='date'?'':f.label;
@@ -352,14 +377,64 @@ function selectToggle(inputId,val,el){
   document.getElementById(inputId).value=val;
   el.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('selected'));
   el.classList.add('selected');
-  // If civilite = Société, show SIRET
   if(inputId==='f-civilite'){const fg=document.getElementById('f-siret');if(fg)fg.closest('.fg').style.display=val==='Société'?'block':'none';}
+  // Refresh offre display when option_tarifaire changes
+  if(inputId.includes('option_tarifaire'))updateOffreDisplay();
 }
 
 function selectCard(inputId,val,el){
   document.getElementById(inputId).value=val;
   el.parentElement.querySelectorAll('.service-btn,.sous-card').forEach(b=>b.classList.remove('selected'));
   el.classList.add('selected');
+}
+
+function updateOffreDisplay(){
+  const box=document.getElementById('offre-abo-display');
+  const detail=document.getElementById('offre-abo-detail');
+  if(!box||!detail)return;
+  
+  // Find selected product
+  const offreEl=document.querySelector('select[id*="offre"]');
+  if(!offreEl||!offreEl.value){box.style.display='none';return;}
+  const selVal=offreEl.value;
+  const prod=inscProduits.find(p=>p.id_produit===selVal||p.id===selVal);
+  if(!prod){box.style.display='none';return;}
+  
+  // Get puissance and option_tarifaire from form
+  const puissEl=document.querySelector('select[id*="puissance"]');
+  const optEl=document.querySelector('input[id*="option_tarifaire"]');
+  const kva=parseInt(puissEl?.value)||6;
+  const opt=(optEl?.value||'base').toLowerCase();
+  
+  // Find matching tarif lines
+  const isBase=opt==='base';
+  if(isBase){
+    const l=inscTarifLignes.find(t=>t.produit_id===prod.id&&t.option_tarifaire==='base'&&t.cadran==='base'&&Number(t.puissance_kva)===kva);
+    if(l){
+      const aH=l.abonnement_ht_mois?parseFloat(l.abonnement_ht_mois).toFixed(2):'—';
+      const aT=l.abonnement_ttc_mois?parseFloat(l.abonnement_ttc_mois).toFixed(2):'—';
+      const kH=l.kwh_ht?parseFloat(l.kwh_ht).toFixed(4):'—';
+      const kT=l.kwh_ttc?parseFloat(l.kwh_ttc).toFixed(4):'—';
+      detail.innerHTML=`<b>Base ${kva} kVA</b> — Abo: ${aH}€ HT / ${aT}€ TTC/mois · kWh: ${kH}€ HT / ${kT}€ TTC`;
+      box.style.display='block';
+    } else {
+      detail.innerHTML=`Pas de tarif Base ${kva} kVA pour ce produit`;
+      box.style.display='block';
+    }
+  } else {
+    const lhp=inscTarifLignes.find(t=>t.produit_id===prod.id&&t.option_tarifaire==='hphc'&&t.cadran==='hp'&&Number(t.puissance_kva)===kva);
+    const lhc=inscTarifLignes.find(t=>t.produit_id===prod.id&&t.option_tarifaire==='hphc'&&t.cadran==='hc'&&Number(t.puissance_kva)===kva);
+    if(lhp&&lhc){
+      const aT=lhp.abonnement_ttc_mois?parseFloat(lhp.abonnement_ttc_mois).toFixed(2):'—';
+      const hpT=lhp.kwh_ttc?parseFloat(lhp.kwh_ttc).toFixed(4):'—';
+      const hcT=lhc.kwh_ttc?parseFloat(lhc.kwh_ttc).toFixed(4):'—';
+      detail.innerHTML=`<b>HP/HC ${kva} kVA</b> — Abo: ${aT}€ TTC/mois · HP: ${hpT}€ TTC · HC: ${hcT}€ TTC`;
+      box.style.display='block';
+    } else {
+      detail.innerHTML=`Pas de tarif HP/HC ${kva} kVA pour ce produit`;
+      box.style.display='block';
+    }
+  }
 }
 
 // ── Duplicate check ──
