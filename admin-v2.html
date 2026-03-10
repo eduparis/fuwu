@@ -4463,6 +4463,68 @@ async function cleanupTarifDuplicates(produitId){
   }
 }
 
+// ── Mini Comparateur Prix Elec ──
+let _cmpAccise='0.03085',_cmpLastEdit='ttc';
+async function cmpLoadAccise(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/form_config?id=eq.accise_ht&select=config`,{headers:{'apikey':SUPABASE_ANON_KEY}});
+    const d=await r.json();
+    if(d&&d[0]&&d[0].config){const v=typeof d[0].config==='string'?d[0].config:d[0].config.value;if(v)_cmpAccise=String(v);}
+  }catch(e){}
+}
+cmpLoadAccise();
+
+function cmpParse(v){if(!v&&v!==0)return NaN;return parseFloat(String(v).replace(',','.'));}
+
+function cmpCalc(src){
+  const gv=id=>document.getElementById(id)?.value||'';
+  const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const svc=(id,v,c)=>{const el=document.getElementById(id);if(el){el.textContent=v;el.style.color=c;}};
+  
+  const accise=cmpParse(gv('cmp-accise'));
+  if(src==='ttc'){
+    _cmpLastEdit='ttc';
+    const ttc=cmpParse(gv('cmp-ttc'));
+    if(!isNaN(ttc)&&!isNaN(accise)){const ht=ttc/1.2-accise;document.getElementById('cmp-ht').value=ht.toFixed(4);}
+  }else if(src==='ht'){
+    _cmpLastEdit='ht';
+    const ht=cmpParse(gv('cmp-ht'));
+    if(!isNaN(ht)&&!isNaN(accise)){const ttc=(ht+accise)*1.2;document.getElementById('cmp-ttc').value=ttc.toFixed(4);}
+  }else if(src==='accise'){
+    _cmpAccise=gv('cmp-accise');
+    if(_cmpLastEdit==='ttc'){const ttc=cmpParse(gv('cmp-ttc'));if(!isNaN(ttc)&&!isNaN(accise))document.getElementById('cmp-ht').value=(ttc/1.2-accise).toFixed(4);}
+    else{const ht=cmpParse(gv('cmp-ht'));if(!isNaN(ht)&&!isNaN(accise))document.getElementById('cmp-ttc').value=((ht+accise)*1.2).toFixed(4);}
+  }
+  // Recalc results
+  const monHt=cmpParse(gv('cmp-ht'));
+  const autreHt=cmpParse(gv('cmp-autre-ht'));
+  const kwh=cmpParse(gv('cmp-kwh'));
+  const accV=cmpParse(gv('cmp-accise'));
+  // Autre TTC
+  if(!isNaN(autreHt)&&!isNaN(accV))sv('cmp-autre-ttc',((autreHt+accV)*1.2).toFixed(4));else sv('cmp-autre-ttc','—');
+  // Ecart %
+  if(!isNaN(autreHt)&&!isNaN(monHt)&&monHt!==0){
+    const pct=((autreHt-monHt)/monHt)*100;
+    const label=pct<0?'Moins cher de '+Math.abs(pct).toFixed(2)+'%':pct>0?'Plus cher de '+pct.toFixed(2)+'%':'Identique';
+    svc('cmp-res-pct',label,pct<0?'#059669':pct>0?'#dc2626':'#6b7280');
+  }else svc('cmp-res-pct','—','#6b7280');
+  // Ecart €
+  if(!isNaN(autreHt)&&!isNaN(monHt)&&!isNaN(kwh)){
+    const eur=(autreHt-monHt)*kwh;
+    const label=eur<0?'Économie de '+Math.abs(eur).toFixed(2)+' €':eur>0?'Surcoût de '+eur.toFixed(2)+' €':'0.00 €';
+    svc('cmp-res-eur',label,eur<0?'#059669':eur>0?'#dc2626':'#6b7280');
+  }else svc('cmp-res-eur','—','#6b7280');
+}
+
+async function cmpSaveAccise(){
+  const v=document.getElementById('cmp-accise')?.value||'0.03085';
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/form_config`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({id:'accise_ht',config:{value:v,updated_at:new Date().toISOString()}})});
+    _cmpAccise=v;
+    showToast('Accise sauvegardée ✅ — '+v);
+  }catch(e){showToast('Erreur sauvegarde accise',true);}
+}
+
 // ── Comparateur ──
 function renderFrnCompare(){
   const el=document.getElementById('frn-content');
@@ -4475,7 +4537,38 @@ function renderFrnCompare(){
   const hcPct=100-hpPct;
   const hpR=hpPct/100,hcR=hcPct/100;
 
-  let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+  // Mini Comparateur Prix Elec tool
+  let html=`<div id="mini-cmp" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:20px;color:#1f2937;font-family:'DM Sans',system-ui,sans-serif;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#374151;letter-spacing:0.5px;">⚡ COMPARATEUR MON PRIX ELEC</div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:4px;"><span style="color:#2563eb;font-weight:600;">Formule :</span> Mon Prix Elec TTC = (Mon Prix Elec HT + Accise HT) × 1,20</div>
+    <div style="font-size:10px;color:#9ca3af;margin-bottom:12px;">L'accise est une taxe sur l'électricité ajoutée au prix HT avant l'application de la TVA.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead><tr style="border-bottom:1px solid #e5e7eb;">
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Mon Prix TTC</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Mon Prix HT</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Accise HT</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Autre Fourn. HT</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Autre Fourn. TTC</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">kWh</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Résultat %</th>
+        <th style="padding:6px 4px;color:#6b7280;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Résultat €</th>
+      </tr></thead>
+      <tbody><tr>
+        <td style="padding:4px;"><input id="cmp-ttc" value="0.1940" oninput="cmpCalc('ttc')" style="width:100%;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:5px;font-size:12px;text-align:center;font-family:monospace;color:#111;"></td>
+        <td style="padding:4px;"><input id="cmp-ht" value="0.1308" oninput="cmpCalc('ht')" style="width:100%;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:5px;font-size:12px;text-align:center;font-family:monospace;color:#111;"></td>
+        <td style="padding:4px;"><div style="display:flex;gap:4px;"><input id="cmp-accise" value="${_cmpAccise||'0.03085'}" oninput="cmpCalc('accise')" style="flex:1;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:5px;font-size:12px;text-align:center;font-family:monospace;color:#111;"><button onclick="cmpSaveAccise()" style="background:#2563eb;color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:10px;cursor:pointer;" title="Sauvegarder pour tous">💾</button></div></td>
+        <td style="padding:4px;"><input id="cmp-autre-ht" value="0.1250" oninput="cmpCalc('autre')" style="width:100%;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:5px;font-size:12px;text-align:center;font-family:monospace;color:#111;"></td>
+        <td style="padding:4px;"><div id="cmp-autre-ttc" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:5px;font-size:12px;text-align:center;font-family:monospace;color:#2563eb;font-weight:600;">—</div></td>
+        <td style="padding:4px;"><input id="cmp-kwh" value="5000" oninput="cmpCalc()" style="width:100%;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:5px;font-size:12px;text-align:center;font-family:monospace;color:#111;"></td>
+        <td style="padding:4px;"><div id="cmp-res-pct" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:5px;font-size:11px;text-align:center;font-family:monospace;font-weight:600;">—</div></td>
+        <td style="padding:4px;"><div id="cmp-res-eur" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:5px;font-size:11px;text-align:center;font-family:monospace;font-weight:600;">—</div></td>
+      </tr></tbody>
+    </table>
+  </div>`;
+
+  html+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
     <div class="fmodal-field" style="margin:0;"><label style="font-size:10px;">Conso annuelle (kWh)</label>
       <input class="finput" id="cmp-conso" type="number" value="${conso}" style="width:120px;font-size:12px;padding:6px 8px;" onchange="renderFrnCompare()"></div>
     <div class="fmodal-field" style="margin:0;"><label style="font-size:10px;">Répartition HP %</label>
@@ -4573,6 +4666,7 @@ function renderFrnCompare(){
   });
 
   el.innerHTML=html;
+  setTimeout(()=>cmpCalc(),50);
 }
 
 
