@@ -302,6 +302,18 @@ async function doLogin(){
     if(!myAgentCode)myAgentCode=email.split('@')[0].toUpperCase();
     // Set inscription iframe with agent context
     document.getElementById('inscription-frame').src=`inscription.html?agent=${encodeURIComponent(myAgentCode)}&email=${encodeURIComponent(email)}`;
+    // Listen for inscription success from iframe
+    window.addEventListener('message',async(e)=>{
+      if(e.data&&e.data.type==='inscription_success'){
+        console.log('New inscription:',e.data.id_service||e.data.contrat_id);
+        await loadTasks();
+        // Switch to tasks tab
+        document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        document.querySelector('[data-tab="taches"]')?.classList.add('active');
+        document.getElementById('page-taches')?.classList.add('active');
+      }
+    });
     await loadTasks();
   }catch(e){err.textContent='Erreur: '+e.message;err.style.display='block';}
 }
@@ -391,14 +403,17 @@ function renderStats(){
 }
 
 function renderChips(){
+  const visible=allTasks.filter(t=>!t.agent_code||t.agent_code===myAgentCode);
+  const aFaire=visible.filter(t=>t.contrat_status==='en_attente').length;
+  const enCours=visible.filter(t=>t.contrat_status==='en_traitement'&&t.agent_code===myAgentCode).length;
   const filters=[
-    {id:'a_faire',label:'Missions à prendre'},
-    {id:'en_cours',label:'Vos missions en cours'},
-    {id:'all',label:'Tous'},
-    {id:'done',label:'✅ Vos missions réalisées'},
+    {id:'a_faire',label:'Missions à prendre',count:aFaire},
+    {id:'en_cours',label:'Vos missions en cours',count:enCours},
+    {id:'all',label:'Tous',count:0},
+    {id:'done',label:'✅ Vos missions réalisées',count:0},
   ];
   document.getElementById('task-chips').innerHTML=filters.map(f=>
-    `<div class="chip ${currentFilter===f.id?'on':''}" onclick="setFilter('${f.id}')">${f.label}</div>`
+    `<div class="chip ${currentFilter===f.id?'on':''}" onclick="setFilter('${f.id}')">${f.label}${f.count?` <span style="background:var(--danger);color:#fff;border-radius:50%;padding:1px 5px;font-size:9px;margin-left:4px;">${f.count}</span>`:''}</div>`
   ).join('') + `<div style="flex:1;"></div><div style="display:flex;gap:4px;align-items:center;font-size:10px;color:var(--muted);">Trier: ${['priorite','temps','commission'].map(s=>
     `<span class="chip ${currentSort===s?'on':''}" onclick="currentSort='${s}';renderTasks()" style="font-size:10px;padding:3px 8px;">${s==='priorite'?'🔥 Urgence':s==='temps'?'⏰ Temps':s==='commission'?'💰 €':s}</span>`
   ).join('')}</div>`;
@@ -947,17 +962,73 @@ function showClientDetail(id){
   const p=personnesMap[id];if(!p)return;
   openDrawer();
   document.getElementById('dw-icon').textContent='👤';
-  document.getElementById('dw-title').textContent=[p.prenom,p.nom].filter(Boolean).join(' ');
+  document.getElementById('dw-title').textContent=[p.civilite,p.prenom,p.nom].filter(Boolean).join(' ');
   document.getElementById('dw-sub').textContent=p.email||'';
+
+  // All tasks for this client
   const tasks=allTasks.filter(t=>t.personne_id===id);
+  // All completed for this client
+  const done=allCompleted.filter(t=>t.personne_id===id);
+  const allClientTasks=[...tasks,...done];
+
+  // Find addresses from tasks
+  const addrIds=[...new Set(allClientTasks.map(t=>t.adresse_id).filter(Boolean))];
+  const addresses=addrIds.map(aid=>adressesMap[aid]).filter(Boolean);
+
   document.getElementById('dw-body').innerHTML=`
-    <div class="dsec">Coordonnées</div>
-    ${dr('Email',esc(p.email||'—'))}
+    <div class="dsec">Identité</div>
+    ${dr('Civilité',esc(p.civilite||'—'))}
+    ${dr('Prénom',esc(p.prenom||'—'))}
+    ${dr('Nom',esc(p.nom||'—'))}
+    ${p.date_naissance?dr('Naissance',new Date(p.date_naissance).toLocaleDateString('fr-FR')):''}
+    ${p.siret?dr('SIRET',esc(p.siret)):''}
+    ${p.colocataire_prenom||p.colocataire_nom?dr('Colocataire',esc([p.colocataire_prenom,p.colocataire_nom].filter(Boolean).join(' '))):''}
+    <div class="dsec">Contact</div>
+    ${dr('Email 1',esc(p.email||'—'))}
+    ${p.email_reel?dr('Email 2',esc(p.email_reel)):''}
     ${dr('Téléphone',p.telephone?`<a href="tel:${p.telephone}" style="color:var(--accent)">${esc(p.telephone)}</a>`:'—')}
-    <div class="dsec">Tâches (${tasks.length})</div>
-    ${tasks.map(t=>{const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule};const ts=TASK_STATUS[t.contrat_status]||{label:t.contrat_status,cls:''};return `<div class="tcard" style="margin-bottom:6px;padding:8px 10px;" onclick="openTask('${t.id}')"><div class="tcard-icon" style="font-size:14px;">${tt.icon}</div><div class="tcard-body"><div class="tcard-title" style="font-size:12px;">${tt.label}</div></div><span class="tcard-tag ${ts.cls}">${ts.label}</span></div>`;}).join('')||'<div style="color:var(--muted);font-size:12px;">Aucune tâche.</div>'}
+    ${p.whatsapp?dr('Mobile',`<a href="tel:${p.whatsapp}" style="color:var(--accent)">${esc(p.whatsapp)}</a>`):''}
+    ${p.wechat?dr('WeChat / WA / IG',esc(p.wechat)):''}
+    ${addresses.length?`
+      <div class="dsec">Adresse${addresses.length>1?'s':''}</div>
+      ${addresses.map(a=>`
+        ${dr('Rue',esc(a.rue||'—'))}
+        ${a.complement?dr('Complément',esc(a.complement)):''}
+        ${dr('CP / Ville',esc([a.code_postal,a.ville].filter(Boolean).join(' ')))}
+        ${a.pdl?dr('PDL',`<span style="font-family:monospace;font-size:11px;">${esc(a.pdl)}</span>`):''}
+        ${a.pce?dr('PCE',`<span style="font-family:monospace;font-size:11px;">${esc(a.pce)}</span>`):''}
+        ${a.puissance?dr('Puissance',esc(a.puissance)):''}
+      `).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">')}`:''}
+    <div class="dsec">Tâches en cours (${tasks.length})</div>
+    ${tasks.map(t=>{
+      const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule||'Tâche'};
+      const ts=TASK_STATUS[t.contrat_status]||{label:t.contrat_status,cls:''};
+      return `<div class="tcard" style="margin-bottom:6px;padding:8px 10px;" onclick="openTask('${t.id}')">
+        <div class="tcard-icon" style="font-size:14px;">${tt.icon}</div>
+        <div class="tcard-body">
+          <div class="tcard-title" style="font-size:12px;">${tt.label} · ${esc(t.id_service||'')}</div>
+          <div class="tcard-sub" style="font-size:10px;">${esc(t.fournisseur||'')} · ${t.date_debut?new Date(t.date_debut).toLocaleDateString('fr-FR'):''}</div>
+        </div>
+        <span class="tcard-tag ${ts.cls}">${ts.label}</span>
+      </div>`;
+    }).join('')||'<div style="color:var(--muted);font-size:12px;">Aucune tâche en cours.</div>'}
+    ${done.length?`
+      <div class="dsec">Missions réalisées (${done.length})</div>
+      ${done.slice(0,10).map(t=>{
+        const tt=TASK_TYPES[t.formule]||{icon:'📋',label:t.formule||'Tâche'};
+        return `<div class="tcard" style="margin-bottom:4px;padding:6px 10px;opacity:0.7;">
+          <div class="tcard-icon" style="font-size:12px;">${tt.icon}</div>
+          <div class="tcard-body"><div class="tcard-title" style="font-size:11px;">${tt.label} · ${esc(t.id_service||'')}</div></div>
+          <span class="tcard-tag" style="background:var(--success-bg);color:var(--success);">Actif</span>
+        </div>`;
+      }).join('')}
+    `:''}
   `;
-  document.getElementById('dw-actions').innerHTML=p.telephone?`<a class="abtn" href="tel:${p.telephone}">📞 Appeler</a>`:'';
+  document.getElementById('dw-actions').innerHTML=`
+    ${p.telephone?`<a class="abtn" href="tel:${p.telephone}">📞 Appeler</a>`:''}
+    ${p.whatsapp?`<a class="abtn" href="tel:${p.whatsapp}">📱 Mobile</a>`:''}
+    ${p.wechat?`<button class="abtn" onclick="navigator.clipboard.writeText('${esc(p.wechat)}');alert('Copié: ${esc(p.wechat)}')">💬 Copier WeChat</button>`:''}
+  `;
 }
 
 // ══════════════════════════════════════
