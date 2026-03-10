@@ -659,6 +659,7 @@ svg.lc circle{r:3;}
             <div class="work-title">🏢 Fournisseurs & Produits</div>
             <div class="work-actions">
               <button class="abtn" onclick="loadFrnPage()">↻ Actualiser</button>
+              <button class="abtn" onclick="openNewFournisseurModal()" style="background:rgba(59,130,246,0.1);color:var(--info);border-color:rgba(59,130,246,0.3);">＋ Nouveau Fournisseur</button>
               <button class="abtn g" onclick="openProduitModal()">＋ Nouveau produit</button>
             </div>
           </div>
@@ -3760,6 +3761,88 @@ async function toggleFrnCat(personneId, cat){
     renderPersonneModal(personneId);
     showToast('Catégorie mise à jour');
   }catch(e){showToast('Erreur',true);}
+}
+
+function openNewFournisseurModal(){
+  const dTitle=document.getElementById('drawer-title');
+  const dTabs=document.getElementById('drawer-tabs');
+  const dBody=document.getElementById('drawer-body');
+  const dAct=document.getElementById('drawer-actions');
+  
+  dTitle.innerHTML='＋ Nouveau Fournisseur';
+  dTabs.innerHTML='';
+  dBody.innerHTML=`
+    <div class="fmodal-section">Identité</div>
+    <div class="fmodal-field"><label>Nom (société)</label><input class="finput" id="nf-nom" style="width:100%;" placeholder="TotalEnergies, EDF, Mint…"></div>
+    <div class="fmodal-field"><label>Prénom (contact)</label><input class="finput" id="nf-prenom" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Email</label><input class="finput" id="nf-email" type="email" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Téléphone</label><input class="finput" id="nf-tel" type="tel" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Téléphone 2</label><input class="finput" id="nf-tel2" type="tel" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Email 2</label><input class="finput" id="nf-email2" type="email" style="width:100%;"></div>
+    <div class="fmodal-field"><label>WhatsApp</label><input class="finput" id="nf-whatsapp" style="width:100%;"></div>
+    <div class="fmodal-field"><label>WeChat</label><input class="finput" id="nf-wechat" style="width:100%;"></div>
+    <div class="fmodal-section" style="margin-top:12px;">Société</div>
+    <div class="fmodal-field"><label>SIRET</label><input class="finput" id="nf-siret" style="width:100%;"></div>
+    <div class="fmodal-field"><label>N° TVA Intracommunautaire</label><input class="finput" id="nf-tva" style="width:100%;"></div>
+    <div class="fmodal-field"><label>IBAN</label><input class="finput" id="nf-iban" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Adresse (siège)</label><textarea class="finput" id="nf-adresse" rows="2" style="width:100%;"></textarea></div>
+    <div class="fmodal-section" style="margin-top:12px;">Catégorie</div>
+    <div class="fmodal-field"><div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-energie" checked> Énergie</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-telecom"> Télécom</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-banque"> Banque</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;"><input type="checkbox" id="nf-cat-assurance"> Assurance</label>
+    </div></div>
+  `;
+  
+  dAct.innerHTML=`
+    <button class="abtn g" onclick="saveNewFournisseur()" style="flex:1;">💾 Créer Fournisseur</button>
+    <button class="abtn" onclick="closeDrawer()">Annuler</button>
+  `;
+  
+  document.getElementById('drawer').classList.add('open');
+}
+
+async function saveNewFournisseur(){
+  const nom=document.getElementById('nf-nom').value.trim();
+  if(!nom){showToast('Le nom est requis',true);return;}
+  
+  const cats=[];
+  if(document.getElementById('nf-cat-energie').checked)cats.push('energie');
+  if(document.getElementById('nf-cat-telecom').checked)cats.push('telecom');
+  if(document.getElementById('nf-cat-banque').checked)cats.push('banque');
+  if(document.getElementById('nf-cat-assurance').checked)cats.push('assurance');
+  
+  const body={
+    nom:nom,
+    prenom:document.getElementById('nf-prenom').value.trim()||null,
+    email:document.getElementById('nf-email').value.trim()||null,
+    telephone:document.getElementById('nf-tel').value.trim()||null,
+    telephone2:document.getElementById('nf-tel2').value.trim()||null,
+    email_reel:document.getElementById('nf-email2').value.trim()||null,
+    wechat:document.getElementById('nf-wechat').value.trim()||null,
+    siret:document.getElementById('nf-siret').value.trim()||null,
+    tva_intracom:document.getElementById('nf-tva').value.trim()||null,
+    iban:document.getElementById('nf-iban').value.trim()||null,
+    adresse_intermediaire:document.getElementById('nf-adresse').value.trim()||null,
+    type_client:'professionnel',
+    est_fournisseur:true,
+    fournisseur_categorie:cats.length?cats:null,
+  };
+  
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/personnes`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await r.text());
+    const d=await r.json();
+    if(Array.isArray(d)&&d.length){
+      allPersonnes.unshift(d[0]);
+      personneMap[d[0].id]=d[0];
+    }
+    closeDrawer();
+    frnLoaded=false; // force reload
+    showFrnTab('list');
+    showToast('Fournisseur créé ✓ — '+nom);
+  }catch(e){showToast('Erreur: '+e.message,true);}
 }
 
 async function loadFrnPage(){
