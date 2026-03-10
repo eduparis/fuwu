@@ -1667,7 +1667,15 @@ function renderPersonneModal(id){
   const intermContrats=isInterm?allContrats.filter(c=>c.intermediaire_id===id||c.source===p.email||c.source===p.login):[];
   const intermDecomptes=isInterm?allDecomptes.filter(d=>d.intermediaire_id===id):[];
 
-  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} ${p.id_client?'<span style="font-size:12px;font-family:monospace;color:var(--accent);">©'+esc(p.id_client)+'</span>':''}`;
+  const allIds=[];
+  if(p.id_client)allIds.push('©'+p.id_client);
+  if(p.agent_code)allIds.push(p.agent_code);
+  if(p.id_intermediaire)allIds.push(p.id_intermediaire);
+  if(p.id_fournisseur_fe)allIds.push(p.id_fournisseur_fe);
+  if(p.id_fournisseur_ft)allIds.push(p.id_fournisseur_ft);
+  if(p.id_fournisseur_fb)allIds.push(p.id_fournisseur_fb);
+  if(p.id_fournisseur_fa)allIds.push(p.id_fournisseur_fa);
+  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} ${allIds.length?'<span style="font-size:11px;font-family:monospace;color:var(--accent);">'+allIds.map(esc).join(' · ')+'</span>':''}`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
@@ -1739,7 +1747,7 @@ function renderPersonneModal(id){
         <div class="todo" onclick="openEntity('contrat','${c.id}')">
           <div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':'📋'}</div>
           <div class="todo-info">
-            <div class="todo-title" style="font-size:12px;">${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div>
+            <div class="todo-title" style="font-size:12px;">${c.id_service?'<span style="font-family:monospace;color:var(--accent);">#'+c.id_service+'</span> · ':'' }${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div>
             <div class="todo-sub">${[a.rue,a.ville].filter(Boolean).join(', ')||'—'} · ${fmtDate(c.date_debut)}</div>
           </div>
           <div>${statusBadge(c.contrat_status)}</div>
