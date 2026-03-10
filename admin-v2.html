@@ -1343,7 +1343,7 @@ function renderCRMTable(){
     const sel=crmSelected.has(p.id)?'selected':'';
     return `<tr class="${sel}" onclick="openEntity('personne','${p.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${crmSelected.has(p.id)?'checked':''} onchange="toggleCRM('${p.id}',this)"></td>
-      <td><div style="font-weight:600;">${esc(name)}</div><span style="font-family:monospace;font-size:10px;color:var(--accent);">©${p.id_client||''}</span></td>
+      <td><div style="font-weight:600;">${esc(name)}</div>${p.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--accent);">©'+p.id_client+'</span>':''}</td>
       <td style="font-size:11px;">${esc(p.email||'—')}</td>
       <td style="font-size:11px;">${esc(p.telephone||'—')}</td>
       <td style="font-size:11px;">${roles.join(', ')||'—'}</td>
@@ -1572,7 +1572,7 @@ async function renderContratModal(id){
       </div>
     </div>
     <div id="fmt-client" style="display:none">
-      <div class="fmodal-section">Client ©${p.id_client||''}</div>
+      <div class="fmodal-section">Client ${p.id_client?'©'+p.id_client:''}</div>
       <div class="fmodal-grid">
         <div class="fmodal-col">
           ${fmField('fc-civ','Civilité',p.civilite,'select','|Monsieur|Madame|M. & Mme|Société')}
@@ -1667,7 +1667,7 @@ function renderPersonneModal(id){
   const intermContrats=isInterm?allContrats.filter(c=>c.intermediaire_id===id||c.source===p.email||c.source===p.login):[];
   const intermDecomptes=isInterm?allDecomptes.filter(d=>d.intermediaire_id===id):[];
 
-  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} <span style="font-size:12px;font-family:monospace;color:var(--accent);">©${esc(p.id_client||'')}</span>`;
+  document.getElementById('fm-title').innerHTML=`👤 ${esc([p.prenom,p.nom].filter(Boolean).join(' ')||p.email)} ${p.id_client?'<span style="font-size:12px;font-family:monospace;color:var(--accent);">©'+esc(p.id_client)+'</span>':''}`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-profil')">Profil</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-contrats')">Contrats (${contrats.length})</div>
@@ -3954,7 +3954,7 @@ function renderFrnList(){
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
           <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;">${(f.nom||f.prenom||'F').charAt(0).toUpperCase()}</div>
           <div>
-            <div style="font-weight:600;font-size:13px;">${esc(name)} <span style="font-family:monospace;font-size:10px;color:var(--accent);">©${f.id_client||''}</span></div>
+            <div style="font-weight:600;font-size:13px;">${esc(name)} ${f.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--accent);">©'+f.id_client+'</span>':''}</div>
             <div style="font-size:11px;color:var(--muted);">${esc(f.email||'')}</div>
           </div>
         </div>
