@@ -1194,7 +1194,7 @@ function globalSearch(q,limit){
     const a=adresseMap[c.adresse_id]||{};
     const hay=[c.id_service,c.id_fournisseur,c.fournisseur,p.nom,p.prenom,p.email,a.pdl,a.pce,c.source].join(' ').toLowerCase();
     if(hay.includes(q)){
-      results.push({type:'Contrats',entityType:'contrat',id:c.id,icon:'📄',name:c.id_service?'#'+c.id_service:(c.id_fournisseur||'Contrat'),sub:[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—'});
+      results.push({type:'Contrats',entityType:'contrat',id:c.id,icon:'📄',name:c.id_service?'#'+stripId(c.id_service):(c.id_fournisseur||'Contrat'),sub:[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—'});
     }
   });
   return results.slice(0,limit);
@@ -1265,8 +1265,8 @@ function renderContratsTable(){
     const p=personneMap[c.personne_id]||{};
     const a=adresseMap[c.adresse_id]||{};
     const name=[p.prenom,p.nom].filter(Boolean).join(' ')||c.source||'—';
-    const idClient=p.id_client||'—';
-    const idContrat=c.id_service||'—';
+    const idClient=stripId(p.id_client)||'—';
+    const idContrat=stripId(c.id_service)||'—';
     const sel=ctSelected.has(c.id)?'selected':'';
     const chk=ctSelected.has(c.id)?'checked':'';
     return `<tr class="${sel}" onclick="openEntity('contrat','${c.id}')">
@@ -1358,7 +1358,7 @@ function renderCRMTable(){
     const sel=crmSelected.has(p.id)?'selected':'';
     return `<tr class="${sel}" onclick="openEntity('personne','${p.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${crmSelected.has(p.id)?'checked':''} onchange="toggleCRM('${p.id}',this)"></td>
-      <td><div style="font-weight:600;">${esc(name)}</div>${p.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--accent);">©'+p.id_client+'</span>':''}</td>
+      <td><div style="font-weight:600;">${esc(name)}</div><div style="font-family:monospace;font-size:10px;line-height:1.4;">${p.id_client?'<span style="color:var(--accent);">©'+stripId(p.id_client)+'</span>':''}${p.id_intermediaire?' <span style="color:var(--info);">'+p.id_intermediaire+'</span>':''}${p.agent_code&&p.est_agent?' <span style="color:var(--success);">'+p.agent_code+'</span>':''}${p.id_fournisseur_fe?' <span style="color:var(--warning);">'+p.id_fournisseur_fe+'</span>':''}</div></td>
       <td style="font-size:11px;">${esc(p.email||'—')}</td>
       <td style="font-size:11px;">${esc(p.telephone||'—')}</td>
       <td style="font-size:11px;">${roles.join(', ')||'—'}</td>
@@ -1419,7 +1419,7 @@ function renderFinTable(){
     return `<tr onclick="openEntity('commission','${c.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${finSelected.has(c.id)?'checked':''} onchange="toggleFin('${c.id}',this)"></td>
       <td style="font-size:12px;">${esc([interm.prenom,interm.nom].filter(Boolean).join(' ')||'—')}</td>
-      <td style="font-family:monospace;font-size:11px;">${ct.id_service?'#'+esc(ct.id_service):'—'}</td>
+      <td style="font-family:monospace;font-size:11px;">${ct.id_service?'#'+esc(stripId(ct.id_service)):'—'}</td>
       <td style="font-size:11px;">${esc([client.prenom,client.nom].filter(Boolean).join(' ')||'—')}</td>
       <td style="font-weight:600;">${ht.toFixed(2)}</td>
       <td>${(ht*1.2).toFixed(2)}</td>
@@ -1522,7 +1522,7 @@ async function renderContratModal(id){
   const defTTCcny=c.commission_ttc_cny!=null?c.commission_ttc_cny:(curInterm&&curInterm.commission_default_cny!=null?curInterm.commission_default_cny:192);
   const defModePaiement=c.mode_paiement_intermediaire||'Parrainage';
 
-  document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">#${c.id_service||'—'}</span> <span style="font-size:12px;color:var(--muted);">©${esc(p.id_client||'—')}</span>`;
+  document.getElementById('fm-title').innerHTML=`${tt} — <span style="font-family:monospace;">#${stripId(c.id_service)||'—'}</span> <span style="font-size:12px;color:var(--muted);">©${esc(stripId(p.id_client)||'—')}</span>`;
   document.getElementById('fm-tabs').innerHTML=`
     <div class="fmodal-tab active" onclick="fmTab(this,'fmt-main')">Contrat</div>
     <div class="fmodal-tab" onclick="fmTab(this,'fmt-client')">Client</div>
@@ -1587,7 +1587,7 @@ async function renderContratModal(id){
       </div>
     </div>
     <div id="fmt-client" style="display:none">
-      <div class="fmodal-section">Client ${p.id_client?'©'+p.id_client:''}</div>
+      <div class="fmodal-section">Client ${p.id_client?'©'+stripId(p.id_client):''}</div>
       <div class="fmodal-grid">
         <div class="fmodal-col">
           ${fmField('fc-civ','Civilité',p.civilite,'select','|Monsieur|Madame|M. & Mme|Société')}
@@ -1683,7 +1683,7 @@ function renderPersonneModal(id){
   const intermDecomptes=isInterm?allDecomptes.filter(d=>d.intermediaire_id===id):[];
 
   const allIds=[];
-  if(p.id_client)allIds.push('©'+p.id_client);
+  if(p.id_client)allIds.push('©'+stripId(p.id_client));
   if(p.agent_code)allIds.push(p.agent_code);
   if(p.id_intermediaire)allIds.push(p.id_intermediaire);
   if(p.id_fournisseur_fe)allIds.push(p.id_fournisseur_fe);
@@ -1763,7 +1763,7 @@ function renderPersonneModal(id){
         <div class="todo" onclick="openEntity('contrat','${c.id}')">
           <div class="todo-icon" style="font-size:14px;">${c.energie_type==='elec'?'⚡':c.energie_type==='gaz'?'🔥':'📋'}</div>
           <div class="todo-info">
-            <div class="todo-title" style="font-size:12px;">${c.id_service?'<span style="font-family:monospace;color:var(--accent);">#'+c.id_service+'</span> · ':'' }${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div>
+            <div class="todo-title" style="font-size:12px;">${c.id_service?'<span style="font-family:monospace;color:var(--accent);">#'+stripId(c.id_service)+'</span> · ':'' }${normFourn(c.fournisseur)||'—'} · ${a.pdl||a.pce||'—'}</div>
             <div class="todo-sub">${[a.rue,a.ville].filter(Boolean).join(', ')||'—'} · ${fmtDate(c.date_debut)}</div>
           </div>
           <div>${statusBadge(c.contrat_status)}</div>
@@ -1870,7 +1870,7 @@ function renderCommModal(id){
 
 async function deleteContrat(contratId){
   const c=contratMap[contratId];
-  const label=c?`${c.id_service||''} (${c.fournisseur||''})`:'ce contrat';
+  const label=c?`${stripId(c.id_service)||''} (${c.fournisseur||''})`:'ce contrat';
   if(!confirm(`⚠️ Supprimer définitivement ${label} ?\n\nCette action est irréversible.`))return;
   if(!confirm('Confirmer la suppression ?'))return;
   try{
@@ -2194,7 +2194,7 @@ function renderContratDrawer(id){
   const a=adresseMap[c.adresse_id]||{};
   const comm=allComm.find(cm=>cm.contrat_id===id);
 
-  document.getElementById('drawer-title').innerHTML=`📄 ${c.id_service?'#'+c.id_service:'Contrat'}`;
+  document.getElementById('drawer-title').innerHTML=`📄 ${c.id_service?'#'+stripId(c.id_service):'Contrat'}`;
   document.getElementById('drawer-tabs').innerHTML=`
     <div class="drawer-tab active" onclick="switchDrawerTab(this,'dt-apercu')">Aperçu</div>
     <div class="drawer-tab" onclick="switchDrawerTab(this,'dt-cedit')">✏️ Modifier</div>
@@ -2205,7 +2205,7 @@ function renderContratDrawer(id){
     <div id="dt-apercu">
       <div class="dsection">Contrat</div>
       ${drow('Statut',statusBadge(c.contrat_status))}
-      ${drow('ID Fuwu',c.id_service?'#'+c.id_service:'—')}
+      ${drow('ID Fuwu',c.id_service?'#'+stripId(c.id_service):'—')}
       ${drow('ID Fournisseur',c.id_fournisseur||'—')}
       ${drow('Fournisseur',normFourn(c.fournisseur)||'—')}
       ${drow('Énergie',c.energie_type||'—')}
@@ -2402,7 +2402,7 @@ function previewDecompte(intermId){
     const cl=personneMap[c.personne_id]||{};
     const a=adresseMap[c.adresse_id]||{};
     return `<tr style="font-size:11px;">
-      <td style="font-family:monospace;">${c.id_service?'#'+esc(c.id_service):'—'}</td>
+      <td style="font-family:monospace;">${c.id_service?'#'+esc(stripId(c.id_service)):'—'}</td>
       <td>${esc([cl.prenom,cl.nom].filter(Boolean).join(' '))}</td>
       <td>${esc(cl.email||'—')}</td>
       <td>${esc(cl.telephone||'—')}</td>
@@ -2552,7 +2552,7 @@ async function generateDecomptePDF(decompteId){
   relatedContrats.forEach(c=>{
     const cl=personneMap[c.personne_id]||{};
     const a=adresseMap[c.adresse_id]||{};
-    csv+=[c.id_service?'#'+c.id_service:'—',[cl.prenom,cl.nom].filter(Boolean).join(' '),cl.email||'',cl.telephone||'',
+    csv+=[c.id_service?'#'+stripId(c.id_service):'—',[cl.prenom,cl.nom].filter(Boolean).join(' '),cl.email||'',cl.telephone||'',
       a.rue||'',a.code_postal||'',a.ville||'',a.pdl||'',a.pce||'',
       parseFloat(c.commission_ht||0).toFixed(2),parseFloat(c.commission_ttc_eur||0).toFixed(2)
     ].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';')+'\n';
@@ -3117,7 +3117,8 @@ function showContratTaskMenu(contratId){
 // HELPERS
 // ══════════════════════════════════════
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-function fmtDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR');}
+function fmtDate(d){if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('fr-FR')+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+function stripId(v){if(!v)return'';return String(v).replace(/^[#F]+/i,'');}
 function statusBadge(s){const m={en_attente:['En attente','b-attente'],en_traitement:['En traitement','b-traitement'],actif:['Actif','b-actif'],annule:['Annulé','b-annule'],refuse:['Refusé','b-refuse'],termine:['Terminé','b-termine']};const[l,c]=m[s]||[s||'—',''];return `<span class="badge ${c}">${l}</span>`;}
 function statusLabel(s){const m={en_attente:'En attente',en_traitement:'En traitement',actif:'Actif',annule:'Annulé',refuse:'Refusé',termine:'Terminé'};return m[s]||s||'—';}
 function statusClass(s){const m={en_attente:'b-attente',en_traitement:'b-traitement',actif:'b-actif',annule:'b-annule',refuse:'b-refuse',termine:'b-termine'};return m[s]||'';}
@@ -3476,7 +3477,7 @@ function renderActiveTasksList(){
       <div class="todo-icon" style="font-size:16px;" onclick="openEntity('contrat','${c.id}')">${tt.icon}</div>
       <div class="todo-info" style="flex:1;cursor:pointer;" onclick="openEntity('contrat','${c.id}')">
         <div class="todo-title" style="font-size:12px;">${esc(tt.label)} — ${esc(name)}</div>
-        <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${c.id_service?'#'+esc(c.id_service):''} · ${fmtDate(c.date_debut)}${c.priorite&&c.priorite!=='normal'?' · <span style="font-size:10px;font-weight:700;color:'+(c.priorite==='haute'?'var(--danger)':'var(--warning)')+';">'+(c.priorite==='haute'?'🔴':'🟡')+' '+c.priorite+'</span>':''}</div>
+        <div class="todo-sub">${statusBadge(c.contrat_status)} ${c.agent_code?'<span style="font-size:10px;color:var(--success);">🛡 '+esc(c.agent_code)+'</span>':'<span style="font-size:10px;color:var(--danger);">⚠️ Sans agent</span>'} · ${c.id_service?'#'+esc(stripId(c.id_service)):''} · ${fmtDate(c.date_debut)}${c.priorite&&c.priorite!=='normal'?' · <span style="font-size:10px;font-weight:700;color:'+(c.priorite==='haute'?'var(--danger)':'var(--warning)')+';">'+(c.priorite==='haute'?'🔴':'🟡')+' '+c.priorite+'</span>':''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
         ${commVal!=null&&commVal>0?`<div style="font-size:11px;font-weight:600;color:var(--accent);">💰 ${commVal}€</div>`:''}
@@ -4123,7 +4124,7 @@ function renderFrnList(){
           <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;">${(f.nom||'F').charAt(0).toUpperCase()}</div>
           <div>
             ${fIds.length?'<div style="font-family:monospace;font-size:10px;color:var(--accent);font-weight:600;">'+fIds.join(' · ')+'</div>':''}
-            <div style="font-weight:600;font-size:13px;">${esc(societe)} ${f.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--muted);">©'+f.id_client+'</span>':''}</div>
+            <div style="font-weight:600;font-size:13px;">${esc(societe)} ${f.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--muted);">©'+stripId(f.id_client)+'</span>':''}</div>
             ${contact&&contact!==societe?'<div style="font-size:10px;color:var(--muted);">Contact: '+esc(contact)+'</div>':''}
           </div>
         </div>

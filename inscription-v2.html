@@ -589,8 +589,7 @@ async function submitForm(){
         patchBody.agent_code=agentCode;
         patchBody.inscrit_par=agentCode;
         patchBody.modifie_par=agentCode;
-        patchBody.contrat_status='en_traitement';
-        patchBody.agent_claimed_at=new Date().toISOString();
+        patchBody.contrat_status='en_attente';
       }
       try{const pr=await fetch(`${SB}/rest/v1/contrats?id=eq.${contratId}`,{method:'PATCH',headers:{'apikey':AK,'Authorization':`Bearer ${AK}`,'Content-Type':'application/json'},body:JSON.stringify(patchBody)});if(!pr.ok)console.warn('Contrat patch failed:',await pr.text());}catch(e){console.warn('Contrat patch error',e);}
       // Notify parent (agent iframe) of successful inscription
