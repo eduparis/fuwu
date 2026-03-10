@@ -117,6 +117,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .dt-page-btn{padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .dt-page-btn:hover:not(:disabled){border-color:var(--accent);}
 .dt-page-btn:disabled{opacity:0.3;cursor:not-allowed;}
+/* Frn tab */
+.frn-tab.active{background:var(--accent-bg)!important;color:var(--accent)!important;border-color:rgba(200,169,110,0.3)!important;}
 /* Batch action bar */
 .batch-bar{display:none;padding:8px 16px;background:rgba(200,169,110,0.06);border-bottom:1px solid rgba(200,169,110,0.15);align-items:center;gap:8px;font-size:12px;flex-shrink:0;}
 .batch-bar.show{display:flex;}
@@ -428,6 +430,7 @@ svg.lc circle{r:3;}
       <div class="snav" onclick="showPage('crm')" id="sn-crm">👥<span class="snav-tip">CRM</span><span class="snav-badge" id="sb-crm" style="display:none"></span></div>
       <div class="snav" onclick="showPage('contrats')" id="sn-contrats">📄<span class="snav-tip">Contrats</span><span class="snav-badge" id="sb-contrats" style="display:none"></span></div>
       <div class="snav" onclick="showPage('finance')" id="sn-finance">💶<span class="snav-tip">Finance</span><span class="snav-badge" id="sb-finance" style="display:none"></span></div>
+      <div class="snav" onclick="showPage('fournisseurs')" id="sn-fournisseurs">🏢<span class="snav-tip">Fournisseurs</span></div>
       <div class="snav" onclick="showPage('systeme')" id="sn-systeme">⚙️<span class="snav-tip">Système</span></div>
       <div class="snav" onclick="showPage('alerts')" id="sn-alerts">🔔<span class="snav-tip">Alertes</span><span class="snav-badge" id="sb-alerts" style="display:none"></span></div>
       <div class="sidebar-spacer"></div>
@@ -647,6 +650,29 @@ svg.lc circle{r:3;}
             <div id="alert-list" style="color:var(--muted);font-size:13px;">Chargement…</div>
             <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin:24px 0 10px;">Historique des contrôles santé</div>
             <div id="health-list" style="color:var(--muted);font-size:13px;"></div>
+          </div>
+        </div>
+
+        <!-- ═══ PAGE: FOURNISSEURS ═══ -->
+        <div class="page" id="pg-fournisseurs">
+          <div class="work-header">
+            <div class="work-title">🏢 Fournisseurs & Produits</div>
+            <div class="work-actions">
+              <button class="abtn" onclick="loadFrnPage()">↻ Actualiser</button>
+              <button class="abtn g" onclick="openProduitModal()">＋ Nouveau produit</button>
+            </div>
+          </div>
+          <div class="work-body">
+            <!-- Sub-tabs -->
+            <div style="display:flex;gap:6px;margin-bottom:16px;" id="frn-tabs">
+              <button class="abtn frn-tab active" onclick="showFrnTab('list')">🏢 Fournisseurs</button>
+              <button class="abtn frn-tab" onclick="showFrnTab('produits')">📦 Produits</button>
+              <button class="abtn frn-tab" onclick="showFrnTab('tarifs')">💰 Tarifs</button>
+              <button class="abtn frn-tab" onclick="showFrnTab('compare')">📊 Comparateur</button>
+            </div>
+            <div id="frn-content">
+              <div style="color:var(--muted);font-size:13px;">Chargement…</div>
+            </div>
           </div>
         </div>
 
@@ -911,7 +937,7 @@ let allDecomptes=[];
 async function loadDecomptes(){allDecomptes=await fetchAll(`${SUPABASE_URL}/rest/v1/decomptes?select=*&order=created_at.desc`);}
 async function loadPersonnes(){
   // Lighter select — drop iban, siret, colocataire fields (only needed in detail)
-  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,type_client,siret,iban,adresse_intermediaire,tva_intracom,taux_change_cny,commission_default_ht,commission_default_ttc_eur,commission_default_cny&order=created_at.desc`);
+  allPersonnes=await fetchAll(`${SUPABASE_URL}/rest/v1/personnes?select=id,civilite,prenom,nom,email,email_reel,telephone,wechat,login,est_intermediaire,est_client,categorie,note,est_agent,agent_code,id_client,created_at,type_client,siret,iban,adresse_intermediaire,tva_intracom,taux_change_cny,commission_default_ht,commission_default_ttc_eur,commission_default_cny,est_fournisseur,fournisseur_categorie&order=created_at.desc`);
   allPersonnes.forEach(p=>personneMap[p.id]=p);
 }
 
@@ -940,6 +966,7 @@ function showPage(name){
   if(name==='finance')renderFinance();
   if(name==='taches')loadTaskPage();
   if(name==='alerts')loadAlerts();
+  if(name==='fournisseurs')loadFrnPage();
 }
 
 // ══════════════════════════════════════
@@ -1669,7 +1696,14 @@ function renderPersonneModal(id){
             <button class="abtn ${p.est_client?'g':''}" onclick="toggleRole('${id}','est_client',${!p.est_client})" style="font-size:11px;">${p.est_client?'✅':'⬜'} Client</button>
             <button class="abtn ${p.est_intermediaire?'g':''}" onclick="toggleRole('${id}','est_intermediaire',${!p.est_intermediaire})" style="font-size:11px;">${p.est_intermediaire?'✅':'⬜'} Intermédiaire</button>
             <button class="abtn ${p.est_agent?'g':''}" onclick="toggleRole('${id}','est_agent',${!p.est_agent})" style="font-size:11px;">${p.est_agent?'✅':'⬜'} Agent</button>
+            <button class="abtn ${p.est_fournisseur?'g':''}" onclick="toggleRole('${id}','est_fournisseur',${!p.est_fournisseur})" style="font-size:11px;">${p.est_fournisseur?'✅':'⬜'} Fournisseur</button>
           </div></div>
+          ${p.est_fournisseur?`<div class="fmodal-field"><label>Catégorie fournisseur</label><div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0;">
+            ${['energie','telecom','banque','assurance'].map(cat=>{
+              const has=(p.fournisseur_categorie||[]).includes(cat);
+              return '<button class="abtn '+(has?'g':'')+'" onclick="toggleFrnCat(\''+id+'\',\''+cat+'\')" style="font-size:11px;">'+(has?'✅':'⬜')+' '+cat.charAt(0).toUpperCase()+cat.slice(1)+'</button>';
+            }).join('')}
+          </div></div>`:''}
         </div>
       </div>
       ${isInterm?`
@@ -3708,6 +3742,488 @@ function updateAlertBadge(){
   const unresolved=allAlerts.filter(a=>!a.resolved&&(a.severity==='P1'||a.severity==='P2')).length;
   const badge=document.getElementById('sb-alerts');
   if(badge)badge.style.display=unresolved>0?'block':'none';
+}
+
+// ═══════════════════════════════════════
+// FOURNISSEUR MODULE
+// ═══════════════════════════════════════
+let allProduits=[], allTarifLignes=[], frnTab='list', frnLoaded=false;
+
+async function toggleFrnCat(personneId, cat){
+  const p=personneMap[personneId];if(!p)return;
+  let cats=Array.isArray(p.fournisseur_categorie)?[...p.fournisseur_categorie]:[];
+  if(cats.includes(cat))cats=cats.filter(c=>c!==cat);else cats.push(cat);
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${personneId}`,{method:'PATCH',headers:H(),body:JSON.stringify({fournisseur_categorie:cats})});
+    p.fournisseur_categorie=cats;
+    const ap=allPersonnes.find(x=>x.id===personneId);if(ap)ap.fournisseur_categorie=cats;
+    renderPersonneModal(personneId);
+    showToast('Catégorie mise à jour');
+  }catch(e){showToast('Erreur',true);}
+}
+
+async function loadFrnPage(){
+  if(!frnLoaded){
+    try{
+      allProduits=await fetchAll(`${SUPABASE_URL}/rest/v1/produits_services?select=*&order=created_at.desc`);
+      allTarifLignes=await fetchAll(`${SUPABASE_URL}/rest/v1/tarif_lignes?select=*&order=produit_id,option_tarifaire,puissance_kva`);
+    }catch(e){console.error('Frn load error',e);}
+    frnLoaded=true;
+  }
+  showFrnTab(frnTab);
+}
+
+function showFrnTab(tab){
+  frnTab=tab;
+  document.querySelectorAll('.frn-tab').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector(`.frn-tab[onclick*="'${tab}'"]`);if(btn)btn.classList.add('active');
+  if(tab==='list')renderFrnList();
+  else if(tab==='produits')renderFrnProduits();
+  else if(tab==='tarifs')renderFrnTarifs();
+  else if(tab==='compare')renderFrnCompare();
+}
+
+// ── Fournisseur List ──
+function renderFrnList(){
+  const fournisseurs=allPersonnes.filter(p=>p.est_fournisseur);
+  const el=document.getElementById('frn-content');
+  if(!fournisseurs.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px;">Aucun fournisseur. Allez dans CRM → ouvrez une personne → activez le rôle Fournisseur.</div>';return;}
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+    ${fournisseurs.map(f=>{
+      const cats=(f.fournisseur_categorie||[]).map(c=>'<span style="background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">'+c+'</span>').join(' ');
+      const prods=allProduits.filter(p=>p.fournisseur_id===f.id);
+      const name=[f.prenom,f.nom].filter(Boolean).join(' ')||f.email||'—';
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;" onclick="openEntity('personne','${f.id}')">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;">${(f.nom||f.prenom||'F').charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;">${esc(name)}</div>
+            <div style="font-size:11px;color:var(--muted);">${esc(f.email||'')}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">${cats||'<span style="color:var(--muted);font-size:10px;">Aucune catégorie</span>'}</div>
+        <div style="font-size:11px;color:var(--muted);">${prods.length} produit${prods.length>1?'s':''} · SIRET: ${f.siret||'—'}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── Produits List ──
+function renderFrnProduits(){
+  const el=document.getElementById('frn-content');
+  const fMap={};allPersonnes.filter(p=>p.est_fournisseur).forEach(p=>fMap[p.id]=p);
+  
+  // Filter bar
+  let html=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <select class="finput" id="frn-f-fourn" onchange="renderFrnProduits()" style="font-size:12px;padding:6px 10px;">
+      <option value="">Tous fournisseurs</option>
+      ${Object.values(fMap).map(f=>'<option value="'+f.id+'">'+esc([f.prenom,f.nom].filter(Boolean).join(' ')||f.email)+'</option>').join('')}
+    </select>
+    <select class="finput" id="frn-f-cat" onchange="renderFrnProduits()" style="font-size:12px;padding:6px 10px;">
+      <option value="">Toutes catégories</option>
+      <option value="energie">Énergie</option><option value="telecom">Télécom</option><option value="banque">Banque</option><option value="assurance">Assurance</option>
+    </select>
+    <select class="finput" id="frn-f-statut" onchange="renderFrnProduits()" style="font-size:12px;padding:6px 10px;">
+      <option value="">Tous statuts</option>
+      <option value="actif">Actif</option><option value="inactif">Inactif</option>
+    </select>
+  </div>`;
+
+  const fFourn=document.getElementById('frn-f-fourn')?.value||'';
+  const fCat=document.getElementById('frn-f-cat')?.value||'';
+  const fStat=document.getElementById('frn-f-statut')?.value||'';
+  
+  let prods=[...allProduits];
+  if(fFourn)prods=prods.filter(p=>p.fournisseur_id===fFourn);
+  if(fCat)prods=prods.filter(p=>p.categorie===fCat);
+  if(fStat)prods=prods.filter(p=>p.statut===fStat);
+  
+  if(!prods.length){
+    el.innerHTML=html+'<div style="color:var(--muted);font-size:13px;padding:20px;">Aucun produit trouvé.</div>';return;
+  }
+  
+  html+=`<div class="dt-wrap"><div class="dt-scroll"><table class="dt-table"><thead><tr>
+    <th>Fournisseur</th><th>Produit</th><th>Catégorie</th><th>Type prix</th><th>Vert</th><th>Commission HT</th><th>Statut</th><th>Actions</th>
+  </tr></thead><tbody>
+  ${prods.map(p=>{
+    const f=fMap[p.fournisseur_id]||{};
+    const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||f.email||'—';
+    const statBadge=p.statut==='actif'?'<span style="color:var(--success);font-weight:600;">● Actif</span>':'<span style="color:var(--muted);">○ Inactif</span>';
+    const nTarifs=allTarifLignes.filter(t=>t.produit_id===p.id).length;
+    return `<tr>
+      <td>${esc(fname)}</td>
+      <td><div style="font-weight:600;">${esc(p.nom_offre)}</div><div style="font-size:10px;color:var(--muted);">${p.code_offre||''} · ${nTarifs} lignes tarif</div></td>
+      <td>${p.categorie}${p.sous_categorie?' / '+p.sous_categorie:''}</td>
+      <td>${p.pricing_model||'—'}</td>
+      <td>${p.green_percentage?p.green_percentage+'%':'—'}</td>
+      <td style="font-weight:600;">${p.commission_ht||60}€</td>
+      <td>${statBadge}</td>
+      <td><button class="abtn" onclick="openProduitModal('${p.id}')" style="font-size:11px;padding:3px 8px;">✏️</button> <button class="abtn" onclick="editProduitTarifs('${p.id}')" style="font-size:11px;padding:3px 8px;">💰</button></td>
+    </tr>`;
+  }).join('')}
+  </tbody></table></div></div>`;
+  el.innerHTML=html;
+}
+
+// ── Tarifs Editor ──
+function renderFrnTarifs(){
+  const el=document.getElementById('frn-content');
+  // Show produit selector then tarif editor
+  const energieProds=allProduits.filter(p=>p.categorie==='energie'&&p.statut==='actif');
+  if(!energieProds.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">Aucun produit énergie. Créez d\'abord un produit.</div>';return;}
+  
+  const fMap={};allPersonnes.filter(p=>p.est_fournisseur).forEach(p=>fMap[p.id]=p);
+  
+  el.innerHTML=`<div style="margin-bottom:16px;">
+    <select class="finput" id="frn-tarif-produit" onchange="renderTarifEditor()" style="font-size:13px;padding:8px 12px;min-width:300px;">
+      <option value="">— Choisir un produit —</option>
+      ${energieProds.map(p=>{
+        const f=fMap[p.fournisseur_id]||{};
+        const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'';
+        return '<option value="'+p.id+'">'+esc(fname)+' — '+esc(p.nom_offre)+(p.sous_categorie?' ('+p.sous_categorie+')':'')+'</option>';
+      }).join('')}
+    </select>
+  </div>
+  <div id="tarif-editor-area"></div>`;
+}
+
+function renderTarifEditor(){
+  const pid=document.getElementById('frn-tarif-produit')?.value;
+  const area=document.getElementById('tarif-editor-area');
+  if(!pid){area.innerHTML='';return;}
+  
+  const prod=allProduits.find(p=>p.id===pid);if(!prod){area.innerHTML='';return;}
+  const lignes=allTarifLignes.filter(t=>t.produit_id===pid);
+  const opts=(prod.option_types||['base','hphc']);
+  const kvas=[6,9]; // Only show 6 and 9 kVA as requested
+  
+  let html=`<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">
+    Produit: <strong style="color:var(--text);">${esc(prod.nom_offre)}</strong> · 
+    Modèle: <strong style="color:var(--accent);">${prod.pricing_model||'—'}</strong> · 
+    Applicable: <input type="date" class="finput" id="tarif-date" value="${(lignes[0]?.applicable_from||new Date().toISOString().slice(0,10))}" style="font-size:11px;padding:4px 8px;">
+  </div>`;
+  
+  // For each option, build a table
+  opts.forEach(opt=>{
+    const optLabel=opt==='base'?'Option Base':opt==='hphc'?'Option HP/HC':opt.toUpperCase();
+    html+=`<div style="font-size:12px;font-weight:700;color:var(--accent);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">${optLabel}</div>`;
+    
+    if(opt==='base'){
+      html+=`<table class="dt-table" style="margin-bottom:12px;"><thead><tr>
+        <th>kVA</th><th>Abo HT/mois</th><th>Abo TTC/mois</th><th>kWh HT</th><th>kWh TTC</th>
+      </tr></thead><tbody>`;
+      kvas.forEach(kva=>{
+        const l=lignes.find(t=>t.option_tarifaire==='base'&&t.cadran==='base'&&t.puissance_kva===kva&&t.composant==='tout')||{};
+        html+=`<tr>
+          <td style="font-weight:600;">${kva} kVA</td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" data-field="abonnement_ht_mois" value="${l.abonnement_ht_mois||''}" style="width:90px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-field="abonnement_ttc_mois" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" value="${l.abonnement_ttc_mois||''}" style="width:90px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-field="kwh_ht" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" value="${l.kwh_ht||''}" style="width:100px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-field="kwh_ttc" data-pid="${pid}" data-opt="base" data-cad="base" data-kva="${kva}" data-comp="tout" value="${l.kwh_ttc||''}" style="width:100px;font-size:12px;padding:4px 8px;"></td>
+        </tr>`;
+      });
+      html+=`</tbody></table>`;
+    } else if(opt==='hphc'){
+      html+=`<table class="dt-table" style="margin-bottom:12px;"><thead><tr>
+        <th>kVA</th><th>Abo HT/mois</th><th>Abo TTC/mois</th><th>HP kWh HT</th><th>HP kWh TTC</th><th>HC kWh HT</th><th>HC kWh TTC</th>
+      </tr></thead><tbody>`;
+      kvas.forEach(kva=>{
+        const lhp=lignes.find(t=>t.option_tarifaire==='hphc'&&t.cadran==='hp'&&t.puissance_kva===kva&&t.composant==='tout')||{};
+        const lhc=lignes.find(t=>t.option_tarifaire==='hphc'&&t.cadran==='hc'&&t.puissance_kva===kva&&t.composant==='tout')||{};
+        const labo=lignes.find(t=>t.option_tarifaire==='hphc'&&(t.cadran==='hp'||t.cadran==='hc')&&t.puissance_kva===kva&&t.composant==='tout')||{};
+        html+=`<tr>
+          <td style="font-weight:600;">${kva} kVA</td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="abonnement_ht_mois" value="${lhp.abonnement_ht_mois||labo.abonnement_ht_mois||''}" style="width:85px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="abonnement_ttc_mois" value="${lhp.abonnement_ttc_mois||labo.abonnement_ttc_mois||''}" style="width:85px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="kwh_ht" value="${lhp.kwh_ht||''}" style="width:90px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hp" data-kva="${kva}" data-comp="tout" data-field="kwh_ttc" value="${lhp.kwh_ttc||''}" style="width:90px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hc" data-kva="${kva}" data-comp="tout" data-field="kwh_ht" value="${lhc.kwh_ht||''}" style="width:90px;font-size:12px;padding:4px 8px;"></td>
+          <td><input class="finput tarif-in" data-pid="${pid}" data-opt="hphc" data-cad="hc" data-kva="${kva}" data-comp="tout" data-field="kwh_ttc" value="${lhc.kwh_ttc||''}" style="width:90px;font-size:12px;padding:4px 8px;"></td>
+        </tr>`;
+      });
+      html+=`</tbody></table>`;
+    }
+  });
+  
+  html+=`<div style="margin-top:16px;display:flex;gap:8px;">
+    <button class="abtn g" onclick="saveTarifs('${pid}')" style="padding:8px 20px;">💾 Sauvegarder les tarifs</button>
+  </div>`;
+  area.innerHTML=html;
+}
+
+async function saveTarifs(produitId){
+  const inputs=document.querySelectorAll('.tarif-in[data-pid="'+produitId+'"]');
+  const appDate=document.getElementById('tarif-date')?.value||new Date().toISOString().slice(0,10);
+  let saved=0, errors=0;
+  
+  for(const inp of inputs){
+    const val=inp.value.trim();if(!val)continue;
+    const opt=inp.dataset.opt, cad=inp.dataset.cad, kva=parseInt(inp.dataset.kva), comp=inp.dataset.comp, field=inp.dataset.field;
+    const numVal=parseFloat(val);if(isNaN(numVal))continue;
+    
+    // Find existing ligne
+    const existing=allTarifLignes.find(t=>t.produit_id===produitId&&t.option_tarifaire===opt&&t.cadran===cad&&t.puissance_kva===kva&&t.composant===comp);
+    
+    try{
+      if(existing){
+        const oldVal=existing[field];
+        if(oldVal!==null&&oldVal!==undefined&&parseFloat(oldVal)!==numVal){
+          // Write historique
+          await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({
+            produit_id:produitId,tarif_ligne_id:existing.id,champ_modifie:field,
+            ancienne_valeur:String(oldVal),nouvelle_valeur:String(numVal),
+            option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,
+            applicable_from:appDate,motif:'Mise à jour manuelle'
+          })});
+        }
+        // Update existing
+        const body={};body[field]=numVal;body.applicable_from=appDate;
+        await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes?id=eq.${existing.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+        existing[field]=numVal;existing.applicable_from=appDate;
+      } else {
+        // Create new ligne
+        const body={produit_id:produitId,option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate};
+        body[field]=numVal;
+        // For hphc abonnement, set on hp cadran row
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
+        if(r.ok){const d=await r.json();if(Array.isArray(d)&&d.length)allTarifLignes.push(d[0]);}
+      }
+      saved++;
+    }catch(e){errors++;console.error(e);}
+  }
+  showToast(`${saved} tarif(s) sauvegardé(s)${errors?' · '+errors+' erreur(s)':''}`);
+}
+
+function editProduitTarifs(produitId){
+  showFrnTab('tarifs');
+  setTimeout(()=>{
+    const sel=document.getElementById('frn-tarif-produit');
+    if(sel){sel.value=produitId;renderTarifEditor();}
+  },100);
+}
+
+// ── Comparateur ──
+function renderFrnCompare(){
+  const el=document.getElementById('frn-content');
+  const fMap={};allPersonnes.filter(p=>p.est_fournisseur).forEach(p=>fMap[p.id]=p);
+  const energieProds=allProduits.filter(p=>p.categorie==='energie'&&p.sous_categorie==='electricite'&&p.statut==='actif');
+  
+  if(!energieProds.length){el.innerHTML='<div style="color:var(--muted);">Aucun produit énergie électricité actif.</div>';return;}
+  
+  const conso=10000; // kWh/an
+  const hpRatio=0.6, hcRatio=0.4;
+  
+  let html=`<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Simulation: <strong style="color:var(--text);">${conso.toLocaleString()} kWh/an</strong> · HP 60% / HC 40% · Hors taxes & contributions communes</div>`;
+  
+  // Build comparison for 6kVA and 9kVA
+  [6,9].forEach(kva=>{
+    html+=`<div style="font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 10px;">⚡ ${kva} kVA</div>`;
+    
+    // Base
+    html+=`<div style="font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;letter-spacing:0.5px;">Option Base</div>`;
+    html+=`<table class="dt-table" style="margin-bottom:16px;"><thead><tr>
+      <th>Fournisseur / Offre</th><th>Abo/mois HT</th><th>Abo/mois TTC</th><th>kWh HT</th><th>kWh TTC</th><th>Coût/an HT</th><th>Coût/an TTC</th><th>Commission</th>
+    </tr></thead><tbody>`;
+    
+    const baseRows=[];
+    energieProds.forEach(p=>{
+      const f=fMap[p.fournisseur_id]||{};
+      const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'?';
+      const l=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='base'&&t.cadran==='base'&&t.puissance_kva===kva&&t.composant==='tout');
+      if(!l)return;
+      const aboHt=l.abonnement_ht_mois?parseFloat(l.abonnement_ht_mois):null;
+      const aboTtc=l.abonnement_ttc_mois?parseFloat(l.abonnement_ttc_mois):null;
+      const kwhHt=l.kwh_ht?parseFloat(l.kwh_ht):null;
+      const kwhTtc=l.kwh_ttc?parseFloat(l.kwh_ttc):null;
+      const coutHt=(aboHt!==null&&kwhHt!==null)?(aboHt*12+kwhHt*conso):null;
+      const coutTtc=(aboTtc!==null&&kwhTtc!==null)?(aboTtc*12+kwhTtc*conso):null;
+      baseRows.push({fname,offre:p.nom_offre,aboHt,aboTtc,kwhHt,kwhTtc,coutHt,coutTtc,comm:p.commission_ht||60});
+    });
+    baseRows.sort((a,b)=>(a.coutTtc||99999)-(b.coutTtc||99999));
+    
+    baseRows.forEach((r,i)=>{
+      const best=i===0?'style="background:rgba(34,197,94,0.06);"':'';
+      html+=`<tr ${best}>
+        <td><div style="font-weight:600;font-size:12px;">${esc(r.fname)}</div><div style="font-size:10px;color:var(--muted);">${esc(r.offre)}</div></td>
+        <td>${r.aboHt!==null?r.aboHt.toFixed(2):'—'}</td>
+        <td>${r.aboTtc!==null?r.aboTtc.toFixed(2):'—'}</td>
+        <td>${r.kwhHt!==null?r.kwhHt.toFixed(4):'—'}</td>
+        <td>${r.kwhTtc!==null?r.kwhTtc.toFixed(4):'—'}</td>
+        <td style="font-weight:600;">${r.coutHt!==null?r.coutHt.toFixed(2)+'€':'—'}</td>
+        <td style="font-weight:700;color:var(--accent);">${r.coutTtc!==null?r.coutTtc.toFixed(2)+'€':'—'}</td>
+        <td>${r.comm}€</td>
+      </tr>`;
+    });
+    html+=`</tbody></table>`;
+    
+    // HPHC
+    html+=`<div style="font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;letter-spacing:0.5px;">Option HP/HC</div>`;
+    html+=`<table class="dt-table" style="margin-bottom:16px;"><thead><tr>
+      <th>Fournisseur / Offre</th><th>Abo/mois TTC</th><th>HP TTC</th><th>HC TTC</th><th>Coût/an HT</th><th>Coût/an TTC</th><th>Commission</th>
+    </tr></thead><tbody>`;
+    
+    const hphcRows=[];
+    energieProds.forEach(p=>{
+      const f=fMap[p.fournisseur_id]||{};
+      const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'?';
+      const lhp=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hp'&&t.puissance_kva===kva&&t.composant==='tout');
+      const lhc=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hc'&&t.puissance_kva===kva&&t.composant==='tout');
+      if(!lhp||!lhc)return;
+      const aboTtc=lhp.abonnement_ttc_mois?parseFloat(lhp.abonnement_ttc_mois):null;
+      const aboHt=lhp.abonnement_ht_mois?parseFloat(lhp.abonnement_ht_mois):null;
+      const hpTtc=parseFloat(lhp.kwh_ttc||0);
+      const hcTtc=parseFloat(lhc.kwh_ttc||0);
+      const hpHt=parseFloat(lhp.kwh_ht||0);
+      const hcHt=parseFloat(lhc.kwh_ht||0);
+      const coutTtc=aboTtc!==null?(aboTtc*12+hpTtc*conso*hpRatio+hcTtc*conso*hcRatio):null;
+      const coutHt=aboHt!==null?(aboHt*12+hpHt*conso*hpRatio+hcHt*conso*hcRatio):null;
+      hphcRows.push({fname,offre:p.nom_offre,aboTtc,hpTtc,hcTtc,coutHt,coutTtc,comm:p.commission_ht||60});
+    });
+    hphcRows.sort((a,b)=>(a.coutTtc||99999)-(b.coutTtc||99999));
+    
+    hphcRows.forEach((r,i)=>{
+      const best=i===0?'style="background:rgba(34,197,94,0.06);"':'';
+      html+=`<tr ${best}>
+        <td><div style="font-weight:600;font-size:12px;">${esc(r.fname)}</div><div style="font-size:10px;color:var(--muted);">${esc(r.offre)}</div></td>
+        <td>${r.aboTtc!==null?r.aboTtc.toFixed(2):'—'}</td>
+        <td>${r.hpTtc.toFixed(4)}</td>
+        <td>${r.hcTtc.toFixed(4)}</td>
+        <td style="font-weight:600;">${r.coutHt!==null?r.coutHt.toFixed(2)+'€':'—'}</td>
+        <td style="font-weight:700;color:var(--accent);">${r.coutTtc!==null?r.coutTtc.toFixed(2)+'€':'—'}</td>
+        <td>${r.comm}€</td>
+      </tr>`;
+    });
+    html+=`</tbody></table>`;
+  });
+  
+  el.innerHTML=html;
+}
+
+// ── Produit Modal ──
+function openProduitModal(produitId){
+  const isEdit=!!produitId;
+  const p=isEdit?allProduits.find(x=>x.id===produitId):{};
+  const fournisseurs=allPersonnes.filter(x=>x.est_fournisseur);
+  
+  const title=isEdit?'✏️ Modifier produit':'＋ Nouveau produit';
+  const dTitle=document.getElementById('drawer-title');
+  const dTabs=document.getElementById('drawer-tabs');
+  const dBody=document.getElementById('drawer-body');
+  const dAct=document.getElementById('drawer-actions');
+  
+  dTitle.innerHTML=title;
+  dTabs.innerHTML='';
+  dBody.innerHTML=`
+    <div class="fmodal-field"><label>Fournisseur</label>
+      <select class="finput" id="np-fourn" style="width:100%;" ${isEdit?'disabled':''}>
+        <option value="">— Choisir —</option>
+        ${fournisseurs.map(f=>'<option value="'+f.id+'" '+(p.fournisseur_id===f.id?'selected':'')+'>'+esc([f.prenom,f.nom].filter(Boolean).join(' ')||f.email)+'</option>').join('')}
+      </select>
+    </div>
+    <div class="fmodal-field"><label>Catégorie</label>
+      <select class="finput" id="np-cat" style="width:100%;" onchange="toggleEnergieFields()">
+        <option value="energie" ${p.categorie==='energie'?'selected':''}>Énergie</option>
+        <option value="telecom" ${p.categorie==='telecom'?'selected':''}>Télécom</option>
+        <option value="banque" ${p.categorie==='banque'?'selected':''}>Banque</option>
+        <option value="assurance" ${p.categorie==='assurance'?'selected':''}>Assurance</option>
+      </select>
+    </div>
+    <div class="fmodal-field" id="np-scat-wrap"><label>Sous-catégorie</label>
+      <select class="finput" id="np-scat" style="width:100%;">
+        <option value="electricite" ${p.sous_categorie==='electricite'?'selected':''}>Électricité</option>
+        <option value="gaz" ${p.sous_categorie==='gaz'?'selected':''}>Gaz</option>
+        <option value="dual" ${p.sous_categorie==='dual'?'selected':''}>Dual (Élec+Gaz)</option>
+      </select>
+    </div>
+    <div class="fmodal-field"><label>Nom de l'offre</label><input class="finput" id="np-nom" value="${esc(p.nom_offre||'')}" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Code offre (réf. PDF)</label><input class="finput" id="np-code" value="${esc(p.code_offre||'')}" style="width:100%;"></div>
+    <div id="energie-fields" style="${p.categorie&&p.categorie!=='energie'?'display:none':''}">
+      <div class="fmodal-field"><label>Modèle de prix</label>
+        <select class="finput" id="np-pricing" style="width:100%;">
+          <option value="fixed" ${p.pricing_model==='fixed'?'selected':''}>Prix fixe</option>
+          <option value="indexed_trve" ${p.pricing_model==='indexed_trve'?'selected':''}>Indexé TRVE</option>
+          <option value="indexed_prvg" ${p.pricing_model==='indexed_prvg'?'selected':''}>Indexé PRVG</option>
+          <option value="decomposed" ${p.pricing_model==='decomposed'?'selected':''}>Décomposé (ENGIE)</option>
+          <option value="regulated" ${p.pricing_model==='regulated'?'selected':''}>Réglementé (TRVE)</option>
+        </select>
+      </div>
+      <div class="fmodal-field"><label>% Vert</label><input type="number" class="finput" id="np-green" value="${p.green_percentage||0}" style="width:100%;"></div>
+      <div class="fmodal-field"><label>Durée garantie prix (mois)</label><input type="number" class="finput" id="np-duree" value="${p.duree_garantie_prix_mois||12}" style="width:100%;"></div>
+      <div class="fmodal-field"><label>Bonus client (€)</label><input type="number" step="0.01" class="finput" id="np-bonus" value="${p.bonus_client_montant||0}" style="width:100%;"></div>
+      <div class="fmodal-field"><label>Bonus après (mois)</label><input type="number" class="finput" id="np-bonus-mois" value="${p.bonus_condition_mois||0}" style="width:100%;"></div>
+    </div>
+    <div class="fmodal-section" style="margin-top:12px;">Commission FUWU</div>
+    <div class="fmodal-grid"><div class="fmodal-col">
+      <div class="fmodal-field"><label>Commission HT (€)</label><input type="number" step="0.01" class="finput" id="np-comm-ht" value="${p.commission_ht||60}" style="width:100%;" onchange="document.getElementById('np-comm-ttc').value=(parseFloat(this.value)*1.2).toFixed(2)"></div>
+    </div><div class="fmodal-col">
+      <div class="fmodal-field"><label>Commission TTC (€)</label><input type="number" step="0.01" class="finput" id="np-comm-ttc" value="${p.commission_ttc||72}" style="width:100%;"></div>
+    </div></div>
+    <div class="fmodal-field"><label>Notes</label><textarea class="finput" id="np-notes" rows="2" style="width:100%;">${esc(p.notes||'')}</textarea></div>
+  `;
+  
+  dAct.innerHTML=`
+    <button class="abtn g" onclick="saveProduit('${produitId||''}')" style="flex:1;">💾 ${isEdit?'Sauvegarder':'Créer'}</button>
+    ${isEdit?'<button class="abtn r" onclick="toggleProduitStatut(\''+produitId+'\')">'+((p.statut==='actif')?'⏸ Désactiver':'▶ Activer')+'</button>':''}
+    <button class="abtn" onclick="closeDrawer()">Fermer</button>
+  `;
+  
+  document.getElementById('drawer').classList.add('open');
+}
+
+function toggleEnergieFields(){
+  const cat=document.getElementById('np-cat').value;
+  document.getElementById('energie-fields').style.display=cat==='energie'?'':'none';
+  document.getElementById('np-scat-wrap').style.display=cat==='energie'?'':'none';
+}
+
+async function saveProduit(existingId){
+  const isEdit=!!existingId;
+  const body={
+    fournisseur_id:document.getElementById('np-fourn').value,
+    categorie:document.getElementById('np-cat').value,
+    sous_categorie:document.getElementById('np-scat')?.value||null,
+    nom_offre:document.getElementById('np-nom').value.trim(),
+    code_offre:document.getElementById('np-code').value.trim()||null,
+    pricing_model:document.getElementById('np-pricing')?.value||null,
+    green_percentage:parseInt(document.getElementById('np-green')?.value)||0,
+    duree_garantie_prix_mois:parseInt(document.getElementById('np-duree')?.value)||null,
+    bonus_client_montant:parseFloat(document.getElementById('np-bonus')?.value)||0,
+    bonus_condition_mois:parseInt(document.getElementById('np-bonus-mois')?.value)||null,
+    commission_ht:parseFloat(document.getElementById('np-comm-ht').value)||60,
+    commission_ttc:parseFloat(document.getElementById('np-comm-ttc').value)||72,
+    notes:document.getElementById('np-notes').value.trim()||null,
+  };
+  if(!body.fournisseur_id||!body.nom_offre){showToast('Fournisseur et nom requis',true);return;}
+  if(body.categorie!=='energie'){body.sous_categorie=null;body.pricing_model=null;}
+  
+  try{
+    if(isEdit){
+      delete body.fournisseur_id; // don't change fournisseur
+      await fetch(`${SUPABASE_URL}/rest/v1/produits_services?id=eq.${existingId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+      const idx=allProduits.findIndex(p=>p.id===existingId);
+      if(idx>=0)Object.assign(allProduits[idx],body);
+      showToast('Produit mis à jour ✓');
+    } else {
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/produits_services`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
+      if(!r.ok)throw new Error(await r.text());
+      const d=await r.json();if(Array.isArray(d)&&d.length)allProduits.unshift(d[0]);
+      showToast('Produit créé ✓');
+    }
+    closeDrawer();
+    showFrnTab(frnTab);
+  }catch(e){showToast('Erreur: '+e.message,true);}
+}
+
+async function toggleProduitStatut(produitId){
+  const p=allProduits.find(x=>x.id===produitId);if(!p)return;
+  const newStat=p.statut==='actif'?'inactif':'actif';
+  if(!confirm(`${newStat==='actif'?'Activer':'Désactiver'} ce produit ?`))return;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/produits_services?id=eq.${produitId}`,{method:'PATCH',headers:H(),body:JSON.stringify({statut:newStat})});
+    p.statut=newStat;
+    closeDrawer();showFrnTab(frnTab);
+    showToast('Statut mis à jour');
+  }catch(e){showToast('Erreur',true);}
 }
 
 // ── Init ──
