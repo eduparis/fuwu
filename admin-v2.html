@@ -2157,20 +2157,11 @@ async function loadPersonneProduits(personneId){
   });
   el.innerHTML=html;
 }
-function openProduitModalForPerson(personneId){openProduitModal(null,personneId);}
+function openProduitModalForPerson(personneId){openProduitModal(null,personneId,null);}
 async function cloneProduit(produitId){
   const src=allProduits.find(p=>p.id===produitId);if(!src)return;
-  const body={fournisseur_id:src.fournisseur_id,categorie:src.categorie,sous_categorie:src.sous_categorie,
-    nom_offre:(src.nom_offre||'')+' (copie)',code_offre:src.code_offre,pricing_model:src.pricing_model,
-    green_percentage:src.green_percentage,engagement_mois:src.engagement_mois,commission_ht:src.commission_ht,
-    commission_structure:src.commission_structure,statut:'brouillon'};
-  try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/produits_services`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
-    if(!r.ok)throw new Error(await r.text());
-    const d=await r.json();if(Array.isArray(d)&&d.length)allProduits.unshift(d[0]);
-    showToast('Produit dupliqué ✅');
-    if(document.getElementById('frn-person-produits'))loadPersonneProduits(src.fournisseur_id);
-  }catch(e){showToast('Erreur: '+e.message,true);}
+  // Open modal in "new" mode but prefill all fields from source
+  openProduitModal(null,null,src);
 }
 
 async function savePersonneFull(id){
@@ -4585,19 +4576,28 @@ function renderFrnCompare(){
 
 
 // ── Produit Modal ──
-function openProduitModal(produitId,forPersonneId){
+function openProduitModal(produitId,forPersonneId,cloneFrom){
   const isEdit=!!produitId;
-  const p=isEdit?allProduits.find(x=>x.id===produitId):{};
+  const src=isEdit?allProduits.find(x=>x.id===produitId):(cloneFrom||{});
+  const p=src||{};
   const preSelectId=forPersonneId||p.fournisseur_id||'';
   const fournisseurs=allPersonnes.filter(x=>x.est_fournisseur);
+  const isClone=!!cloneFrom;
   
-  const title=isEdit?'✏️ Modifier produit':'📦 Nouveau produit';
+  const title=isEdit?'✏️ Modifier produit':(isClone?'📋 Copier produit':'📦 Nouveau produit');
   document.getElementById('frn-modal-title').innerHTML=title;
+  
+  // Fournisseur dropdown: show ID + société name
+  const fOpts=fournisseurs.map(f=>{
+    const fIds=[f.id_fournisseur_fe,f.id_fournisseur_ft,f.id_fournisseur_fb,f.id_fournisseur_fa].filter(Boolean);
+    const label=(fIds.length?fIds[0]+' — ':'')+esc(f.nom||(f.prenom?f.prenom+' '+f.nom:'—'));
+    return '<option value="'+f.id+'" '+(preSelectId===f.id?'selected':'')+'>'+label+'</option>';
+  }).join('');
+
   document.getElementById('frn-modal-body').innerHTML=`
     <div class="fmodal-field"><label>Fournisseur</label>
-      <select class="finput" id="np-fourn" style="width:100%;" ${isEdit?'disabled':''}>
-        <option value="">— Choisir —</option>
-        ${fournisseurs.map(f=>'<option value="'+f.id+'" '+(preSelectId===f.id?'selected':'')+'>'+esc([f.prenom,f.nom].filter(Boolean).join(' ')||f.email)+'</option>').join('')}
+      <select class="finput" id="np-fourn" style="width:100%;">
+        <option value="">— Choisir —</option>${fOpts}
       </select>
     </div>
     <div class="fmodal-field"><label>Catégorie</label>
@@ -4615,7 +4615,7 @@ function openProduitModal(produitId,forPersonneId){
         <option value="dual" ${p.sous_categorie==='dual'?'selected':''}>Dual (Élec+Gaz)</option>
       </select>
     </div>
-    <div class="fmodal-field"><label>Nom de l'offre</label><input class="finput" id="np-nom" value="${esc(p.nom_offre||'')}" style="width:100%;"></div>
+    <div class="fmodal-field"><label>Nom de l'offre</label><input class="finput" id="np-nom" value="${esc(isClone?(p.nom_offre||'')+' (copie)':(p.nom_offre||''))}" style="width:100%;"></div>
     <div class="fmodal-field"><label>Code offre (réf. PDF)</label><input class="finput" id="np-code" value="${esc(p.code_offre||'')}" style="width:100%;"></div>
     <div id="energie-fields" style="${p.categorie&&p.categorie!=='energie'?'display:none':''}">
       <div class="fmodal-field"><label>Modèle de prix</label>
@@ -4642,7 +4642,7 @@ function openProduitModal(produitId,forPersonneId){
   `;
   
   document.getElementById('frn-modal-actions').innerHTML=`
-    <button class="abtn g" onclick="saveProduit('${produitId||''}')" style="flex:1;">💾 ${isEdit?'Sauvegarder':'Créer'}</button>
+    <button class="abtn g" onclick="saveProduit('${isEdit?produitId:''}')" style="flex:1;">💾 ${isEdit?'Sauvegarder':'Créer'}</button>
     ${isEdit?'<button class="abtn r" onclick="toggleProduitStatut(\''+produitId+'\')">'+((p.statut==='actif')?'⏸ Désactiver':'▶ Activer')+'</button>':''}
     <button class="abtn" onclick="closeFrnModal()">Fermer</button>
   `;
