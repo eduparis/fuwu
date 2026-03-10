@@ -4124,13 +4124,16 @@ function renderFrnList(){
         return '<span style="background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">'+c+idLabel+'</span>';
       }).join(' ');
       const prods=allProduits.filter(p=>p.fournisseur_id===f.id);
-      const name=[f.prenom,f.nom].filter(Boolean).join(' ')||f.email||'—';
+      const fIds=[f.id_fournisseur_fe,f.id_fournisseur_ft,f.id_fournisseur_fb,f.id_fournisseur_fa].filter(Boolean);
+      const societe=f.nom||'—';
+      const contact=f.prenom?(f.civilite==='Société'?f.prenom:[f.prenom,f.nom].filter(Boolean).join(' ')):'';
       return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;" onclick="openEntity('personne','${f.id}')">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;">${(f.nom||f.prenom||'F').charAt(0).toUpperCase()}</div>
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;">${(f.nom||'F').charAt(0).toUpperCase()}</div>
           <div>
-            <div style="font-weight:600;font-size:13px;">${esc(name)} ${f.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--accent);">©'+f.id_client+'</span>':''}</div>
-            <div style="font-size:11px;color:var(--muted);">${esc(f.email||'')}</div>
+            ${fIds.length?'<div style="font-family:monospace;font-size:10px;color:var(--accent);font-weight:600;">'+fIds.join(' · ')+'</div>':''}
+            <div style="font-weight:600;font-size:13px;">${esc(societe)} ${f.id_client?'<span style="font-family:monospace;font-size:10px;color:var(--muted);">©'+f.id_client+'</span>':''}</div>
+            ${contact&&contact!==societe?'<div style="font-size:10px;color:var(--muted);">Contact: '+esc(contact)+'</div>':''}
           </div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">${catBadges||'<span style="color:var(--muted);font-size:10px;">Aucune catégorie</span>'}</div>
@@ -4179,18 +4182,22 @@ function renderFrnProduits(){
   </tr></thead><tbody>
   ${prods.map(p=>{
     const f=fMap[p.fournisseur_id]||{};
-    const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||f.email||'—';
+    // ID fournisseur (FE/FT/FB/FA) + société name + contact name
+    const fIds=[f.id_fournisseur_fe,f.id_fournisseur_ft,f.id_fournisseur_fb,f.id_fournisseur_fa].filter(Boolean);
+    const fIdStr=fIds.length?fIds[0]:'';
+    const fSociete=(f.civilite==='Société'||f.est_fournisseur)?f.nom:'';
+    const fContact=[f.prenom,f.civilite!=='Société'?f.nom:''].filter(Boolean).join(' ');
     const statBadge=p.statut==='actif'?'<span style="color:var(--success);font-weight:600;">● Actif</span>':'<span style="color:var(--muted);">○ Inactif</span>';
     const nTarifs=allTarifLignes.filter(t=>t.produit_id===p.id).length;
     return `<tr>
-      <td>${esc(fname)}</td>
+      <td><div style="font-family:monospace;font-size:10px;color:var(--accent);font-weight:600;">${esc(fIdStr)}</div><div style="font-weight:600;font-size:12px;">${esc(fSociete||f.nom||'—')}</div>${fContact&&fContact!==fSociete?'<div style="font-size:10px;color:var(--muted);">'+esc(fContact)+'</div>':''}</td>
       <td><div style="font-weight:600;">${esc(p.nom_offre)}</div><div style="font-size:10px;color:var(--muted);">${p.id_produit?'<span style="font-family:monospace;color:var(--accent);">'+p.id_produit+'</span> · ':'' }${p.code_offre||''} · ${nTarifs} lignes tarif</div></td>
       <td>${p.categorie}${p.sous_categorie?' / '+p.sous_categorie:''}</td>
       <td>${p.pricing_model||'—'}</td>
       <td>${p.green_percentage?p.green_percentage+'%':'—'}</td>
       <td style="font-weight:600;">${p.commission_ht||60}€</td>
       <td>${statBadge}</td>
-      <td><button class="abtn" onclick="openProduitModal('${p.id}')" style="font-size:11px;padding:3px 8px;">✏️</button> <button class="abtn" onclick="editProduitTarifs('${p.id}')" style="font-size:11px;padding:3px 8px;">💰</button></td>
+      <td style="white-space:nowrap;"><button class="abtn" onclick="openProduitModal('${p.id}')" style="font-size:11px;padding:3px 8px;" title="Modifier">✏️</button> <button class="abtn" onclick="cloneProduit('${p.id}')" style="font-size:11px;padding:3px 8px;" title="Dupliquer">📋</button> <button class="abtn" onclick="editProduitTarifs('${p.id}')" style="font-size:11px;padding:3px 8px;" title="Tarifs">💰</button></td>
     </tr>`;
   }).join('')}
   </tbody></table></div></div>`;
@@ -4500,7 +4507,7 @@ function renderFrnCompare(){
     let trvBaseCoutTtc=null;
     energieProds.forEach(p=>{
       const f=fMap[p.fournisseur_id]||{};
-      const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'?';
+      const fname=f.nom||(f.prenom?f.prenom:'?');
       const l=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='base'&&t.cadran==='base'&&Number(t.puissance_kva)===kva&&t.composant==='tout');
       if(!l)return;
       const aH=l.abonnement_ht_mois?parseFloat(l.abonnement_ht_mois):null;
@@ -4540,7 +4547,7 @@ function renderFrnCompare(){
     let trvHphcCoutTtc=null;
     energieProds.forEach(p=>{
       const f=fMap[p.fournisseur_id]||{};
-      const fname=[f.prenom,f.nom].filter(Boolean).join(' ')||'?';
+      const fname=f.nom||(f.prenom?f.prenom:'?');
       const lhp=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hp'&&Number(t.puissance_kva)===kva&&t.composant==='tout');
       const lhc=allTarifLignes.find(t=>t.produit_id===p.id&&t.option_tarifaire==='hphc'&&t.cadran==='hc'&&Number(t.puissance_kva)===kva&&t.composant==='tout');
       if(!lhp||!lhc)return;
