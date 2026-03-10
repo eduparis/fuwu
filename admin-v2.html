@@ -1734,7 +1734,7 @@ function renderPersonneModal(id){
           </div></div>`:''}
         </div>
       </div>
-      ${isInterm?`
+      ${(isInterm||p.est_fournisseur||p.type_client==='professionnel'||p.type_client==='societe')?`
       <div class="fmodal-grid" style="margin-top:8px;">
         <div class="fmodal-col">
           <div class="fmodal-section">Société / Facturation</div>
@@ -1743,13 +1743,13 @@ function renderPersonneModal(id){
           ${fmField('fp-iban','IBAN',p.iban)}
           ${fmField('fp-adresse-interm','Adresse (siège)',p.adresse_intermediaire,'textarea')}
         </div>
-        <div class="fmodal-col">
+        ${isInterm?`<div class="fmodal-col">
           <div class="fmodal-section">Commission par défaut</div>
           <div class="fmodal-field"><label>Taux de change € → ¥</label><input type="number" step="0.01" id="fp-taux-cny" value="${p.taux_change_cny||8}" onchange="calcIntermComm()"></div>
           <div class="fmodal-field"><label>HT € (défaut)</label><input type="number" step="0.01" id="fp-comm-ht" value="${p.commission_default_ht||20}" onchange="calcIntermComm()"></div>
           <div class="fmodal-field"><label>TTC € (auto HT×1.2)</label><input type="number" step="0.01" id="fp-comm-ttc" value="${p.commission_default_ttc_eur||(p.commission_default_ht?p.commission_default_ht*1.2:24)}"></div>
           <div class="fmodal-field"><label>TTC ¥ (auto TTC×taux)</label><input type="number" step="0.01" id="fp-comm-cny" value="${p.commission_default_cny||(p.commission_default_ttc_eur?(p.commission_default_ttc_eur*(p.taux_change_cny||8)):192)}"></div>
-        </div>
+        </div>`:''}
       </div>`:''}
     </div>
     <div id="fmt-contrats" style="display:none">
@@ -3897,17 +3897,25 @@ async function saveNewFournisseur(){
     allPersonnes.unshift(newP);
     personneMap[newP.id]=newP;
     
+    // Auto-generate id_client if missing
+    let idClient=newP.id_client;
+    if(!idClient){
+      const maxId=allPersonnes.reduce((mx,p)=>{const n=parseInt(p.id_client);return(!isNaN(n)&&n>mx)?n:mx;},10000);
+      idClient=String(maxId+1);
+      const patchId={id_client:idClient};
+      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${newP.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(patchId)});
+      newP.id_client=idClient;
+    }
+    
     // Auto-generate fournisseur IDs
-    if(newP.id_client){
-      const idBody={};
-      if(cats.includes('energie'))idBody.id_fournisseur_fe='FE'+newP.id_client;
-      if(cats.includes('telecom'))idBody.id_fournisseur_ft='FT'+newP.id_client;
-      if(cats.includes('banque'))idBody.id_fournisseur_fb='FB'+newP.id_client;
-      if(cats.includes('assurance'))idBody.id_fournisseur_fa='FA'+newP.id_client;
-      if(Object.keys(idBody).length){
-        await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${newP.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(idBody)});
-        Object.assign(newP,idBody);
-      }
+    const idBody={};
+    if(cats.includes('energie'))idBody.id_fournisseur_fe='FE'+idClient;
+    if(cats.includes('telecom'))idBody.id_fournisseur_ft='FT'+idClient;
+    if(cats.includes('banque'))idBody.id_fournisseur_fb='FB'+idClient;
+    if(cats.includes('assurance'))idBody.id_fournisseur_fa='FA'+idClient;
+    if(Object.keys(idBody).length){
+      await fetch(`${SUPABASE_URL}/rest/v1/personnes?id=eq.${newP.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(idBody)});
+      Object.assign(newP,idBody);
     }
     
     // Create adresse record
@@ -4124,44 +4132,56 @@ function renderTarifEditor(){
 async function saveTarifs(produitId){
   const inputs=document.querySelectorAll('.tarif-in[data-pid="'+produitId+'"]');
   const appDate=document.getElementById('tarif-date')?.value||new Date().toISOString().slice(0,10);
-  let saved=0, errors=0;
   
+  // Collect all values grouped by row key (opt+cad+kva+comp)
+  const rowMap={};
   for(const inp of inputs){
     const val=inp.value.trim();if(!val)continue;
-    const opt=inp.dataset.opt, cad=inp.dataset.cad, kva=parseInt(inp.dataset.kva), comp=inp.dataset.comp, field=inp.dataset.field;
-    const numVal=parseFloat(val);if(isNaN(numVal))continue;
+    const {opt,cad,kva,comp,field}=inp.dataset;
+    const key=`${opt}|${cad}|${kva}|${comp}`;
+    if(!rowMap[key])rowMap[key]={opt,cad,kva:parseInt(kva),comp,fields:{}};
+    rowMap[key].fields[field]=parseFloat(val);
+  }
+  
+  let saved=0, errors=0;
+  for(const key of Object.keys(rowMap)){
+    const {opt,cad,kva,comp,fields}=rowMap[key];
+    if(!Object.values(fields).some(v=>!isNaN(v)&&v!==0))continue;
     
-    // Find existing ligne
     const existing=allTarifLignes.find(t=>t.produit_id===produitId&&t.option_tarifaire===opt&&t.cadran===cad&&t.puissance_kva===kva&&t.composant===comp);
     
     try{
       if(existing){
-        const oldVal=existing[field];
-        if(oldVal!==null&&oldVal!==undefined&&parseFloat(oldVal)!==numVal){
-          // Write historique
-          await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({
-            produit_id:produitId,tarif_ligne_id:existing.id,champ_modifie:field,
-            ancienne_valeur:String(oldVal),nouvelle_valeur:String(numVal),
-            option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,
-            applicable_from:appDate,motif:'Mise à jour manuelle'
-          })});
+        const patch={applicable_from:appDate};
+        for(const [f,v] of Object.entries(fields)){
+          if(isNaN(v))continue;
+          const oldVal=existing[f];
+          if(oldVal!==null&&oldVal!==undefined&&parseFloat(oldVal)!==v){
+            // Write historique for changed field
+            await fetch(`${SUPABASE_URL}/rest/v1/tarif_historique`,{method:'POST',headers:H(),body:JSON.stringify({
+              produit_id:produitId,tarif_ligne_id:existing.id,champ_modifie:f,
+              ancienne_valeur:String(oldVal),nouvelle_valeur:String(v),
+              option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,
+              applicable_from:appDate,motif:'Mise à jour manuelle'
+            })});
+          }
+          patch[f]=v;
         }
-        // Update existing
-        const body={};body[field]=numVal;body.applicable_from=appDate;
-        await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes?id=eq.${existing.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
-        existing[field]=numVal;existing.applicable_from=appDate;
+        await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes?id=eq.${existing.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(patch)});
+        Object.assign(existing,patch);
       } else {
-        // Create new ligne
-        const body={produit_id:produitId,option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate};
-        body[field]=numVal;
-        // For hphc abonnement, set on hp cadran row
+        const body={produit_id:produitId,option_tarifaire:opt,cadran:cad,puissance_kva:kva,composant:comp,applicable_from:appDate,...fields};
         const r=await fetch(`${SUPABASE_URL}/rest/v1/tarif_lignes`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
         if(r.ok){const d=await r.json();if(Array.isArray(d)&&d.length)allTarifLignes.push(d[0]);}
       }
       saved++;
     }catch(e){errors++;console.error(e);}
   }
-  showToast(`${saved} tarif(s) sauvegardé(s)${errors?' · '+errors+' erreur(s)':''}`);
+  
+  // Reload tarif data to ensure consistency
+  try{allTarifLignes=await fetchAll(`${SUPABASE_URL}/rest/v1/tarif_lignes?select=*&order=produit_id,option_tarifaire,puissance_kva`);}catch(e){}
+  renderTarifEditor();
+  showToast(`${saved} ligne(s) sauvegardée(s)${errors?' · '+errors+' erreur(s)':''}`);
 }
 
 function editProduitTarifs(produitId){
